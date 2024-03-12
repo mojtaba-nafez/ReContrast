@@ -85,7 +85,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     if train_data:
         images, labels = zip(*random_samples)
     else:
-        image, _, labels, _ = zip(*random_samples)
+        images, _, labels, _ = zip(*random_samples)
 
     # print(f"len(labels): {len(labels)}")
     # print(f"type(labels): {type(labels)}")

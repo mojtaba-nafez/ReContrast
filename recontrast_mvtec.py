@@ -85,8 +85,8 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     images, labels = zip(*random_samples)
 
     # Convert PIL images to PyTorch tensors
-    transform = transforms.ToTensor()
-    images = [transform(image) for image in images]
+    # transform = transforms.ToTensor()
+    # images = [transform(image) for image in images]
 
     # Convert labels to PyTorch tensor
     labels = torch.tensor(labels)

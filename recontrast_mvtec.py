@@ -82,7 +82,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     random_samples = [dataset[i] for i in random_indices]
 
     # Separate images and labels
-    images, labels, *rest = zip(*random_samples)
+    images, labels = zip(*random_samples)
 
     # print(f"len(labels): {len(labels)}")
     # print(f"type(labels): {type(labels)}")
@@ -96,6 +96,10 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     # images = [transform(image) for image in images]
 
     # Convert labels to PyTorch tensor
+    print(f"len(labels): {len(labels)}")
+    print(f"type(labels): {type(labels)}")
+    print(f"type(labels[0]): {type(labels[0])}")
+    print(f"labels[0]: {labels[0]}")
     labels = torch.tensor(labels)
 
     # Show the 20 random samples

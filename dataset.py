@@ -6,6 +6,11 @@ import glob
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST, ImageFolder
 import numpy as np
 import torch.multiprocessing
+from torch.utils.data import Dataset
+from PIL import ImageFilter, Image, ImageOps
+from torchvision.datasets.folder import default_loader
+import os
+import random
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -39,9 +44,67 @@ def get_strong_transforms(size, isize, mean_train=None, std_train=None):
                              std=std_train)])
     return data_transforms
 
+class IMAGENET30_TEST_DATASET(Dataset):
+    def __init__(self, root_dir="/kaggle/input/imagenet30-dataset/one_class_test/one_class_test/", transform=None):
+        """
+        Args:
+            root_dir (string): Directory with all the classes.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.root_dir = root_dir
+        self.transform = transform
+        self.img_path_list = []
+        self.targets = []
+
+        # Map each class to an index
+        self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(sorted(os.listdir(root_dir)))}
+        print(f"self.class_to_idx in ImageNet30_Test_Dataset:\n{self.class_to_idx}")
+
+        # Walk through the directory and collect information about the images and their labels
+        for i, class_name in enumerate(os.listdir(root_dir)):
+            class_path = os.path.join(root_dir, class_name)
+            for instance_folder in os.listdir(class_path):
+                instance_path = os.path.join(class_path, instance_folder)
+                if instance_path != "/kaggle/input/imagenet30-dataset/one_class_test/one_class_test/airliner/._1.JPEG":
+                    for img_name in os.listdir(instance_path):
+                        if img_name.endswith('.JPEG'):
+                            img_path = os.path.join(instance_path, img_name)
+                            # image = Image.open(img_path).convert('RGB')
+                            self.img_path_list.append(img_path)
+                            self.targets.append(self.class_to_idx[class_name])
+
+    def __len__(self):
+        return len(self.img_path_list)
+
+    def __getitem__(self, idx):
+        img_path = self.img_path_list[idx]
+        image = default_loader(img_path)
+        label = self.targets[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+def center_paste(large_img, small_img):
+    # Calculate the center position
+    large_width, large_height = large_img.size
+    small_width, small_height = small_img.size
+
+    # Calculate the top-left position
+    left = (large_width - small_width) // 2
+    top = (large_height - small_height) // 2
+
+    # Create a copy of the large image to keep the original unchanged
+    result_img = large_img.copy()
+
+    # Paste the small image onto the large one at the calculated position
+    result_img.paste(small_img, (left, top))
+
+    return result_img
+
 
 class MVTecDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transform, gt_transform, phase):
+    def __init__(self, root, transform, gt_transform, phase, shrink_factor=None):
         if phase == 'train':
             self.img_path = os.path.join(root, 'train')
         else:
@@ -51,6 +114,9 @@ class MVTecDataset(torch.utils.data.Dataset):
         self.gt_transform = gt_transform
         # load dataset
         self.img_paths, self.gt_paths, self.labels, self.types = self.load_dataset()  # self.labels => good : 0, anomaly : 1
+        self.imagenet30_testset = IMAGENET30_TEST_DATASET()
+        self.shrink_factor = shrink_factor
+        print(f"self.shrink_factor: {self.shrink_factor}")
 
     def load_dataset(self):
 
@@ -90,6 +156,14 @@ class MVTecDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         img_path, gt, label, img_type = self.img_paths[idx], self.gt_paths[idx], self.labels[idx], self.types[idx]
         img = Image.open(img_path).convert('RGB')
+        if self.shrink_factor:
+            pad_img, _ = self.imagenet30_testset[int(random.random() * len(self.imagenet30_testset))]
+            pad_img = pad_img.resize((img.size, img.size))
+
+            img = img.resize((img.size * self.shrink_factor, img.size * self.shrink_factor))
+
+            img = center_paste(pad_img, img)
+
         img = self.transform(img)
         if gt == 0:
             gt = torch.zeros([1, img.size()[-2], img.size()[-2]])

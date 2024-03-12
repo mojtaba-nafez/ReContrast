@@ -55,7 +55,7 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_):
+def train(_class_, shrink_factor=None):
     print_fn(_class_)
     setup_seed(111)
 
@@ -70,7 +70,7 @@ def train(_class_):
     test_path = '/kaggle/input/mvtec-ad/' + _class_
 
     train_data = ImageFolder(root=train_path, transform=data_transform)
-    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test")
+    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
@@ -152,6 +152,7 @@ if __name__ == '__main__':
                         default='recontrast_mvtec_it2k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
+    parser.add_argument('--shrink_factor', type=float, default=None)
     args = parser.parse_args()
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
@@ -166,7 +167,7 @@ if __name__ == '__main__':
     result_list = []
     result_list_best = []
     for i, item in enumerate(item_list):
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor)
         result_list.append([item, auroc_px, auroc_sp, aupro_px])
         result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
 

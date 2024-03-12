@@ -16,6 +16,8 @@ from utils import evaluation, visualize, global_cosine, global_cosine_hm
 from torch.nn import functional as F
 from functools import partial
 from ptflops import get_model_complexity_info
+from torchvision import transforms
+import matplotlib.pyplot as plt
 
 import warnings
 import copy
@@ -54,6 +56,43 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+def show_images(images, labels, dataset_name):
+    num_images = len(images)
+    rows = int(num_images / 5) + 1
+
+    fig, axes = plt.subplots(rows, 5, figsize=(15, rows * 3))
+
+    for i, ax in enumerate(axes.flatten()):
+        if i < num_images:
+            ax.imshow(images[i].permute(1, 2, 0))  # permute to (H, W, C) for displaying RGB images
+            ax.set_title(f"Label: {labels[i]}")
+        ax.axis("off")
+
+    plt.savefig(f'{dataset_name}_visualization.png')
+
+def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
+    print(f"Start visualization of clean dataset: {dataset_name}")
+    # Choose 20 random indices from the dataset
+    if len(dataset) > 20:
+        random_indices = random.sample(range(len(dataset)), 20)
+    else:
+        random_indices = [i for i in range(len(dataset))]
+
+    # Retrieve corresponding samples
+    random_samples = [dataset[i] for i in random_indices]
+
+    # Separate images and labels
+    images, labels = zip(*random_samples)
+
+    # Convert PIL images to PyTorch tensors
+    transform = transforms.ToTensor()
+    images = [transform(image) for image in images]
+
+    # Convert labels to PyTorch tensor
+    labels = torch.tensor(labels)
+
+    # Show the 20 random samples
+    show_images(images, labels, dataset_name)
 
 def train(_class_, shrink_factor=None, total_iters=2000):
     print_fn(_class_)
@@ -74,6 +113,9 @@ def train(_class_, shrink_factor=None, total_iters=2000):
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+
+    visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}")
+    visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}")
 
     encoder, bn = wide_resnet50_2(pretrained=True)
     decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)

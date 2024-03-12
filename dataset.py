@@ -160,7 +160,7 @@ class MVTecDataset(torch.utils.data.Dataset):
             pad_img, _ = self.imagenet30_testset[int(random.random() * len(self.imagenet30_testset))]
             pad_img = pad_img.resize((img.size, img.size))
 
-            img = img.resize((img.size * self.shrink_factor, img.size * self.shrink_factor))
+            img = img.resize((int(img.size * self.shrink_factor), int(img.size * self.shrink_factor)))
 
             img = center_paste(pad_img, img)
 

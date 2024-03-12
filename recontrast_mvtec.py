@@ -86,6 +86,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
 
     print(f"len(labels): {len(labels)}")
     print(f"type(labels): {type(labels)}")
+    print(f"type(images): {type(images)}")
     print(f"type(labels[0]): {type(labels[0])}")
     print(f"labels[0]: {labels[0]}")
     print(f"labels.size(): {labels.size()}")

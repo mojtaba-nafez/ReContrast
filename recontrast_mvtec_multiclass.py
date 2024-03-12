@@ -76,8 +76,8 @@ def train(item_list):
     train_data_list = []
     test_data_list = []
     for i, item in enumerate(item_list):
-        train_path = '../mvtec_anomaly_detection/' + item + '/train'
-        test_path = '../mvtec_anomaly_detection/' + item
+        train_path = '/kaggle/input/mvtec-ad/' + item + '/train'
+        test_path = '/kaggle/input/mvtec-ad/' + item
 
         train_data = ImageFolder(root=train_path, transform=data_transform)
         train_data.classes = item

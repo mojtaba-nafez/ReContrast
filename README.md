@@ -23,7 +23,7 @@ You can also alter it according to your need, just remember to modify the `train
 ### MVTec AD
 
 Download the MVTec-AD dataset from [URL](https://www.mvtec.com/company/research/datasets/mvtec-ad).
-Unzip the file to `../mvtec_anomaly_detection/`.
+Unzip the file to `/kaggle/input/mvtec-ad/`.
 ```
 |-- mvtec_anomaly_detection
     |-- bottle

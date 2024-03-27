@@ -19,7 +19,7 @@ class WBC_dataset(Dataset):
         self.resize = resize
         self.normal_class_label = normal_class_label
         self.img_labels = pd.read_csv(csv_path)
-        self.img_labels = self.img_labels[self.img_labels['class label'] != 5]
+        self.img_labels = self.img_labels[self.img_labels['class'] != 5]
         self.transform = T.Compose([T.Resize(resize, Image.ANTIALIAS),
                                       T.CenterCrop(224),
                                       T.ToTensor(),
@@ -46,14 +46,14 @@ class WBC_dataset(Dataset):
 
 def get_wbc2_train_and_test_dataset_for_anomaly_detection():
     df = pd.read_csv('./wbc/segmentation_WBC/Class Labels of Dataset 2.csv')
-    df = df[df['class label'] != 5]
-    train_data = df[df['class label'] == 1].sample(n=20, random_state=2)
+    df = df[df['class'] != 5]
+    train_data = df[df['class'] == 1].sample(n=20, random_state=2)
 
     df = df.drop(train_data.index)
 
     test_data = pd.DataFrame()
     for label in [1, 2, 3, 4]:
-        class_samples = df[df['class label'] == label]
+        class_samples = df[df['class'] == label]
         test_data = pd.concat([test_data, class_samples])
 
     train_data.to_csv('wbc2_train_dataset.csv', index=False)
@@ -70,11 +70,11 @@ def get_wbc2_train_and_test_dataset_for_anomaly_detection():
 
 def get_just_wbc2_test_dataset_for_anomaly_detection():
     df = pd.read_csv('./wbc/segmentation_WBC/Class Labels of Dataset 2.csv')
-    df = df[df['class label'] != 5]
+    df = df[df['class'] != 5]
 
     test_data = pd.DataFrame()
     for label in [1, 2, 3, 4]:
-        class_samples = df[df['class label'] == label]
+        class_samples = df[df['class'] == label]
         test_data = pd.concat([test_data, class_samples])
 
     test_data.to_csv('wbc2_just_test_dataset.csv', index=False)

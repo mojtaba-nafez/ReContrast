@@ -354,7 +354,7 @@ class Train_MVTecDataset(Dataset):
             random_index = int(random.random() * len(self.imagenet_30))
             imagenet30_img = self.imagenet_30[random_index]
             imagenet30_img = imagenet30_img.convert('RGB')
-            factors = [0.98, 0.95, 0.9, 0.85, 0.8]
+            factors = [0.98, 0.95, 0.93, 0.91, 0.88, 0.82, 0.90, 0.97, 0.85, 0.80]
             image  = center_paste_2(imagenet30_img, image, random.choice(factors))
         '''
         if not self.train:

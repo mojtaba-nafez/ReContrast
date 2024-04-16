@@ -108,7 +108,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
-def train(_class_, shrink_factor=None, total_iters=2000):
+def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None, unode2_checkpoint=None):
     print_fn(_class_)
     setup_seed(111)
 
@@ -134,10 +134,18 @@ def train(_class_, shrink_factor=None, total_iters=2000):
     encoder, bn = wide_resnet50_2(pretrained=True)
     decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
 
+    if unode1_checkpoint is not None:  # encoder
+        print('Applying U-node as encoder 1...')
+        encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint)
+
+
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
     encoder_freeze = copy.deepcopy(encoder)
+
+    if unode2_checkpoint is not None:  # encoder_freeze
+        pass
 
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
     # for m in encoder.modules():
@@ -210,6 +218,10 @@ if __name__ == '__main__':
                         help='GPU id to use.')
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
+
+    # ADDING U NODE
+    parser.add_argument('--encoder1_path', type=str, default='')
+    parser.add_argument('--encoder2_path', type=str, default='')
     args = parser.parse_args()
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
@@ -223,8 +235,18 @@ if __name__ == '__main__':
 
     result_list = []
     result_list_best = []
+
+    en1_path = args.encoder1_path if args.encoder1_path != '' else None
+    en2_path = args.encoder2_path if args.encoder2_path != '' else None
+
+    print('en1_path: ', en1_path)
+    print('en2_path: ', en2_path)
+
     for i, item in enumerate(item_list):
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor,
+                                                                                          total_iters=args.total_iters,
+                                                                                          unode1_checkpoint=en1_path,
+                                                                                          unode2_checkpoint=en2_path)
         result_list.append([item, auroc_px, auroc_sp, aupro_px])
         result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
 

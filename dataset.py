@@ -312,7 +312,7 @@ class Train_MVTecDataset(Dataset):
         
         # if self.train and augment:
         if augment:
-            random_index = int(random.random() * len(imagenet_30))
+            random_index = int(random.random() * len(self.imagenet_30))
             imagenet30_img = self.imagenet_30[random_index]
             imagenet30_img = imagenet30_img.convert('RGB')
             factors = [0.98, 0.95, 0.9, 0.85, 0.8]

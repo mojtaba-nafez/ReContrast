@@ -191,7 +191,7 @@ def train(_class_, shrink_factor=None, total_iters=2000):
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (it + 1) % 250 == 0:
+            if (it + 1) % 8 == 0:
                 pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
                 for shrink_factor in pad_size:

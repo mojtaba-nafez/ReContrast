@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, resnext50_32x4d
 from models.de_resnet import de_wide_resnet50_2, de_resnet18, de_resnet34, de_resnet50, de_resnext50_32x4d
 from models.recontrast import ReContrast, ReContrast
-from dataset import MVTecDataset
+from dataset import MVTecDataset, Train_MVTecDataset
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation, visualize, global_cosine, global_cosine_hm
@@ -122,7 +122,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     test_path = '/kaggle/input/mvtec-ad/' + _class_
     if training_shrink_factor:
         train_path = '/kaggle/input/mvtec-ad/'
-        train_data = MVTecDataset(root=train_path, category=_class_, transform=data_transform)
+        train_data = Train_MVTecDataset(root=train_path, category=_class_, transform=data_transform)
     else:
         train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
         train_data = ImageFolder(root=train_path, transform=data_transform)

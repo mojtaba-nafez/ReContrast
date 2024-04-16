@@ -274,7 +274,7 @@ def center_paste_2(large_img, small_img, shrink_factor):
     return result_img
 
     
-class MVTecDataset(Dataset):
+class Train_MVTecDataset(Dataset):
     def __init__(self, root, category, transform=None, shrink_factor=1, train=True, count=-1):
         self.transform = transform
         self.image_files = []

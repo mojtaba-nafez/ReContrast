@@ -281,7 +281,7 @@ class MVTecDataset(Dataset):
         self.shrink_factor = shrink_factor
         print("category MVTecDataset:", category)
         if train:
-            good_images = glob(os.path.join(root, category, "train", "good", "*.png"))
+            good_images = glob.glob(os.path.join(root, category, "train", "good", "*.png"))
             if count != -1:
                 if count < len(good_images):
                     good_images = good_images[:count]

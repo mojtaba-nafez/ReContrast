@@ -108,7 +108,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
-def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250):
+def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_shrink_factor=False):
     print_fn(_class_)
     setup_seed(111)
 
@@ -119,10 +119,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250):
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
     test_path = '/kaggle/input/mvtec-ad/' + _class_
-
-    train_data = ImageFolder(root=train_path, transform=data_transform)
+    if training_shrink_factor:
+        train_path = '/kaggle/input/mvtec-ad/'
+        train_data = MVTecDataset(root=train_path, category=_class_, transform=data_transform)
+    else:
+        train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
+        train_data = ImageFolder(root=train_path, transform=data_transform)
+    
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
@@ -229,6 +233,8 @@ if __name__ == '__main__':
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
+    parser.add_argument('--training_shrink_factor', action='store_false')
+
     args = parser.parse_args()
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
@@ -249,11 +255,11 @@ if __name__ == '__main__':
 
     for i, item in enumerate(item_list):
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_shrink_factor=args.training_shrink_factor)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
             result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
-
+    
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')
         mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])

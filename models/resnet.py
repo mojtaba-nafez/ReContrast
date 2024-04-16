@@ -469,7 +469,7 @@ def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, *
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path
+    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path,
                       **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')

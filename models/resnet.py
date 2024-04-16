@@ -260,7 +260,8 @@ def _resnet(
     model = ResNet(block, layers, **kwargs)
     if pretrained:
         if unode_path is not None:
-            model.load_state_dict(unode_path)
+            dic = torch.load(unode_path)
+            model.load_state_dict(dic)
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)

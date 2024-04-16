@@ -247,11 +247,12 @@ if __name__ == '__main__':
     pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
     for i, item in enumerate(item_list):
+        print(f"++++++++++++++{item}++++++++++++++")
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
             result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
-
+        break
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')
         mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])

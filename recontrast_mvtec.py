@@ -157,6 +157,16 @@ def train(_class_, shrink_factor=None, total_iters=2000):
 
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
+
+    auroc_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+
+    auroc_sp_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_sp_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+
+    auroc_aupro_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_aupro_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
@@ -182,20 +192,28 @@ def train(_class_, shrink_factor=None, total_iters=2000):
             optimizer2.step()
             loss_list.append(loss.item())
             if (it + 1) % 250 == 0:
-                auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
-                model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
+                pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
-                print_fn(
-                    'Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
-                if auroc_sp >= auroc_sp_best:
-                    auroc_px_best, auroc_sp_best, aupro_px_best = auroc_px, auroc_sp, aupro_px
+                for shrink_factor in pad_size:
+                    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
+                    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+                    
+                    auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation(model, test_dataloader, device)
+                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]))
+                    
+                    if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
+                        auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+                
+                model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
+                
             it += 1
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
+   
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
-    return auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
 
 
 if __name__ == '__main__':
@@ -223,21 +241,29 @@ if __name__ == '__main__':
 
     result_list = []
     result_list_best = []
+
+    result_list = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
+    result_list_best = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
+    pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
+
     for i, item in enumerate(item_list):
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters)
-        result_list.append([item, auroc_px, auroc_sp, aupro_px])
-        result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
+        for pad in pad_size:
+            result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
+            result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
 
-    mean_auroc_px = np.mean([result[1] for result in result_list])
-    mean_auroc_sp = np.mean([result[2] for result in result_list])
-    mean_aupro_px = np.mean([result[3] for result in result_list])
-    print_fn(result_list)
-    print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-                                                                                    mean_aupro_px))
+    for pad in pad_size:
+        print(f'-------- shrink factor = {pad} --------')
+        mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
+        mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
+        mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+        print_fn(result_list[str(pad)])
+        print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
+                                                                                        mean_aupro_px))
 
-    best_auroc_px = np.mean([result[1] for result in result_list_best])
-    best_auroc_sp = np.mean([result[2] for result in result_list_best])
-    best_aupro_px = np.mean([result[3] for result in result_list_best])
-    print_fn(result_list_best)
-    print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
-                                                                                    best_aupro_px))
+        best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
+        best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
+        best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
+        print_fn(result_list_best[str(pad)])
+        print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
+                                                                                        best_aupro_px))

@@ -117,7 +117,9 @@ def train(_class_):
     test_path = '../APTOS/'
 
     train_data = AptosTrain(transform=data_transform)
-    test_data = AptosTest(transform=data_transform, test_id=args.test_id)
+    test_data1 = AptosTest(transform=data_transform, test_id=1)
+    test_data2 = AptosTest(transform=data_transform, test_id=2)
+
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
     visualize_random_samples_from_clean_dataset(test_data, f'test data aptos{args.test_id}')
@@ -125,7 +127,8 @@ def train(_class_):
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
     encoder, bn = wide_resnet50_2(pretrained=True)
     decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
@@ -167,10 +170,16 @@ def train(_class_):
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (it + 1) % 250 == 0:
-                auroc, f1, acc = evaluation_noseg(model, test_dataloader, device)
+            if (it + 1) % 50 == 0:
+                auroc1, f1_1, acc1 = evaluation_noseg(model, test_dataloader1, device)
+                print_fn('Test DataLoader 1 - AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc1, f1_1, acc1))
+
+                # Evaluate on the second test dataloader
+                auroc2, f1_2, acc2 = evaluation_noseg(model, test_dataloader2, device)
+                print_fn('Test DataLoader 2 - AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc2, f1_2, acc2))
+
+                # Set the model back to training mode
                 model.train(encoder_bn_train=True)
-                print_fn('AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc, f1, acc))
                 if auroc >= auroc_sp_best:
                     auroc_sp_best = auroc
             it += 1

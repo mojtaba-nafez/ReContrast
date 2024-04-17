@@ -21,9 +21,9 @@ def get_data_transforms(size, isize, mean_train=None, std_train=None):
     data_transforms = transforms.Compose([
         transforms.Resize((size, size)),
         transforms.ToTensor(),
-        transforms.CenterCrop(isize),
-        transforms.Normalize(mean=mean_train,
-                             std=std_train)])
+        transforms.CenterCrop(isize),])
+        # transforms.Normalize(mean=mean_train,
+        #                      std=std_train)])
     gt_transforms = transforms.Compose([
         transforms.Resize((size, size)),
         transforms.CenterCrop(isize),

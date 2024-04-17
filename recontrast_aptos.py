@@ -146,7 +146,8 @@ def train(_class_):
     optimizer2 = torch.optim.AdamW(list(encoder.parameters()),
                                    lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
     print_fn('train image number:{}'.format(len(train_data)))
-    print_fn('test image number:{}'.format(len(test_data)))
+    print_fn('test1 image number:{}'.format(len(test_data1)))
+    print_fn('test1 image number:{}'.format(len(test_data2)))
 
     auroc_sp_best = 0
     it = 0

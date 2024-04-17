@@ -379,24 +379,20 @@ class ISICTest(torch.utils.data.Dataset):
         self.transform = transform
         self.test_id = test_id
 
-        test_normal_path = glob.glob('/kaggle/working/APTOS/test/NORMAL/*')
-        test_anomaly_path = glob.glob('/kaggle/working/APTOS/test/ABNORMAL/*')
+        test_normal_path = glob.glob('/kaggle/input/isic-task3-dataset/dataset/test/NORMAL/*')
+        test_anomaly_path = glob.glob('/kaggle/input/isic-task3-dataset/dataset/test/ABNORMAL/*')
 
         self.test_path = test_normal_path + test_anomaly_path
         self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
 
         if self.test_id == 2:
-            df = pd.read_csv('/kaggle/input/ddrdataset/DR_grading.csv')
-            label = df["diagnosis"].to_numpy()
-            path = df["id_code"].to_numpy()
+            df = pd.read_csv('/kaggle/input/pad-ufes-20/PAD-UFES-20/metadata.csv')
 
-            normal_path = path[label == 0]
-            anomaly_path = path[label != 0]
+            shifted_test_label = df["diagnostic"].to_numpy()
+            shifted_test_label = (shifted_test_label != "NEV")
 
-            shifted_test_path = list(normal_path) + list(anomaly_path)
-            shifted_test_label = [0] * len(normal_path) + [1] * len(anomaly_path)
-
-            shifted_test_path = ["/kaggle/input/ddrdataset/DR_grading/DR_grading/" + s for s in shifted_test_path]
+            shifted_test_path = df["img_id"].to_numpy()
+            shifted_test_path = '/kaggle/input/pad-ufes-20/PAD-UFES-20/Dataset/' + shifted_test_path
 
             self.test_path = shifted_test_path
             self.test_label = shifted_test_label
@@ -405,8 +401,6 @@ class ISICTest(torch.utils.data.Dataset):
         return len(self.test_path)
 
     def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
 
         img_path = self.test_path[idx]
         img = Image.open(img_path).convert('RGB')
@@ -418,7 +412,7 @@ class ISICTest(torch.utils.data.Dataset):
 class ISICTrain(torch.utils.data.Dataset):
     def __init__(self, transform):
         self.transform = transform
-        self.image_paths = glob.glob('/kaggle/working/APTOS/train/NORMAL/*')
+        self.image_paths = glob.glob('/kaggle/input/isic-task3-dataset/dataset/train/NORMAL/*')
 
     def __len__(self):
         return len(self.image_paths)

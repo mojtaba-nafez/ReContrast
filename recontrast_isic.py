@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, wide_resnet101_2
 from models.de_resnet import de_wide_resnet50_2
 from models.recontrast import ReContrast, ReContrast
-from dataset import MedicalDataset
+from dataset import ISICTrain, ISICTest
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation_noseg, visualize_noseg
@@ -112,11 +112,18 @@ def train(_class_):
     train_path = '../ISIC2018/'
     test_path = '../ISIC2018/'
 
-    train_data = MedicalDataset(root=train_path, transform=data_transform, phase="train")
-    test_data = MedicalDataset(root=test_path, transform=data_transform, phase="test")
+    train_data = ISICTrain(transform=data_transform)
+    test_data1 = ISICTest(transform=data_transform, test_id=1)
+    test_data2 = ISICTest(transform=data_transform, test_id=2)
+
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset isic')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data isic1')
+    visualize_random_samples_from_clean_dataset(test_data2, f'test data isic2')
+
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
     encoder, bn = wide_resnet50_2(pretrained=True)
     decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
@@ -133,7 +140,8 @@ def train(_class_):
     optimizer2 = torch.optim.AdamW(list(encoder.parameters()),
                                    lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
     print_fn('train image number:{}'.format(len(train_data)))
-    print_fn('test image number:{}'.format(len(test_data)))
+    print_fn('test image number:{}'.format(len(test_data1)))
+    print_fn('test image number:{}'.format(len(test_data2)))
 
     auroc_sp_best = 0
     it = 0
@@ -159,17 +167,21 @@ def train(_class_):
             optimizer2.step()
             loss_list.append(loss.item())
             if (it + 1) % 250 == 0:
-                print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
-                auroc, f1, acc = evaluation_noseg(model, test_dataloader, device, reduction='mean')
+                auroc1, f1_1, acc1 = evaluation_noseg(model, test_dataloader1, device)
+                print_fn('Test DataLoader 1 - AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc1, f1_1, acc1))
+
+                # Evaluate on the second test dataloader
+                auroc2, f1_2, acc2 = evaluation_noseg(model, test_dataloader2, device)
+                print_fn('Test DataLoader 2 - AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc2, f1_2, acc2))
+
                 model.train(encoder_bn_train=True)
-                print_fn('AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc, f1, acc))
                 if auroc >= auroc_sp_best:
                     auroc_sp_best = auroc
             it += 1
             if it == total_iters:
                 break
 
-    visualize_noseg(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
+    visualize_noseg(model, test_dataloader1, device, _class_=_class_, save_name=args.save_name)
     return auroc, auroc_sp_best
 
 

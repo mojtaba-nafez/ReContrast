@@ -221,10 +221,6 @@ class ResNet(nn.Module):
         self.output_conv = output_conv
         self.uncertainty_conv = uncertainty_conv
 
-        mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
-        std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
-        self.norm = lambda x: (x - mu) / std
-
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -311,7 +307,6 @@ class ResNet(nn.Module):
         return [f1, f2, f3]
 
     def forward(self, x: Tensor) -> Tensor:
-        x = self.norm(x)
         return self._forward_impl(x)
 
 

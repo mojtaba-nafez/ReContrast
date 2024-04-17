@@ -122,7 +122,8 @@ def train(_class_):
 
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
-    visualize_random_samples_from_clean_dataset(test_data, f'test data aptos{args.test_id}')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')
+    visualize_random_samples_from_clean_dataset(test_data2, f'test data aptos2')
 
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,

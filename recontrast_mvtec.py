@@ -118,11 +118,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     crop_size = 256
     
     train_data_transforms = transforms.Compose([
-        transforms.Resize((size, size)),
+        transforms.Resize((image_size, image_size)),
         transforms.ColorJitter(brightness=(0.1,0.6), contrast=1,saturation=0, hue=0.4),
         transforms.AutoAugment(),
         transforms.ToTensor(),
-        transforms.CenterCrop(isize),
+        transforms.CenterCrop(crop_size),
         ])
     
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)

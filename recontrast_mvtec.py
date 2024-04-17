@@ -166,11 +166,15 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
     print_fn('test image number:{}'.format(len(test_data)))
     macs, params = get_model_complexity_info(model, (3, crop_size, crop_size),
                                              as_strings=True, print_per_layer_stat=False)
-    print_fn('Computation:{}'.format(macs))  # NONE
-    print_fn('Parameters:{}'.format(params))  # NONe
+    print_fn('Computation:{}'.format(macs))  # NONE vs 10.11 GMac
+    print_fn('Parameters:{}'.format(params))  # NONe vs 21.65 M
 
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
+    print('len train dat aloader: ', len(train_dataloader))
+
+    # IMPORTANT: total_iters should be >= 250 so that return values get computed
+
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
@@ -248,7 +252,7 @@ if __name__ == '__main__':
     print('en1_path: ', en1_path)
     print('en2_path: ', en2_path)
 
-    for i, item in enumerate(item_list):
+    for i, item in enumerate(item_list[0:1]):
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
                                                                                           shrink_factor=args.shrink_factor,
                                                                                           total_iters=args.total_iters,

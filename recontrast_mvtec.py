@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import warnings
 import copy
 import logging
+from cutpaste_transformation import *
 
 warnings.filterwarnings("ignore")
 

@@ -189,7 +189,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
         loss_list = []
         for img, label in train_dataloader:
-            # img : [8, 3, 256, 256]
+            # img : [16, 3, 256, 256]
             img = img.to(device)
 
             anomaly_data = np.ones(len(img))*-1
@@ -202,8 +202,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     img[i] = anomaly_transforms(img[i])
             anomaly_data = torch.tensor(anomaly_data).to(device)
 
-            # en : [[8,256,64,64], [8,512,32,32], [8,1024,16,16], [8,256,64,64], [8,512,32,32], [8,1024,16,16]]
-            # de : [[8,256,64,64], [8,512,32,32], [8,1024,16,16], [8,256,64,64], [8,512,32,32], [8,1024,16,16]]
+            # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
+            # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)

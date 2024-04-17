@@ -150,6 +150,7 @@ class ResNet(nn.Module):
             self,
             block: Type[Union[BasicBlock, Bottleneck]],
             layers: List[int],
+            fc=True,
             num_classes: int = 1000,
             zero_init_residual: bool = False,
             groups: int = 1,
@@ -186,7 +187,8 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        # self.fc = nn.Linear(512 * block.expansion, num_classes)
+        if fc:
+            self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -255,9 +257,10 @@ def _resnet(
         pretrained: bool,
         progress: bool,
         unode_path=None,
+        fc=True,
         **kwargs: Any
 ) -> ResNet:
-    model = ResNet(block, layers, **kwargs)
+    model = ResNet(block, layers, fc, **kwargs)
     if pretrained:
         if unode_path is not None:
             dic = torch.load(unode_path)
@@ -266,7 +269,7 @@ def _resnet(
             model.load_state_dict(dic)
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress)
+                                                  progress=progress)
             # for k,v in list(state_dict.items()):
             #    if 'layer4' in k or 'fc' in k:
             #        state_dict.pop(k)
@@ -465,14 +468,14 @@ class BN_layer(nn.Module):
         return output.contiguous()
 
 
-def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, **kwargs: Any):
+def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, fc=True, **kwargs: Any):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path,
+    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path, fc=fc,
                       **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')

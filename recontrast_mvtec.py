@@ -185,9 +185,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
         loss_list = []
         for img, label in train_dataloader:
+            # img : [8, 3, 256, 256]
             img = img.to(device)
+            # en : [[8,256,64,64], [8,512,32,32], [8,1024,16,16], [8,256,64,64], [8,512,32,32], [8,1024,16,16]]
+            # de : [[8,256,64,64], [8,512,32,32], [8,1024,16,16], [8,256,64,64], [8,512,32,32], [8,1024,16,16]]
             en, de = model(img)
-
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
             loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \

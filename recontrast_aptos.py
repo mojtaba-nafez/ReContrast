@@ -107,7 +107,7 @@ def train(_class_):
     setup_seed(111)
 
     total_iters = 1000
-    batch_size = 32
+    batch_size = 16
     image_size = 256
     crop_size = 256
 

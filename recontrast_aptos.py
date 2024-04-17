@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, wide_resnet101_2
 from models.de_resnet import de_wide_resnet50_2
 from models.recontrast import ReContrast, ReContrast
-from dataset import MedicalDataset
+from dataset import AptosTrain, AptosTest
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation_noseg, visualize_noseg
@@ -23,6 +23,49 @@ import copy
 import logging
 
 warnings.filterwarnings("ignore")
+
+def show_images(images, labels, dataset_name):
+    num_images = len(images)
+    rows = int(np.ceil(num_images / 5))  # Use np.ceil to ensure enough rows
+
+    fig, axes = plt.subplots(rows, 5, figsize=(15, rows * 3), squeeze=False)  # Ensure axes is always a 2D array
+
+    for i, ax in enumerate(axes.flatten()):
+        if i < num_images:
+            # Check if image is a tensor, if so, convert to numpy
+            if isinstance(images[i], torch.Tensor):
+                image = images[i].numpy()
+            else:
+                image = images[i]
+            # If image is in (C, H, W) format, transpose it to (H, W, C)
+            if image.shape[0] in {1, 3}:  # Assuming grayscale (1 channel) or RGB (3 channels)
+                image = image.transpose(1, 2, 0)
+            if image.shape[2] == 1:  # If grayscale, convert to RGB for consistency
+                image = np.repeat(image, 3, axis=2)
+            ax.imshow(image)
+            ax.set_title(f"Label: {labels[i].item()}")
+        ax.axis("off")
+
+    plt.tight_layout()
+    plt.savefig(f'{dataset_name}_visualization.png')
+def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
+    print(f"Start visualization of clean dataset: {dataset_name}")
+    # Choose 20 random indices from the dataset
+    if len(dataset) > 20:
+        random_indices = random.sample(range(len(dataset)), 20)
+    else:
+        random_indices = [i for i in range(len(dataset))]
+
+    # Retrieve corresponding samples
+    random_samples = [dataset[i] for i in random_indices]
+
+    # Separate images and labels
+    images, labels, _ = zip(*random_samples)
+
+    labels = torch.tensor(labels)
+
+    # Show the 20 random samples
+    show_images(images, labels, dataset_name)
 
 
 def get_logger(name, save_path=None, level='INFO'):
@@ -70,8 +113,13 @@ def train(_class_):
     train_path = '../APTOS/'
     test_path = '../APTOS/'
 
-    train_data = MedicalDataset(root=train_path, transform=data_transform, phase="train")
-    test_data = MedicalDataset(root=test_path, transform=data_transform, phase="test")
+    train_data = AptosTrain(transform=data_transform)
+    test_data = AptosTest(transform=data_transform, test_id=args.test_id)
+
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
+    visualize_random_samples_from_clean_dataset(test_data, f'test data aptos{args.test_id}')
+
+
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
@@ -141,6 +189,7 @@ if __name__ == '__main__':
                         default='recontrast_aptos_b32_it1k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
+    parser.add_argument('--test_id', default=1, type=int)
     args = parser.parse_args()
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))

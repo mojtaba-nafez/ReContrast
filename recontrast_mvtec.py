@@ -153,7 +153,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
 
     if unode2_checkpoint is not None:  # encoder_freeze
         print('Applying U-node as encoder 2...')
-        encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
+        encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode2_checkpoint, fc=False)
 
     encoder_freeze = encoder_freeze.to(device)
 

@@ -119,12 +119,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     
     train_data_transforms = transforms.Compose([
         transforms.Resize((image_size, image_size)),
-        transforms.ColorJitter(brightness=(0.1,0.6), contrast=1,saturation=0, hue=0.4),
-        transforms.AutoAugment(),
+        # transforms.ColorJitter(brightness=(0.1,0.6), contrast=1,saturation=0, hue=0.4),
+        # transforms.AutoAugment(),
         transforms.ToTensor(),
         transforms.CenterCrop(crop_size),
         ])
-    
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
     test_path = '/kaggle/input/mvtec-ad/' + _class_
@@ -178,7 +177,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     auroc_aupro_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
     auroc_aupro_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-
+    
+    anomaly_transforms = transforms.Compose([
+        transforms.ToPILImage(),
+        CutPasteUnion(transform = transforms.Compose([transforms.ToTensor(),])),
+    ])
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
@@ -187,13 +190,24 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         for img, label in train_dataloader:
             # img : [8, 3, 256, 256]
             img = img.to(device)
+
+            anomaly_data = np.ones(len(img))*-1
+            numbers = list(range(len(img)))
+            random.shuffle(numbers)
+            anomaly_data[numbers[:int(len(numbers)/2)]] = 1
+
+            for i in range(len(anomaly_data)):
+                if anomaly_data[i] == -1:
+                    img[i] = anomaly_transforms(img[i])
+            anomaly_data = torch.tensor(anomaly_data)
+
             # en : [[8,256,64,64], [8,512,32,32], [8,1024,16,16], [8,256,64,64], [8,512,32,32], [8,1024,16,16]]
             # de : [[8,256,64,64], [8,512,32,32], [8,1024,16,16], [8,256,64,64], [8,512,32,32], [8,1024,16,16]]
             en, de = model(img)
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
-                   global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
+            loss = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
+                   global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
 
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2

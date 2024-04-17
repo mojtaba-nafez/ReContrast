@@ -292,7 +292,7 @@ if __name__ == '__main__':
     print('en1_path: ', en1_path)
     print('en2_path: ', en2_path)
 
-    num_classes = int(args.num_classes)
+    # num_classes = int(args.num_classes)
 
     for i in range(len(classes)):
         item = item_list[int(i)]

@@ -1,4 +1,3 @@
-
 import torch
 from dataset import get_data_transforms, get_strong_transforms
 from torchvision.datasets import ImageFolder
@@ -56,6 +55,7 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 def show_images(images, labels, dataset_name):
     num_images = len(images)
     rows = int(num_images / 5) + 1
@@ -69,6 +69,7 @@ def show_images(images, labels, dataset_name):
         ax.axis("off")
 
     plt.savefig(f'{dataset_name}_visualization.png')
+
 
 def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_data=True):
     print(f"Start visualization of clean dataset: {dataset_name}")
@@ -108,6 +109,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
+
 def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None, unode2_checkpoint=None):
     print_fn(_class_)
     setup_seed(111)
@@ -123,7 +125,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
     test_path = '/kaggle/input/mvtec-ad/' + _class_
 
     train_data = ImageFolder(root=train_path, transform=data_transform)
-    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
+    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
+                             shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
@@ -131,8 +134,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
-    encoder, bn = wide_resnet50_2(pretrained=True)
-    decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    encoder, bn = resnet18(pretrained=True)
+    decoder = de_resnet18(pretrained=False, output_conv=2)
 
     # encoder_freeze = copy.deepcopy(encoder)
     # encoder_freeze = encoder_freeze.to(device)
@@ -141,7 +144,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
         print('Applying U-node as encoder 1...')
         encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint)
         # encoder_freeze = copy.deepcopy(encoder)
-
 
     encoder = encoder.to(device)
     bn = bn.to(device)
@@ -164,8 +166,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
     print_fn('test image number:{}'.format(len(test_data)))
     macs, params = get_model_complexity_info(model, (3, crop_size, crop_size),
                                              as_strings=True, print_per_layer_stat=False)
-    print_fn('Computation:{}'.format(macs))
-    print_fn('Parameters:{}'.format(params))
+    print_fn('Computation:{}'.format(macs))  # NONE
+    print_fn('Parameters:{}'.format(params))  # NONe
 
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
@@ -247,7 +249,8 @@ if __name__ == '__main__':
     print('en2_path: ', en2_path)
 
     for i, item in enumerate(item_list):
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor,
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
+                                                                                          shrink_factor=args.shrink_factor,
                                                                                           total_iters=args.total_iters,
                                                                                           unode1_checkpoint=en1_path,
                                                                                           unode2_checkpoint=en2_path)

@@ -213,7 +213,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (it + 1) % 250 == 0:
+            if (it + 1) % (total_iters / 2) == 0:
                 pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
                 for shrink_factor in pad_size:
@@ -244,7 +244,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
-    return auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
 
 
 if __name__ == '__main__':
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     # ADDING U NODE
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
-    parser.add_argument('--classes', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='first n classes of mvtec')
+    parser.add_argument('--classes', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='classes of mvtec')
     args = parser.parse_args()
 
     classes = args.classes.split(',')
@@ -272,6 +272,7 @@ if __name__ == '__main__':
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
                  'transistor', 'metal_nut', 'screw', 'toothbrush', 'zipper', 'tile', 'wood']
+    print(item_list)
     # item_list = ['toothbrush']
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info

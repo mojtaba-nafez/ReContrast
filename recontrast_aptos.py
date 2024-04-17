@@ -182,8 +182,8 @@ def train(_class_):
 
                 # Set the model back to training mode
                 model.train(encoder_bn_train=True)
-                if auroc >= auroc_sp_best:
-                    auroc_sp_best = auroc
+                if auroc1 >= auroc_sp_best:
+                    auroc_sp_best = auroc1
             it += 1
             if it == total_iters:
                 break

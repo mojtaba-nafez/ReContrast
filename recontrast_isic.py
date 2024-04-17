@@ -176,7 +176,7 @@ def train(_class_):
 
                 model.train(encoder_bn_train=True)
                 if auroc1 >= auroc_sp_best:
-                    auroc_sp_best = auroc
+                    auroc_sp_best = auroc1
             it += 1
             if it == total_iters:
                 break

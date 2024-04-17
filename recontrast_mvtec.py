@@ -116,16 +116,24 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     batch_size = 16
     image_size = 256
     crop_size = 256
-
+    
+    train_data_transforms = transforms.Compose([
+        transforms.Resize((size, size)),
+        transforms.ColorJitter(brightness=(0.1,0.6), contrast=1,saturation=0, hue=0.4),
+        transforms.AutoAugment(),
+        transforms.ToTensor(),
+        transforms.CenterCrop(isize),
+        ])
+    
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
     test_path = '/kaggle/input/mvtec-ad/' + _class_
     if training_shrink_factor:
         train_path = '/kaggle/input/mvtec-ad/'
-        train_data = Train_MVTecDataset(root=train_path, category=_class_, transform=data_transform)
+        train_data = Train_MVTecDataset(root=train_path, category=_class_, transform=train_data_transforms)
     else:
         train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
-        train_data = ImageFolder(root=train_path, transform=data_transform)
+        train_data = ImageFolder(root=train_path, transform=train_data_transforms)
     
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,

@@ -423,6 +423,54 @@ class ISICTrain(torch.utils.data.Dataset):
         img = self.transform(img)
         return img, 0, img_path
 
+class BrainTest(torch.utils.data.Dataset):
+    def __init__(self, transform, test_id=1):
+
+        self.transform = transform
+        self.test_id = test_id
+
+        test_normal_path = glob.glob('./Br35H/dataset/test/normal/*')
+        test_anomaly_path = glob.glob('./Br35H/dataset/test/anomaly/*')
+
+        self.test_path = test_normal_path + test_anomaly_path
+        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+        if self.test_id == 2:
+            test_normal_path = glob.glob('./brats/dataset/test/normal/*')
+            test_anomaly_path = glob.glob('./brats/dataset/test/anomaly/*')
+
+            self.test_path = test_normal_path + test_anomaly_path
+            self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+    def __len__(self):
+        return len(self.test_path)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img_path = self.test_path[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+
+        has_anomaly = 0 if self.test_label[idx] == 0 else 1
+
+        return img, has_anomaly, img_path
+class BrainTrain(torch.utils.data.Dataset):
+    def __init__(self, transform):
+        self.transform = transform
+        self.image_paths = glob.glob('./Br35H/dataset/train/normal/*')
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+        return img, 0, img_path
+
+
 
 class MedicalDataset(torch.utils.data.Dataset):
     def __init__(self, root, transform, phase):

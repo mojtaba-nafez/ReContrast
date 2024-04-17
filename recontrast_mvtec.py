@@ -296,7 +296,7 @@ if __name__ == '__main__':
     # num_classes = int(args.num_classes)
 
     for i in range(len(classes)):
-        item = item_list[int(i)]
+        item = item_list[int(classes[i])]
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
                                                                                           shrink_factor=args.shrink_factor,

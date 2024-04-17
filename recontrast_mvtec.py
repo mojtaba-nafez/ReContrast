@@ -134,8 +134,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
     encoder, bn = wide_resnet50_2(pretrained=True)
     decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
 
-    encoder_freeze = copy.deepcopy(encoder)
-    encoder_freeze = encoder_freeze.to(device)
+    # encoder_freeze = copy.deepcopy(encoder)
+    # encoder_freeze = encoder_freeze.to(device)
 
     if unode1_checkpoint is not None:  # encoder
         print('Applying U-node as encoder 1...')
@@ -146,7 +146,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
-    # encoder_freeze = copy.deepcopy(encoder)
+    encoder_freeze = copy.deepcopy(encoder)
 
     if unode2_checkpoint is not None:  # encoder_freeze
         pass

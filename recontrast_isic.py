@@ -175,7 +175,7 @@ def train(_class_):
                 print_fn('Test DataLoader 2 - AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc2, f1_2, acc2))
 
                 model.train(encoder_bn_train=True)
-                if auroc >= auroc_sp_best:
+                if auroc1 >= auroc_sp_best:
                     auroc_sp_best = auroc
             it += 1
             if it == total_iters:

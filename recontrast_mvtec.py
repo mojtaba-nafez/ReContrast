@@ -200,7 +200,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
-            anomaly_data = torch.tensor(anomaly_data)
+            anomaly_data = torch.tensor(anomaly_data).to(device)
 
             # en : [[8,256,64,64], [8,512,32,32], [8,1024,16,16], [8,256,64,64], [8,512,32,32], [8,1024,16,16]]
             # de : [[8,256,64,64], [8,512,32,32], [8,1024,16,16], [8,256,64,64], [8,512,32,32], [8,1024,16,16]]

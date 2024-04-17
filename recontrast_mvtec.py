@@ -131,18 +131,22 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
-    # encoder, bn = wide_resnet50_2(pretrained=True)
+    encoder, bn = wide_resnet50_2(pretrained=True)
     decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+
+    encoder_freeze = copy.deepcopy(encoder)
+    encoder_freeze = encoder_freeze.to(device)
 
     if unode1_checkpoint is not None:  # encoder
         print('Applying U-node as encoder 1...')
         encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint)
+        # encoder_freeze = copy.deepcopy(encoder)
 
 
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
-    encoder_freeze = copy.deepcopy(encoder)
+    # encoder_freeze = copy.deepcopy(encoder)
 
     if unode2_checkpoint is not None:  # encoder_freeze
         pass

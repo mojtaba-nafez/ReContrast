@@ -264,8 +264,11 @@ if __name__ == '__main__':
     # ADDING U NODE
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
-    parser.add_argument('--num_classes', type=str, default='1', help='first n classes of mvtec')
+    parser.add_argument('--classes', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='first n classes of mvtec')
     args = parser.parse_args()
+
+    classes = args.classes.split(',')
+    print('classes: ', classes)
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
                  'transistor', 'metal_nut', 'screw', 'toothbrush', 'zipper', 'tile', 'wood']
@@ -291,7 +294,8 @@ if __name__ == '__main__':
 
     num_classes = int(args.num_classes)
 
-    for i, item in enumerate(item_list[:num_classes]):
+    for i in range(len(classes)):
+        item = item_list[int(i)]
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
                                                                                           shrink_factor=args.shrink_factor,

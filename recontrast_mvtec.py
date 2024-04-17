@@ -236,6 +236,7 @@ if __name__ == '__main__':
     # ADDING U NODE
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
+    parser.add_argument('--num_classes', type=str, default='1', help='first n classes of mvtec')
     args = parser.parse_args()
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
@@ -256,7 +257,9 @@ if __name__ == '__main__':
     print('en1_path: ', en1_path)
     print('en2_path: ', en2_path)
 
-    for i, item in enumerate(item_list[0:1]):
+    num_classes = args.num_classes
+
+    for i, item in enumerate(item_list[0:num_classes]):
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
                                                                                           shrink_factor=args.shrink_factor,
                                                                                           total_iters=args.total_iters,

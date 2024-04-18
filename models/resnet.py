@@ -267,8 +267,8 @@ def _resnet(
     if pretrained:
         if unode_path is not None:
             dic = torch.load(unode_path)
-            print('loaded keys:', dic.keys())
-            print('model:', model)
+            # print('loaded keys:', dic.keys())
+            # print('model:', model)
             model.load_state_dict(dic)
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],

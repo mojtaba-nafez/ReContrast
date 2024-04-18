@@ -386,7 +386,7 @@ if __name__ == '__main__':
     # num_classes = int(args.num_classes)
 
     if update_decoder:
-        train(item_list[classes[0]], shrink_factor=args.shrink_factor,
+        train(item_list[int(classes[0])], shrink_factor=args.shrink_factor,
               total_iters=args.total_iters,
               unode1_checkpoint=en1_path,
               unode2_checkpoint=en2_path,

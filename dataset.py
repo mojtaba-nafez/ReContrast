@@ -511,7 +511,6 @@ class RSNATEST(torch.utils.data.Dataset):
 
             self.test_path = shifted_test_normal_path + shifted_test_anomaly_path
             self.test_label = [0] * len(shifted_test_normal_path) + [1] * len(shifted_test_anomaly_path)
-            len(shifted_test_label), len(shifted_test_path)
 
 
         if self.test_id == 3:

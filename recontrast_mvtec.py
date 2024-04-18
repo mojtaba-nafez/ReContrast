@@ -127,13 +127,8 @@ class NewModel(nn.Module):
     def get_output_size(self, model):
         dummy_input = torch.randn(1, 3, 256, 256).to('cuda')
         output = model(dummy_input)
-        if isinstance(output, tuple):
-            # If the output is a tuple, you can access the individual tensors
-            # Assuming the first element of the tuple is the main output tensor
-            output = output[0]
-        else:
-            # If the output is a single tensor
-            output = output
+        print(output)
+        print(type(output))
         return output.size(-1)
 
 

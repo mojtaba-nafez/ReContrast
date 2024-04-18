@@ -116,38 +116,20 @@ class NewModel(nn.Module):
     def __init__(self, existing_model):
         super(NewModel, self).__init__()
         self.existing_model = existing_model
-        output_size = self.get_output_size(existing_model)
-        self.classifier = nn.Linear(output_size, 2)
+        # output_size = self.get_output_size(existing_model)
+        self.classifier = nn.Linear(256, 2)
         self.classifier = self.classifier.to('cuda')
 
     def forward(self, x):
         features = self.existing_model(x)[2][0]
+        print('shape', features.shape)
+        features = features.mean(dim=(-2, -1), keepdim=True)
+        print('shape now', features.shape)
         output = self.classifier(features)
         print('forward out:', output.shape)
         return output
 
-    def get_output_size(self, model):
-        dummy_input = torch.randn(1, 3, 256, 256).to('cuda')
-        output = model(dummy_input)
-        # print('len(output)', len(output))
-        # print('len(output)', len(output))
-        # print('type(output)', type(output))
-        # # print('len(output[0])', len(output[0]))
-        # # print('len(output[1])', len(output[1]))
-        # # print('type(output[0])', type(output[0]))
-        # # print('type(output[1])', type(output[1]))
-        # # print('output[0]', output[0])
-        # # print('output[1]', output[1])
-        print(output[0].shape)
-        print(output[1].shape)
-        print(output[2].shape)
-        print(output[3].shape)
-        print(output[4].shape)
-        print(output[5].shape)
-        last = output[2][0]
-        print('last shape', last.shape)
-        torch.mean(last[2].view(last[2].size(0), last[2].size(1), -1), dim=2)
-        return output[2].size(-1)
+
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,

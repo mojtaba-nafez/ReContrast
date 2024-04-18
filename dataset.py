@@ -490,7 +490,7 @@ class RSNATRAIN(torch.utils.data.Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        return image, 0
+        return image, 0, _
 
 class RSNATEST(torch.utils.data.Dataset):
     def __init__(self, transform, test_id=1):

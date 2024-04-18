@@ -172,8 +172,8 @@ class ResNet(nn.Module):
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
-        self.groups = groups
-        self.base_width = width_per_group
+        self.groups = groups  # 1
+        self.base_width = width_per_group  # 64
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = norm_layer(self.inplanes)
@@ -457,10 +457,12 @@ class BN_layer(nn.Module):
     def forward(self, x):
         # See note [TorchScript super()]
         # x = self.cbam(x)
+        print('bn input shape:', x.shape)
         l1 = self.relu(self.bn2(self.conv2(self.relu(self.bn1(self.conv1(x[0]))))))
         l2 = self.relu(self.bn3(self.conv3(x[1])))
         feature = torch.cat([l1, l2, x[2]], 1)
         output = self.bn_layer(feature)
+        print('bn output shape:', output.shape)
         # x = self.avgpool(feature_d)
         # x = torch.flatten(x, 1)
         # x = self.fc(x)

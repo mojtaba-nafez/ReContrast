@@ -175,7 +175,7 @@ class ResNet(nn.Module):
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
 
-        self.inplanes = 512 * block.expansion if inplanes is None else inplanes
+        self.inplanes = 512 * block.expansion if inplanes is None else inplanes  # 512 * 1
         self.dilation = 1
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
@@ -184,8 +184,8 @@ class ResNet(nn.Module):
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
-        self.groups = groups
-        self.base_width = width_per_group
+        self.groups = groups  # 1
+        self.base_width = width_per_group  # 64
         # self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
         #                       bias=False)
         # self.bn1 = norm_layer(self.inplanes)
@@ -282,6 +282,8 @@ class ResNet(nn.Module):
         # x = self.relu(x)
         # x = self.maxpool(x)
 
+        print('decoder input shape', x.shape)
+
         f3 = self.layer1(x)  # 512*8*8->256*16*16
         f2 = self.layer2(f3)  # 256*16*16->128*32*32
         f1 = self.layer3(f2)  # 128*32*32->64*64*64
@@ -301,6 +303,8 @@ class ResNet(nn.Module):
                     out.append(self.unc1[i](f1.detach()))
                     out.append(self.unc2[i](f2.detach()))
                     out.append(self.unc3[i](f3.detach()))
+
+            print('decoder output shape:', [y.shape for y in out])
 
             return out
 

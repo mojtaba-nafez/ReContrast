@@ -210,11 +210,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             en, de = model(img)
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            # loss = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
-            #       global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
+            loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
+                   global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
 
-            loss = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data)
+            loss2 = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data) / 2.0
+            loss3 = contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data) / 2.0
 
+            loss = loss1 + loss2 + loss3
 
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2

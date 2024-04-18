@@ -60,6 +60,7 @@ class ReContrast(nn.Module):
         self.decoder = decoder
 
     def forward(self, x):
+        print('recon input:', x.shape)
         en = self.encoder(x)
         with torch.no_grad():
             en_freeze = self.encoder_freeze(x)
@@ -67,6 +68,7 @@ class ReContrast(nn.Module):
         de = self.decoder(self.bottleneck(en_2))
         de = [a.chunk(dim=0, chunks=2) for a in de]
         de = [de[0][0], de[1][0], de[2][0], de[3][1], de[4][1], de[5][1]]
+
         return en_freeze + en, de
 
     def train(self, mode=True, encoder_bn_train=True):

@@ -480,7 +480,7 @@ class RSNATRAIN(torch.utils.data.Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        dicom = pydicom.dcmread(self.image_files[index])
+        dicom = pydicom.dcmread(self.image_paths[index])
         image = dicom.pixel_array
 
         # Convert to a PIL Image

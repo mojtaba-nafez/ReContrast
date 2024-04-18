@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, wide_resnet101_2
 from models.de_resnet import de_wide_resnet50_2
 from models.recontrast import ReContrast, ReContrast
-from dataset import BrainTest, BrainTrain
+from dataset import RSNATEST, RSNATRAIN
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation_noseg, visualize_noseg

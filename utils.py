@@ -52,8 +52,9 @@ def global_cosine_hm(a, b, anomaly_data, alpha=1., factor=0.):
         a_ = a[item].detach()
         b_ = b[item]
         with torch.no_grad():
+            tmp = [i for i, e in enumerate(anomaly_data) if e == 1]
             #  cos_loss(a_, b_).unsqueeze(1):    torch.Size([8, 1, 64, 64])
-            point_dist = 1 - cos_loss(a_, b_).unsqueeze(1)
+            point_dist = 1 - cos_loss(a_[tmp], b_[tmp]).unsqueeze(1)
         mean_dist = point_dist.mean()
         std_dist = point_dist.reshape(-1).std()
         

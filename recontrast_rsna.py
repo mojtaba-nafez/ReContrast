@@ -207,6 +207,7 @@ if __name__ == '__main__':
                         default='recontrast_aptos_b32_it1k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
+    args = parser.parse_args()
 
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))

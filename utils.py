@@ -24,6 +24,32 @@ import matplotlib
 import pickle
 
 
+def NT_xent(sim_matrix, temperature=0.5, chunk=2, eps=1e-8):
+    device = sim_matrix.device
+    B = int(sim_matrix.size(0) // chunk)  # B = B' / chunk
+    eye = torch.eye(B * chunk).to(device)  # (B', B')
+    sim_matrix = torch.exp(sim_matrix / temperature) * (1 - eye)  # remove diagonal
+    denom = torch.sum(sim_matrix, dim=1, keepdim=True)
+    sim_matrix = -torch.log(sim_matrix / (denom + eps) + eps)  # loss matrix
+    if chunk == 2:
+        loss = torch.sum(sim_matrix[:B, B:].diag() + sim_matrix[B:, :B].diag()) / (2 * B)
+    elif chunk == 3:
+        loss = torch.sum(sim_matrix[0:B, B:2 * B].diag() + sim_matrix[B:2 * B, 0:B].diag() +
+                         sim_matrix[0:B, 2 * B:].diag() + sim_matrix[2 * B:, 0:B].diag() +
+                         sim_matrix[B:2 * B, 2 * B:].diag() + sim_matrix[2 * B:, B:2 * B].diag()
+                         ) / float(sim_matrix.size(0))  
+    return loss
+
+def contrastive_loss(a, b, anomaly_data):
+    # a(enc), b(dec): [[16,256,64,64], [16,512,32,32], [16,1024,16,16]]
+    a_ = torch.mean(a[2].view(a[2].size(0), a[2].size(1), -1), dim=2)
+    b_ = torch.mean(b[2].view(b[2].size(0), b[2].size(1), -1), dim=2)
+    # a.shape, b.shape torch.Size([8, 1024]) torch.Size([8, 1024])
+    data = torch.cat([a_, b_])
+    sim_matrix = torch.mm(data, data.t()) 
+    return NT_xent(sim_matrix)
+
+
 def modify_grad(x, inds, factor=0.):
     inds = inds.expand_as(x)
     x[inds] *= factor

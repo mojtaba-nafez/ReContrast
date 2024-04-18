@@ -12,7 +12,7 @@ from models.recontrast import ReContrast, ReContrast
 from dataset import MVTecDataset, Train_MVTecDataset
 import torch.backends.cudnn as cudnn
 import argparse
-from utils import evaluation, visualize, global_cosine, global_cosine_hm
+from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss
 from torch.nn import functional as F
 from functools import partial
 from ptflops import get_model_complexity_info
@@ -199,10 +199,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             img = img.to(device)
 
             anomaly_data = np.ones(len(img))*-1
-            numbers = list(range(len(img)))
-            random.shuffle(numbers)
-            anomaly_data[numbers[:int(len(numbers)/2)]] = 1
-
+            anomaly_data[int(len(anomaly_data)/2):] = 1
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
@@ -213,8 +210,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             en, de = model(img)
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            loss = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
-                   global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
+            # loss = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
+            #       global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
+
+            loss = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data)
+
 
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2

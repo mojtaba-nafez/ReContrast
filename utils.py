@@ -45,6 +45,7 @@ def global_cosine(a, b, stop_grad=True):
 
 
 def global_cosine_hm(a, b, anomaly_data, alpha=1., factor=0.):
+    # a(enc), b(dec): [[16,256,64,64], [16,512,32,32], [16,1024,16,16]]
     cos_loss = torch.nn.CosineSimilarity()
     loss = 0
     weight = [1, 1, 1]
@@ -52,9 +53,12 @@ def global_cosine_hm(a, b, anomaly_data, alpha=1., factor=0.):
         a_ = a[item].detach()
         b_ = b[item]
         with torch.no_grad():
-            tmp = [i for i, e in enumerate(anomaly_data) if e == 1]
-            #  cos_loss(a_, b_).unsqueeze(1):    torch.Size([8, 1, 64, 64])
-            point_dist = 1 - cos_loss(a_[tmp], b_[tmp]).unsqueeze(1)
+            # tmp = [i for i, e in enumerate(anomaly_data) if e == 1]
+            # point_dist.shape: torch.Size([8, 1, 64, 64])
+            # point_dist = 1 - cos_loss(a_[tmp], b_[tmp]).unsqueeze(1)
+            point_dist = 1 - cos_loss(a_, b_).unsqueeze(1)
+
+        # mean_dist, std_dist: just are a number
         mean_dist = point_dist.mean()
         std_dist = point_dist.reshape(-1).std()
         

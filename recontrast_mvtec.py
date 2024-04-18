@@ -125,7 +125,7 @@ class NewModel(nn.Module):
         return output
 
     def get_output_size(self, model):
-        dummy_input = torch.randn(1, 3, 256, 256)
+        dummy_input = torch.randn(1, 3, 256, 256).to('cuda')
         output = model(dummy_input)
         return output.size(-1)
 

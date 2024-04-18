@@ -131,7 +131,10 @@ class NewModel(nn.Module):
         print('type(output)', type(output))
         print('len(output[0])', len(output[0]))
         print('len(output[1])', len(output[1]))
+        print('type(output[0])', type(output[0]))
         print('type(output[1])', type(output[1]))
+        print('output[0]', output[0])
+        print('output[1]', output[1])
         return output.size(-1)
 
 

@@ -234,6 +234,7 @@ class ResNet(nn.Module):
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]
+        print('encoder input:', x.shape)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -243,6 +244,8 @@ class ResNet(nn.Module):
         feature_b = self.layer2(feature_a)
         feature_c = self.layer3(feature_b)
         # feature_d = self.layer4(feature_c)
+
+        print('encoder output:', [feature_a.shape, feature_b.shape, feature_c.shape])
 
         return [feature_a, feature_b, feature_c]
 

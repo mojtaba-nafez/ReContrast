@@ -109,7 +109,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
-def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_shrink_factor=False, max_ratio=0):
+def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_shrink_factor=False, max_ratio=0, augmented_view=False):
     print_fn(_class_)
     setup_seed(111)
 
@@ -118,12 +118,18 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     image_size = 256
     crop_size = 256
     
-    train_data_transforms = transforms.Compose([
-        transforms.Resize((image_size, image_size)),
-        # transforms.ColorJitter(brightness=(0.1,0.6), contrast=1,saturation=0, hue=0.4),
-        # transforms.AutoAugment(),
-        transforms.ToTensor(),
-        transforms.CenterCrop(crop_size),
+    if augmented_view:
+        train_data_transforms = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.AutoAugment(),
+            transforms.ToTensor(),
+            transforms.CenterCrop(crop_size),
+        ])
+    else:
+        train_data_transforms = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+            transforms.CenterCrop(crop_size),
         ])
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
@@ -260,7 +266,7 @@ if __name__ == '__main__':
     parser.add_argument('--evaluation_epochs', type=int, default=250)
     parser.add_argument('--training_shrink_factor', action='store_true')
     parser.add_argument('--max_ratio', type=float, default=0)
-
+    parser.add_argument('--augmented_view', action='store_true')
     args = parser.parse_args()
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
@@ -281,7 +287,7 @@ if __name__ == '__main__':
 
     for i, item in enumerate(item_list):
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_shrink_factor=args.training_shrink_factor, max_ratio=args.max_ratio)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_shrink_factor=args.training_shrink_factor, max_ratio=args.max_ratio, augmented_view=args.augmented_view)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
             result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])

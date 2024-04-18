@@ -183,7 +183,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
 
     encoder_freeze = encoder_freeze.to(device)
 
-    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder, train_decoder=update_decoder)
+    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
+                       train_decoder=update_decoder)
     # for m in encoder.modules():
     #     if isinstance(m, torch.nn.BatchNorm2d):
     #         m.eps = 1e-8
@@ -203,15 +204,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
     it = 0
     print('len train dat aloader: ', len(train_dataloader))
 
+    auroc_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
-    auroc_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-    auroc_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_sp_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_sp_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
-    auroc_sp_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-    auroc_sp_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-
-    auroc_aupro_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-    auroc_aupro_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_aupro_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_aupro_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
     # IMPORTANT: total_iters should be >= 250 so that return values get computed
 
@@ -249,14 +249,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                     img[i] = anomaly_transforms(img[i])
             anomaly_data = torch.tensor(anomaly_data).to(device)
 
-
             if not update_decoder:
                 en, de = model(img)
 
                 alpha_final = 1
                 alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
                 loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
-                   global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
+                       global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
 
                 optimizer.zero_grad()
                 optimizer2.zero_grad()
@@ -273,10 +272,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                 optimizer3.step()
                 loss_list.append(loss.item())
 
-
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
-
 
             if not update_decoder:
                 if (it + 1) % (total_iters / 2) == 0:
@@ -285,18 +282,22 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                     for shrink_factor in pad_size:
                         test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
                                                  phase="test", shrink_factor=shrink_factor)
-                        test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+                        test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False,
+                                                                      num_workers=1)
 
                         auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
                             str(shrink_factor)] = evaluation(model, test_dataloader, device)
-                        print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
-                            shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
-                            auroc_aupro_px_list[str(shrink_factor)]))
+                        print_fn(
+                            'Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
+                                shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
+                                auroc_aupro_px_list[str(shrink_factor)]))
 
                         if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                             auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
-                            auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
-                                str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+                            auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], \
+                                                                           auroc_sp_list[
+                                                                               str(shrink_factor)], auroc_aupro_px_list[
+                                                                               str(shrink_factor)]
 
             if update_decoder:
                 if (it + 1) % (total_iters // 5) == 0:
@@ -313,7 +314,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                     accuracy = 100 * correct / total
                     print(f'Accuracy on train data: {accuracy:.2f}%')
                     new_model.train()
-
 
                 # auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
                 # model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'], update_decoder=update_decoder)
@@ -373,8 +373,8 @@ if __name__ == '__main__':
 
     update_decoder = False if args.update_decoder == '0' else True
 
-    result_list = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
-    result_list_best = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
+    result_list = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
+    result_list_best = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
     pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
     en1_path = args.encoder1_path if args.encoder1_path != '' else None
@@ -384,6 +384,13 @@ if __name__ == '__main__':
     print('en2_path: ', en2_path)
 
     # num_classes = int(args.num_classes)
+
+    if update_decoder:
+        train(item_list[classes[0]], shrink_factor=args.shrink_factor,
+              total_iters=args.total_iters,
+              unode1_checkpoint=en1_path,
+              unode2_checkpoint=en2_path,
+              update_decoder=update_decoder)
 
     for i in range(len(classes)):
         item = item_list[int(classes[i])]
@@ -415,7 +422,6 @@ if __name__ == '__main__':
         print_fn(result_list_best[str(pad)])
         print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
                                                                                         best_aupro_px))
-
 
     # for i, item in enumerate(item_list[0:num_classes]):
     #     auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,

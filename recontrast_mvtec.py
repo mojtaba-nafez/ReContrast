@@ -272,7 +272,7 @@ if __name__ == '__main__':
     parser.add_argument('--augmented_view', action='store_true')
     args = parser.parse_args()
 
-    if training_shrink_factor:
+    if args.training_shrink_factor:
         args.training_using_pad = True
     
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',

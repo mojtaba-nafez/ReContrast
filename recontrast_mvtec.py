@@ -127,7 +127,7 @@ class NewModel(nn.Module):
     def get_output_size(self, model):
         dummy_input = torch.randn(1, 3, 256, 256).to('cuda')
         output = model(dummy_input)
-        print('len(output)', len(output))
+        # print('len(output)', len(output))
         # print('len(output)', len(output))
         # print('type(output)', type(output))
         # # print('len(output[0])', len(output[0]))
@@ -136,7 +136,13 @@ class NewModel(nn.Module):
         # # print('type(output[1])', type(output[1]))
         # # print('output[0]', output[0])
         # # print('output[1]', output[1])
-        return output.size(-1)
+        print(output[0].shape)
+        print(output[1].shape)
+        print(output[2].shape)
+        print(output[3].shape)
+        print(output[4].shape)
+        print(output[5].shape)
+        return output[2].size(-1)
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,

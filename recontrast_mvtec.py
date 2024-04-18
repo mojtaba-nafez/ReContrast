@@ -123,6 +123,7 @@ class NewModel(nn.Module):
     def forward(self, x):
         features = self.existing_model(x)[2][0]
         output = self.classifier(features)
+        print('forward out:', output.shape)
         return output
 
     def get_output_size(self, model):

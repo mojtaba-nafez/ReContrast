@@ -114,10 +114,10 @@ def train(_class_):
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
 
-    train_data = RSNATrain(transform=data_transform)
-    test_data1 = RSNATest(transform=data_transform, test_id=1)
-    test_data2 = RSNATest(transform=data_transform, test_id=2)
-    test_data3 = RSNATest(transform=data_transform, test_id=3)
+    train_data = RSNATRAIN(transform=data_transform)
+    test_data1 = RSNATEST(transform=data_transform, test_id=1)
+    test_data2 = RSNATEST(transform=data_transform, test_id=2)
+    test_data3 = RSNATEST(transform=data_transform, test_id=3)
 
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset RSNA')

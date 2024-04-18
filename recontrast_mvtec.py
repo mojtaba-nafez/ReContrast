@@ -118,6 +118,7 @@ class NewModel(nn.Module):
         self.existing_model = existing_model
         output_size = self.get_output_size(existing_model)
         self.classifier = nn.Linear(output_size, 2)
+        self.classifier = self.classifier.to('cuda')
 
     def forward(self, x):
         features = self.existing_model(x)[2][0]
@@ -144,6 +145,7 @@ class NewModel(nn.Module):
         print(output[5].shape)
         last = output[2][0]
         print('last shape', last.shape)
+        torch.mean(last[2].view(last[2].size(0), last[2].size(1), -1), dim=2)
         return output[2].size(-1)
 
 

@@ -13,17 +13,17 @@ def cut_paste_collate_fn(batch):
 class CutPaste(object):
     """Base class for both cutpaste variants with common operations"""
     def __init__(self, colorJitter=0.1, transform=None):
-        self.transform = transform
-        
-        if colorJitter is None:
-            self.colorJitter = None
-        else:
-            self.colorJitter = transforms.ColorJitter(brightness = colorJitter,
-                                                      contrast = colorJitter,
-                                                      saturation = colorJitter,
-                                                      hue = colorJitter)
+        self.transform = None
+        if transform:
+            self.transform = transform
+
+        self.transform_ = transforms.Compose([
+            transforms.ColorJitter(brightness=0.8, contrast=0.8, saturation=0.8, hue=0.2),
+            transforms.RandomGrayscale(p=0.1),
+            transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
+            transforms.RandomHorizontalFlip(),
+        ])
     def __call__(self, img):
-        # apply transforms to both images
         if self.transform:
             img = self.transform(img)
         return img
@@ -63,8 +63,7 @@ class CutPasteNormal(CutPaste):
         box = [from_location_w, from_location_h, from_location_w + cut_w, from_location_h + cut_h]
         patch = img.crop(box)
         
-        if self.colorJitter:
-            patch = self.colorJitter(patch)
+        patch = self.transform_(patch)
         
         to_location_h = int(random.uniform(0, h - cut_h))
         to_location_w = int(random.uniform(0, w - cut_w))
@@ -102,8 +101,7 @@ class CutPasteScar(CutPaste):
         box = [from_location_w, from_location_h, from_location_w + cut_w, from_location_h + cut_h]
         patch = img.crop(box)
         
-        if self.colorJitter:
-            patch = self.colorJitter(patch)
+        patch = self.transform_(patch)
 
         # rotate
         rot_deg = random.uniform(*self.rotation)
@@ -143,25 +141,3 @@ class CutPaste3Way(object):
         _, cutpaste_scar = self.scar(img)
         
         return org, cutpaste_normal, cutpaste_scar
-
-class High_CutPasteUnion(object):
-    def __init__(self, **kwags):
-      kwags1={
-        "width":[25,45],
-        "height":[25,45],
-        "transform": transforms.Compose([transforms.ToTensor(),])  
-      }
-      kwags2={
-        "area_ratio":[0.1,0.2],
-        "aspect_ratio":0.4, 
-        "transform": transforms.Compose([transforms.ToTensor(),])  
-      }
-      self.scar = CutPasteScar(**kwags1)
-      self.normal = CutPasteNormal(**kwags2)
-    
-    def __call__(self, img):
-        r = random.uniform(0, 1)
-        if r < 0.5:
-            return self.normal(img)
-        else:
-            return self.scar(img)

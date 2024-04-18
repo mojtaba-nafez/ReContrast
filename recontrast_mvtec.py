@@ -1,4 +1,6 @@
 import torch
+import torch.nn as nn
+from cutpaste_transformation import CutPasteUnion
 from dataset import get_data_transforms, get_strong_transforms
 from torchvision.datasets import ImageFolder
 import numpy as np
@@ -110,7 +112,31 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     show_images(images, labels, dataset_name)
 
 
-def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None, unode2_checkpoint=None):
+class NewModel(nn.Module):
+    def __init__(self, existing_model):
+        super(NewModel, self).__init__()
+        self.existing_model = existing_model
+        output_size = self.get_output_size(existing_model)
+        self.classifier = nn.Linear(output_size, 2)
+
+    def forward(self, x):
+        features = self.existing_model(x)
+        output = self.classifier(features)
+        return output
+
+    def get_output_size(self, model):
+        dummy_input = torch.randn(1, 3, 256, 256)
+        output = model(dummy_input)
+        return output.size(-1)
+
+
+def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
+          unode1_checkpoint=None, unode2_checkpoint=None):
+    anomaly_transforms = transforms.Compose([
+        transforms.ToPILImage(),
+        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+    ])
+
     print_fn(_class_)
     setup_seed(111)
 
@@ -157,7 +183,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
 
     encoder_freeze = encoder_freeze.to(device)
 
-    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
+    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder, train_decoder=update_decoder)
     # for m in encoder.modules():
     #     if isinstance(m, torch.nn.BatchNorm2d):
     #         m.eps = 1e-8
@@ -189,50 +215,108 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
 
     # IMPORTANT: total_iters should be >= 250 so that return values get computed
 
+    model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'],
+                update_decoder=update_decoder)
+
+    if update_decoder:
+        new_model = NewModel(model)
+    else:
+        new_model = model
+
+    optimizer3 = torch.optim.AdamW(list(new_model.parameters()),
+                                   lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
+
+    new_model.train()
+    criteron = nn.CrossEntropyLoss()
+
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
-        model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
+        if not update_decoder:
+            model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'],
+                        update_decoder=update_decoder)
 
         loss_list = []
         for img, label in train_dataloader:
             img = img.to(device)
-            en, de = model(img)
 
-            alpha_final = 1
-            alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
+            anomaly_data = np.ones(len(img)) * 0
+            numbers = list(range(len(img)))
+            random.shuffle(numbers)
+            anomaly_data[numbers[:int(len(numbers) / 2)]] = 1
+
+            for i in range(len(anomaly_data)):
+                if anomaly_data[i] == 1:
+                    img[i] = anomaly_transforms(img[i])
+            anomaly_data = torch.tensor(anomaly_data).to(device)
+
+
+            if not update_decoder:
+                en, de = model(img)
+
+                alpha_final = 1
+                alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
+                loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
                    global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
+
+                optimizer.zero_grad()
+                optimizer2.zero_grad()
+                loss.backward()
+                # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
+                optimizer.step()
+                optimizer2.step()
+                loss_list.append(loss.item())
+            else:
+                logits = new_model(img)
+                loss = criteron(logits, anomaly_data)
+                optimizer3.zero_grad()
+                loss.backward()
+                optimizer3.step()
+                loss_list.append(loss.item())
+
 
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
 
-            optimizer.zero_grad()
-            optimizer2.zero_grad()
-            loss.backward()
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
-            optimizer.step()
-            optimizer2.step()
-            loss_list.append(loss.item())
-            if (it + 1) % (total_iters / 2) == 0:
-                pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
-                for shrink_factor in pad_size:
-                    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
-                                             phase="test", shrink_factor=shrink_factor)
-                    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+            if not update_decoder:
+                if (it + 1) % (total_iters / 2) == 0:
+                    pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
-                    auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                        str(shrink_factor)] = evaluation(model, test_dataloader, device)
-                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
-                        shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
-                        auroc_aupro_px_list[str(shrink_factor)]))
+                    for shrink_factor in pad_size:
+                        test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
+                                                 phase="test", shrink_factor=shrink_factor)
+                        test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
-                    if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
-                        auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
-                        auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
-                            str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+                        auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
+                            str(shrink_factor)] = evaluation(model, test_dataloader, device)
+                        print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
+                            shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
+                            auroc_aupro_px_list[str(shrink_factor)]))
+
+                        if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
+                            auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
+                            auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                                str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+
+            if update_decoder:
+                if (it + 1) % (total_iters // 5) == 0:
+                    new_model.eval()
+                    with torch.no_grad():
+                        correct = 0
+                        total = 0
+                        for j in range(len(img)):
+                            output = model(img[j])
+                            _, predicted = torch.max(output.data, 1)
+                            total += 1
+                            correct += (predicted == label[j]).sum().item()
+
+                    accuracy = 100 * correct / total
+                    print(f'Accuracy on train data: {accuracy:.2f}%')
+                    new_model.train()
+
+
                 # auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
-                model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
+                # model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'], update_decoder=update_decoder)
 
                 # print_fn(
                 #     'Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
@@ -242,6 +326,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
+
+    if update_decoder:
+        torch.save(decoder.state_dict(), 'decoder_trained.pth')
 
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
     return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
@@ -265,6 +352,7 @@ if __name__ == '__main__':
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
     parser.add_argument('--classes', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='classes of mvtec')
+    parser.add_argument('--update_decoder', type=str, default='0')
     args = parser.parse_args()
 
     classes = args.classes.split(',')
@@ -282,6 +370,8 @@ if __name__ == '__main__':
 
     result_list = []
     result_list_best = []
+
+    update_decoder = False if args.update_decoder == '0' else True
 
     result_list = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
     result_list_best = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
@@ -302,7 +392,8 @@ if __name__ == '__main__':
                                                                                           shrink_factor=args.shrink_factor,
                                                                                           total_iters=args.total_iters,
                                                                                           unode1_checkpoint=en1_path,
-                                                                                          unode2_checkpoint=en2_path
+                                                                                          unode2_checkpoint=en2_path,
+                                                                                          update_decoder=update_decoder
                                                                                           )
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])

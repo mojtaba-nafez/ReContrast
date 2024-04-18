@@ -142,6 +142,8 @@ class NewModel(nn.Module):
         print(output[3].shape)
         print(output[4].shape)
         print(output[5].shape)
+        print('20',output[2][0])
+        print('21',output[2][1])
         return output[2].size(-1)
 
 

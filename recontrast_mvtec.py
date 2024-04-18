@@ -109,7 +109,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
-def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_shrink_factor=False, max_ratio=0, augmented_view=False):
+def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0, augmented_view=False):
     print_fn(_class_)
     setup_seed(111)
 
@@ -134,7 +134,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
     test_path = '/kaggle/input/mvtec-ad/' + _class_
-    if training_shrink_factor:
+    if training_using_pad:
         train_path = '/kaggle/input/mvtec-ad/'
         train_data = Train_MVTecDataset(root=train_path, category=_class_, transform=train_data_transforms)
     else:
@@ -267,10 +267,14 @@ if __name__ == '__main__':
     parser.add_argument('--total_iters', type=int, default=2000)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
     parser.add_argument('--training_shrink_factor', action='store_true')
+    parser.add_argument('--training_using_pad', action='store_true')
     parser.add_argument('--max_ratio', type=float, default=0)
     parser.add_argument('--augmented_view', action='store_true')
     args = parser.parse_args()
 
+    if training_shrink_factor:
+        args.training_using_pad = True
+    
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
                  'transistor', 'metal_nut', 'screw', 'toothbrush', 'zipper', 'tile', 'wood']
     # item_list = ['toothbrush']
@@ -289,7 +293,7 @@ if __name__ == '__main__':
 
     for i, item in enumerate(item_list):
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_shrink_factor=args.training_shrink_factor, max_ratio=args.max_ratio, augmented_view=args.augmented_view)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_using_pad=args.training_using_pad, max_ratio=args.max_ratio, augmented_view=args.augmented_view)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
             result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])

@@ -123,7 +123,7 @@ class NewModel(nn.Module):
     def forward(self, x):
         features = self.existing_model(x)[2][0]
         print('shape', features.shape)
-        features = features.mean(dim=(-2, -1), keepdim=True)
+        features = features.mean(dim=(-2, -1), keepdim=True).squeeze()
         print('shape now', features.shape)
         output = self.classifier(features)
         print('forward out:', output.shape)

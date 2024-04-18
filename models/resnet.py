@@ -457,7 +457,7 @@ class BN_layer(nn.Module):
     def forward(self, x):
         # See note [TorchScript super()]
         # x = self.cbam(x)
-        print('bn input shape:', x.shape)
+        print('bn input shape:', [y.shape for y in x])
         l1 = self.relu(self.bn2(self.conv2(self.relu(self.bn1(self.conv1(x[0]))))))
         l2 = self.relu(self.bn3(self.conv3(x[1])))
         feature = torch.cat([l1, l2, x[2]], 1)

@@ -74,6 +74,8 @@ class ReContrast(nn.Module):
             en_freeze = self.encoder_freeze(x)
         en_2 = [torch.cat([a, b], dim=0) for a, b in zip(en, en_freeze)]
         de = self.decoder(self.bottleneck(en_2))
+        if self.train_decoder:
+            return de
         de = [a.chunk(dim=0, chunks=2) for a in de]
         de = [de[0][0], de[1][0], de[2][0], de[3][1], de[4][1], de[5][1]]
 

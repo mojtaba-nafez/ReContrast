@@ -24,6 +24,10 @@ import matplotlib
 import pickle
 
 
+
+def normalize(x, dim=1, eps=1e-8):
+    return x / (x.norm(dim=dim, keepdim=True) + eps)
+
 def NT_xent(sim_matrix, temperature=0.5, chunk=2, eps=1e-8):
     device = sim_matrix.device
     B = int(sim_matrix.size(0) // chunk)  # B = B' / chunk
@@ -46,6 +50,7 @@ def contrastive_loss(a, b, anomaly_data):
     b_ = torch.mean(b[2].view(b[2].size(0), b[2].size(1), -1), dim=2)
     # a.shape, b.shape torch.Size([8, 1024]) torch.Size([8, 1024])
     data = torch.cat([a_, b_])
+    data = normalize(data)  # normalize
     sim_matrix = torch.mm(data, data.t()) 
     return NT_xent(sim_matrix)
 

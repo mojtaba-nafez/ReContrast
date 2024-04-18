@@ -120,7 +120,7 @@ class NewModel(nn.Module):
         self.classifier = nn.Linear(output_size, 2)
 
     def forward(self, x):
-        features = self.existing_model(x)
+        features = self.existing_model(x)[2][0]
         output = self.classifier(features)
         return output
 
@@ -142,8 +142,8 @@ class NewModel(nn.Module):
         print(output[3].shape)
         print(output[4].shape)
         print(output[5].shape)
-        print('20',output[2][0])
-        print('21',output[2][1])
+        last = output[2][0]
+        print('last shape', last.shape)
         return output[2].size(-1)
 
 

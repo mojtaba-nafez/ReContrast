@@ -148,6 +148,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
 
     encoder = encoder.to(device)
     bn = bn.to(device)
+    print('bn type,shape:')
+    print(type(bn))
+    print(bn.shape)
     decoder = decoder.to(device)
     # encoder_freeze = copy.deepcopy(encoder)
 

@@ -46,6 +46,7 @@ class ReContrast(nn.Module):
             encoder_freeze,
             bottleneck,
             decoder,
+            train_decoder=False
     ) -> None:
         super(ReContrast, self).__init__()
         self.encoder = encoder
@@ -59,9 +60,16 @@ class ReContrast(nn.Module):
         self.bottleneck = bottleneck
         self.decoder = decoder
 
+        self.train_decoder = train_decoder
+
     def forward(self, x):
         print('recon input:', x.shape)
-        en = self.encoder(x)
+        if self.train_decoder:
+            with torch.no_grad():
+                en = self.encoder(x)
+        else:
+            en = self.encoder(x)
+
         with torch.no_grad():
             en_freeze = self.encoder_freeze(x)
         en_2 = [torch.cat([a, b], dim=0) for a, b in zip(en, en_freeze)]
@@ -71,8 +79,14 @@ class ReContrast(nn.Module):
 
         return en_freeze + en, de
 
-    def train(self, mode=True, encoder_bn_train=True):
+    def train(self, mode=True, encoder_bn_train=True, update_decoder=False):
         self.training = mode
+        if update_decoder:
+            self.encoder.train(False)
+            self.encoder_freeze.train(False)
+            self.bottleneck.train(False)
+            self.decoder.train(True)
+            return self
         if mode is True:
             if encoder_bn_train:
                 self.encoder.train(True)

@@ -282,7 +282,7 @@ class ResNet(nn.Module):
         # x = self.relu(x)
         # x = self.maxpool(x)
 
-        print('decoder input shape', [y.shape for y in x])
+        # print('decoder input shape', [y.shape for y in x])
 
         f3 = self.layer1(x)  # 512*8*8->256*16*16
         f2 = self.layer2(f3)  # 256*16*16->128*32*32
@@ -304,7 +304,7 @@ class ResNet(nn.Module):
                     out.append(self.unc2[i](f2.detach()))
                     out.append(self.unc3[i](f3.detach()))
 
-            print('decoder output shape:', [y.shape for y in out])
+            # print('decoder output shape:', [y.shape for y in out])
 
             return out
 

@@ -225,7 +225,7 @@ def knn_evaluate(model, test_loader, train_loader_normal, device):
             test_labels.append(label.detach().cpu())
 
         # Process the normal train data
-        for img, _, _, _ in train_loader_normal:  # Ignore gt and img_path
+        for img, _ in train_loader_normal:  # Ignore gt and img_path
             img = img.to(device)
             features = model.get_encoder_features(img)
             train_feature_space.append(features.detach().cpu())

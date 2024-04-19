@@ -45,8 +45,7 @@ class ReContrast(nn.Module):
             encoder,
             encoder_freeze,
             bottleneck,
-            decoder,
-            train_decoder=False
+            decoder
     ) -> None:
         super(ReContrast, self).__init__()
         self.encoder = encoder
@@ -59,8 +58,6 @@ class ReContrast(nn.Module):
 
         self.bottleneck = bottleneck
         self.decoder = decoder
-
-        self.train_decoder = train_decoder
 
     def forward(self, x):
         # print('recon input:', x.shape)

@@ -144,7 +144,7 @@ class NewModel(nn.Module):
         _, predicted = torch.max(output, dim=1)
         print('pred:', predicted.shape)  # ([16])
         print(predicted)
-        return predicted
+        return output, predicted
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
@@ -282,7 +282,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                 optimizer2.step()
                 loss_list.append(loss.item())
             else:
-                logits = new_model(img)
+                logits, pred = new_model(img)
                 print('anom, logits', anomaly_data.shape, logits.shape)
                 loss = criteron(logits, anomaly_data)
                 optimizer3.zero_grad()

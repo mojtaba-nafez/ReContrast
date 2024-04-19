@@ -108,8 +108,8 @@ def train(_class_):
 
     total_iters = 1000
     batch_size = 16
-    image_size = 256
-    crop_size = 256
+    image_size = 224
+    crop_size = 224
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
@@ -218,7 +218,7 @@ if __name__ == '__main__':
                         default='recontrast_aptos_b32_it1k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
-    parser.add_argument('--test_id', default=1, type=int)
+
 
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')

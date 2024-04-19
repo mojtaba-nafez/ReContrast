@@ -122,6 +122,9 @@ class NewModel(nn.Module):
 
     def forward(self, x):
         print('new model input:', x.shape)
+        out = self.existing_model(x)
+        shapes = [out[i][j].shape for i in range(len(out)) for j in range(len(out[i]))]
+        print(len(out), shapes)
         features = self.existing_model(x)[2][0]
         print('shape', features.shape)
         features = features.mean(dim=(-2, -1), keepdim=True).squeeze()

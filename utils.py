@@ -204,35 +204,36 @@ def evaluation(model, test_dataloader, train_dataloader, device, _class_=None, c
 
 
 def knn_evaluate(model, test_loader, train_loader_normal, device):
-    """ Evaluate trained weights using calculate loss and metrics """
-    model.eval()
+    """Evaluate trained weights using calculated loss and metrics."""
+    model.eval()  # Set the model to evaluation mode.
     test_feature_space = []
     train_feature_space = []
     test_labels = []
 
-    with torch.no_grad():
-        # Extract features for the test set
-        for inputs, targets, _ in test_loader:
-            inputs, targets = inputs.to(device), targets.to(torch.int64).to(device)
-            features = model.get_encoder_features(inputs)
+    with torch.no_grad():  # Disable gradient calculation for efficiency.
+        # Process the test data
+        for img, _, label, _ in test_loader:  # Adjust unpacking here
+            img, label = img.to(device), label.to(torch.int64).to(device)
+            features = model.get_encoder_features(img)
             test_feature_space.append(features.detach().cpu())
-            test_labels.append(targets.detach().cpu())
+            test_labels.append(label.detach().cpu())
 
-        # Extract features for the train set
-        for inputs, targets in train_loader_normal:
-            inputs = inputs.to(device)
-            features = model.get_encoder_features(inputs)
+        # Process the normal train data
+        for img, _, _, _ in train_loader_normal:  # Ignore gt and img_path
+            img = img.to(device)
+            features = model.get_encoder_features(img)
             train_feature_space.append(features.detach().cpu())
 
-    # Concatenate all features and labels
+    # Concatenate lists into tensors and convert them to NumPy arrays for further processing.
     test_labels = torch.cat(test_labels, dim=0).numpy()
     test_feature_space = torch.cat(test_feature_space, dim=0).numpy()
     train_feature_space = torch.cat(train_feature_space, dim=0).numpy()
 
-    # Compute distances using KNN and evaluate using AUC
+    # Compute KNN distance scores and evaluate using the ROC AUC metric.
     distances = knn_score(train_feature_space, test_feature_space)
     auc = roc_auc_score(test_labels, distances)
-    return auc
+
+    return auc, distances, test_labels
 def evaluation_dn2(model, test_dataloader, train_dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
 
     auc = knn_evaluate(model, test_dataloader, train_dataloader, device)

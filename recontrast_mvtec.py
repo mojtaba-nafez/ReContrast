@@ -131,9 +131,12 @@ class NewModel(nn.Module):
         4 : torch.Size([32, 128, 32, 32])
         5 : torch.Size([32, 256, 16, 16])
         '''
-        print('out[2]', out[2])
-        print('out[5]', out[5])
-        features = self.existing_model(x)[2][0]
+        # print('out[2]', out[2])
+        # print('out[5]', out[5])  # these 2 are different!
+        layer3 = out[2]
+        print('l30', layer3[0])
+        print('l316', layer3[16])
+        features = layer3[0]
         print('shape', features.shape)
         features = features.mean(dim=(-2, -1), keepdim=True).squeeze()
         print('shape now', features.shape)

@@ -202,7 +202,14 @@ def evaluation(model, test_dataloader, train_dataloader, device, _class_=None, c
 
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
 
-
+def knn_score(train_set, test_set, n_neighbours=2):
+    """
+    Calculates the KNN distance
+    """
+    index = faiss.IndexFlatL2(train_set.shape[1])
+    index.add(train_set)
+    D, _ = index.search(test_set, n_neighbours)
+    return np.sum(D, axis=1)
 def knn_evaluate(model, test_loader, train_loader_normal, device):
     """Evaluate trained weights using calculated loss and metrics."""
     model.eval()  # Set the model to evaluation mode.

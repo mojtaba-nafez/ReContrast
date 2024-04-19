@@ -40,6 +40,9 @@ class ReDistill(nn.Module):
 
 
 class ReContrast(nn.Module):
+
+    def get_encoder_features(self, x):
+        return self.encoder(x)
     def __init__(
             self,
             encoder,

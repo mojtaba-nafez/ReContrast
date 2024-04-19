@@ -11,7 +11,7 @@ from models.recontrast import ReContrast, ReContrast
 from dataset import MVTecDataset
 import torch.backends.cudnn as cudnn
 import argparse
-from utils import evaluation, visualize, global_cosine, global_cosine_hm
+from utils import evaluation, visualize, global_cosine, global_cosine_hm, evaluation_dn2
 from torch.nn import functional as F
 from functools import partial
 from ptflops import get_model_complexity_info
@@ -222,7 +222,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
                     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
                     auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                        str(shrink_factor)] = evaluation(model, test_dataloader, device)
+                        str(shrink_factor)] = evaluation_dn2(model, test_dataloader, train_dataloader, device)
                     print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
                         shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
                         auroc_aupro_px_list[str(shrink_factor)]))

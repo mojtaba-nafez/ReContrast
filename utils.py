@@ -149,11 +149,11 @@ def specificity_score(y_true, y_score):
     return TN / N
 
 
-def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
+def evaluation(model, test_dataloader, train_dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
     """
 
     :param model:
-    :param dataloader:
+    :param test_dataloader:
     :param device:
     :param _class_:
     :param calc_pro:
@@ -169,7 +169,7 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
     aupro_list = []
 
     with torch.no_grad():
-        for img, gt, label, _ in dataloader:
+        for img, gt, label, _ in test_dataloader:
             img = img.to(device)
 
             en, de = model(img)
@@ -201,6 +201,43 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
 
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
+
+
+def knn_evaluate(model, test_loader, train_loader_normal, device):
+    """ Evaluate trained weights using calculate loss and metrics """
+    model.eval()
+    test_feature_space = []
+    train_feature_space = []
+    test_labels = []
+
+    with torch.no_grad():
+        # Extract features for the test set
+        for inputs, targets in test_loader:
+            inputs, targets = inputs.to(device), targets.to(torch.int64).to(device)
+            features = model.get_encoder_features(inputs)
+            test_feature_space.append(features.detach().cpu())
+            test_labels.append(targets.detach().cpu())
+
+        # Extract features for the train set
+        for inputs, targets in train_loader_normal:
+            inputs = inputs.to(device)
+            features = model.get_encoder_features(inputs)
+            train_feature_space.append(features.detach().cpu())
+
+    # Concatenate all features and labels
+    test_labels = torch.cat(test_labels, dim=0).numpy()
+    test_feature_space = torch.cat(test_feature_space, dim=0).numpy()
+    train_feature_space = torch.cat(train_feature_space, dim=0).numpy()
+
+    # Compute distances using KNN and evaluate using AUC
+    distances = knn_score(train_feature_space, test_feature_space)
+    auc = roc_auc_score(test_labels, distances)
+    return auc
+def evaluation_dn2(model, test_dataloader, train_dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
+
+    auc = knn_evaluate(model, test_dataloader, train_dataloader, device)
+
+    return -1, auc, -1
 
 
 def evaluation_batch(model, dataloader, device, _class_=None, reg_calib=False, max_ratio=0):

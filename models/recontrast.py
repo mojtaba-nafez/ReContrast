@@ -48,7 +48,8 @@ class ReContrast(nn.Module):
             bottleneck,
             decoder,
             image_size,
-            crop_size
+            crop_size,
+            device
     ) -> None:
         super(ReContrast, self).__init__()
         self.encoder = encoder
@@ -68,7 +69,7 @@ class ReContrast(nn.Module):
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
             transforms.RandomGrayscale(p=0.2),    # Random grayscale
             transforms.ToTensor(),
-        ])
+        ]).to(device)
 
     def forward(self, x):
         # en = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]

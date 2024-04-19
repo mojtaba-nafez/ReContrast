@@ -309,8 +309,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
 
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
-        model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'],
-                        update_decoder=update_decoder)
+        model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
 
         loss_list = []
         for img, label in train_dataloader:

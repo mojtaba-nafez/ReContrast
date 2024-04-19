@@ -320,13 +320,13 @@ def _resnet(
         layers: List[int],
         pretrained: bool,
         progress: bool,
-        unode_path=None,
+        decoder_path=None,
         **kwargs: Any
 ) -> ResNet:
     model = ResNet(block, layers, **kwargs)
     if pretrained:
-        if unode_path is not None:
-            dic = torch.load(unode_path)
+        if decoder_path is not None:
+            dic = torch.load(decoder_path)
             model.load_state_dict(dic, strict=False)
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],
@@ -338,14 +338,14 @@ def _resnet(
     return model
 
 
-def de_resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, **kwargs: Any) -> ResNet:
+def de_resnet18(pretrained: bool = False, progress: bool = True, decoder_path=None, **kwargs: Any) -> ResNet:
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path,
+    return _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, decoder_path=decoder_path,
                    **kwargs)
 
 

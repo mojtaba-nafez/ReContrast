@@ -148,7 +148,7 @@ class NewModel(nn.Module):
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
-          unode1_checkpoint=None, unode2_checkpoint=None):
+          unode1_checkpoint=None, unode2_checkpoint=None, decoder_path=None):
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
@@ -179,6 +179,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
 
     encoder, bn = resnet18(pretrained=True)
     decoder = de_resnet18(pretrained=False, output_conv=2)
+
+    if decoder_path is not None:
+        decoder = de_resnet18(pretrained=True, decoder_path=decoder_path, output_conv=2)
 
     encoder_freeze = copy.deepcopy(encoder)
     # encoder_freeze = encoder_freeze.to(device)
@@ -374,6 +377,7 @@ if __name__ == '__main__':
     parser.add_argument('--encoder2_path', type=str, default='')
     parser.add_argument('--classes', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='classes of mvtec')
     parser.add_argument('--update_decoder', type=str, default='0')
+    parser.add_argument('--use_new_decoder', type=str, default='')
     args = parser.parse_args()
 
     classes = args.classes.split(',')
@@ -393,6 +397,10 @@ if __name__ == '__main__':
     result_list_best = []
 
     update_decoder = False if args.update_decoder == '0' else True
+
+    decoder_path = args.use_new_decoder if args.use_new_decoder != '' else None
+
+    print('decoder path:', decoder_path)
 
     result_list = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
     result_list_best = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
@@ -422,6 +430,7 @@ if __name__ == '__main__':
                                                                                               total_iters=args.total_iters,
                                                                                               unode1_checkpoint=en1_path,
                                                                                               unode2_checkpoint=en2_path,
+                                                                                              decoder_path=decoder_path,
                                                                                               update_decoder=update_decoder
                                                                                               )
             for pad in pad_size:

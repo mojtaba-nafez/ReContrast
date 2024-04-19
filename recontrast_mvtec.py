@@ -142,8 +142,9 @@ class NewModel(nn.Module):
         output = self.classifier(features)
         print('forward out:', output.shape)  # ([16, 2])
         _, predicted = torch.max(output, dim=1)
-        print('pred:', predicted.shape)
-        return output
+        print('pred:', predicted.shape)  # ([16])
+        print(predicted)
+        return predicted
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,

@@ -246,9 +246,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                     with torch.no_grad():
                         output = new_model(img)
                         total += len(img)
-                        print('!!', output.shape, img.shape, label.shape)
-                        print(torch.max(output, dim=1))
-                        _, pred = torch.max(output, dim=1)
+                        if len(img) > 1:
+                            _, pred = torch.max(output, dim=1)
+                        else:
+                            pred = 0 if output[0] > output[1] else 1
                         correct += (pred == label).sum().item()
 
                 accuracy = 100 * correct / total

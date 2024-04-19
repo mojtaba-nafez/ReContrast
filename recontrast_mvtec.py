@@ -134,10 +134,9 @@ class NewModel(nn.Module):
         # print('out[2]', out[2])
         # print('out[5]', out[5])  # these 2 are different!
         layer3 = out[2]
-        print('l30', layer3[0])
-        print('l31', layer3[1])
-        features = layer3[0]
-        print('shape', features.shape)
+        print('out[2] shape', out[2].shape)
+        features = layer3[::2, :, :, :]
+        print('features shape', features.shape)
         features = features.mean(dim=(-2, -1), keepdim=True).squeeze()
         print('shape now', features.shape)
         output = self.classifier(features)

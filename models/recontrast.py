@@ -62,6 +62,7 @@ class ReContrast(nn.Module):
         self.bottleneck = bottleneck
         self.decoder = decoder
         self.cl_transform = transforms.Compose([
+            transforms.ToPILImage(),
             transforms.Resize((image_size, image_size)),
             transforms.RandomHorizontalFlip(),    # Random horizontal flip
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter

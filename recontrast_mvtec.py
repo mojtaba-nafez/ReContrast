@@ -122,10 +122,17 @@ class NewModel(nn.Module):
 
     def forward(self, x):
         print('new model input:', x.shape)
-        out = self.existing_model(x)
-        print('out len:', len(out))
-        for i in range(len(out)):
-            print(i, ":", out[i].shape)
+        out = self.existing_model(x)  # len = 6
+        '''
+        0 : torch.Size([32, 64, 64, 64])
+        1 : torch.Size([32, 128, 32, 32])
+        2 : torch.Size([32, 256, 16, 16])
+        3 : torch.Size([32, 64, 64, 64])
+        4 : torch.Size([32, 128, 32, 32])
+        5 : torch.Size([32, 256, 16, 16])
+        '''
+        print('out[2]', out[2])
+        print('out[5]', out[5])
         features = self.existing_model(x)[2][0]
         print('shape', features.shape)
         features = features.mean(dim=(-2, -1), keepdim=True).squeeze()
@@ -133,8 +140,6 @@ class NewModel(nn.Module):
         output = self.classifier(features)
         print('forward out:', output.shape)
         return output
-
-
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,

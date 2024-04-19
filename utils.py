@@ -215,7 +215,12 @@ def knn_evaluate(model, test_loader, train_loader_normal, device):
         for img, _, label, _ in test_loader:  # Adjust unpacking here
             img, label = img.to(device), label.to(torch.int64).to(device)
             features = model.get_encoder_features(img)
-            print(features)
+            if isinstance(features, list):
+                # Print shape of each tensor in the list
+                print("Feature shapes:", [f.shape for f in features])
+            else:
+                # Print shape of the tensor
+                print("Feature shape:", features.shape)
             test_feature_space.append(features.detach().cpu())
             test_labels.append(label.detach().cpu())
 

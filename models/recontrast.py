@@ -60,12 +60,8 @@ class ReContrast(nn.Module):
         self.decoder = decoder
 
     def forward(self, x):
-        # print('recon input:', x.shape)
-        if self.train_decoder:
-            with torch.no_grad():
-                en = self.encoder(x)
-        else:
-            en = self.encoder(x)
+        # print('recon input:', x.shape)\
+        en = self.encoder(x)
 
         with torch.no_grad():
             en_freeze = self.encoder_freeze(x)

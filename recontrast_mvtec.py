@@ -121,7 +121,7 @@ class NewModel(nn.Module):
         self.classifier = self.classifier.to('cuda')
 
     def forward(self, x):
-        print('new model input:', x.shape)
+        print('new model input:', x.shape)  # new model input: torch.Size([16, 3, 256, 256])
         out = self.existing_model(x)  # len = 6
         '''
         0 : torch.Size([32, 64, 64, 64])
@@ -135,7 +135,7 @@ class NewModel(nn.Module):
         # print('out[5]', out[5])  # these 2 are different!
         layer3 = out[2]
         print('l30', layer3[0])
-        print('l316', layer3[16])
+        print('l31', layer3[1])
         features = layer3[0]
         print('shape', features.shape)
         features = features.mean(dim=(-2, -1), keepdim=True).squeeze()

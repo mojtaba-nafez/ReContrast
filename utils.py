@@ -84,6 +84,10 @@ def global_cosine_hm(a, b, anomaly_data, alpha=1., factor=0.):
     for item in range(len(a)):
         a_ = a[item].detach()
         b_ = b[item]
+
+        a_ = a_[anomaly_data==1]
+        b_ = b_[anomaly_data==1]
+        
         with torch.no_grad():
             # tmp = [i for i, e in enumerate(anomaly_data) if e == 1]
             # point_dist.shape: torch.Size([8, 1, 64, 64])
@@ -94,8 +98,9 @@ def global_cosine_hm(a, b, anomaly_data, alpha=1., factor=0.):
         mean_dist = point_dist.mean()
         std_dist = point_dist.reshape(-1).std()
         
-        cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)): torch.Size([8])
-        # loss += torch.mean(1 - (cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1))*anomaly_data)) * weight[item]
+        # cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)): torch.Size([8])
+        # loss += (torch.mean((1 - cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)))*anomaly_data)) * weight[item]
+        loss += torch.mean(1 - cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1))) * weight[item]
         thresh = mean_dist + alpha * std_dist
         partial_func = partial(modify_grad, inds=point_dist < thresh, factor=factor)
         b_.register_hook(partial_func)

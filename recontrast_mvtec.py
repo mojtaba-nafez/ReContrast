@@ -199,6 +199,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
     encoder_freeze = encoder_freeze.to(device)
 
     if update_decoder:
+        print('updating decoder...')
         anomaly_transforms = transforms.Compose([
             transforms.ToPILImage(),
             CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
@@ -269,6 +270,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
 
 
         torch.save(decoder.state_dict(), 'decoder_trained.pth')
+        print('saved decoder...')
 
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
     # for m in encoder.modules():

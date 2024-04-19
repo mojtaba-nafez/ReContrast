@@ -228,7 +228,7 @@ def knn_evaluate(model, test_loader, train_loader_normal, device):
         for img, _ in train_loader_normal:  # Ignore gt and img_path
             img = img.to(device)
             features = model.get_encoder_features(img)
-            train_feature_space.append(features.detach().cpu())
+            train_feature_space.append(features[2].detach().cpu())
 
     # Concatenate lists into tensors and convert them to NumPy arrays for further processing.
     test_labels = torch.cat(test_labels, dim=0).numpy()

@@ -36,8 +36,8 @@ def NT_xent(sim_matrix, temperature=0.5, chunk=2, eps=1e-8):
     denom = torch.sum(sim_matrix, dim=1, keepdim=True)
     sim_matrix = -torch.log(sim_matrix / (denom + eps) + eps)  # loss matrix
     if chunk == 2:
-        loss = torch.sum(sim_matrix[:B, B:].diag() + sim_matrix[B:, :B].diag()) / (2 * B)
-        # loss = torch.sum(sim_matrix[:int(B/2), B:int(3*B/2)].diag() + sim_matrix[B:int(3*B/2), :int(B/2)].diag()) / (B)
+        # loss = torch.sum(sim_matrix[:B, B:].diag() + sim_matrix[B:, :B].diag()) / (2 * B)
+        loss = torch.sum(sim_matrix[:int(B/2), B:int(3*B/2)].diag() + sim_matrix[B:int(3*B/2), :int(B/2)].diag()) / (B)
     elif chunk == 3:
         loss = torch.sum(sim_matrix[0:B, B:2 * B].diag() + sim_matrix[B:2 * B, 0:B].diag() +
                          sim_matrix[0:B, 2 * B:].diag() + sim_matrix[2 * B:, 0:B].diag() +
@@ -94,8 +94,8 @@ def global_cosine_hm(a, b, anomaly_data, alpha=1., factor=0.):
         mean_dist = point_dist.mean()
         std_dist = point_dist.reshape(-1).std()
         
-        # cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)): torch.Size([8])
-        loss += torch.mean(1 - (cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1))*anomaly_data)) * weight[item]
+        cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)): torch.Size([8])
+        # loss += torch.mean(1 - (cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1))*anomaly_data)) * weight[item]
         thresh = mean_dist + alpha * std_dist
         partial_func = partial(modify_grad, inds=point_dist < thresh, factor=factor)
         b_.register_hook(partial_func)

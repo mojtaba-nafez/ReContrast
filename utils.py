@@ -22,7 +22,7 @@ from matplotlib.ticker import NullFormatter
 from scipy.spatial.distance import pdist
 import matplotlib
 import pickle
-
+import faiss
 
 def modify_grad(x, inds, factor=0.):
     inds = inds.expand_as(x)

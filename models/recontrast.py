@@ -46,6 +46,8 @@ class ReContrast(nn.Module):
             encoder_freeze,
             bottleneck,
             decoder,
+            image_size,
+            crop_size
     ) -> None:
         super(ReContrast, self).__init__()
         self.encoder = encoder
@@ -58,14 +60,22 @@ class ReContrast(nn.Module):
 
         self.bottleneck = bottleneck
         self.decoder = decoder
+        self.cl_transform = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.RandomHorizontalFlip(),    # Random horizontal flip
+            transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
+            transforms.RandomGrayscale(p=0.2),    # Random grayscale
+            transforms.ToTensor(),
+            transforms.CenterCrop(crop_size),
+        ])
 
     def forward(self, x):
         # en = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
-        en = self.encoder(x)
+        en = self.encoder(self.cl_transform(x))
         
         with torch.no_grad():
             # en_freeze = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
-            en_freeze = self.encoder_freeze(x)
+            en_freeze = self.encoder_freeze(self.cl_transform(x))
 
         # en_2 = [[2, 256, 64, 64], [2, 512, 32, 32], [2, 1024, 16, 16]]
         en_2 = [torch.cat([a, b], dim=0) for a, b in zip(en, en_freeze)]

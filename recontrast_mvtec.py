@@ -134,13 +134,15 @@ class NewModel(nn.Module):
         # print('out[2]', out[2])
         # print('out[5]', out[5])  # these 2 are different!
         layer3 = out[2]
-        print('out[2] shape', out[2].shape)
+        print('out[2] shape', out[2].shape)  # ([32, 256, 16, 16])
         features = layer3[::2, :, :, :]
-        print('features shape', features.shape)
+        print('features shape', features.shape)  # [16, 256, 16, 16])
         features = features.mean(dim=(-2, -1), keepdim=True).squeeze()
-        print('shape now', features.shape)
+        print('shape now', features.shape)  # ([16, 256])
         output = self.classifier(features)
-        print('forward out:', output.shape)
+        print('forward out:', output.shape)  # ([16, 2])
+        _, predicted = torch.max(output, dim=1)
+        print('pred:', predicted.shape)
         return output
 
 

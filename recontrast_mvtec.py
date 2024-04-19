@@ -122,8 +122,9 @@ class NewModel(nn.Module):
 
     def forward(self, x):
         print('new model input:', x.shape)
-        for i in range(len(x)):
-            out = self.existing_model(x[i])
+        out = self.existing_model(x)
+        print('out shape:', out.shape)
+        for i in range(len(out)):
             print(i, ":", out[i].shape)
         features = self.existing_model(x)[2][0]
         print('shape', features.shape)

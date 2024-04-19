@@ -326,11 +326,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                     with torch.no_grad():
                         correct = 0
                         total = 0
+                        output, pred = new_model(img)
                         for j in range(len(img)):
-                            output = new_model(img[j])
-                            _, predicted = torch.max(output.data, 1)
                             total += 1
-                            correct += (predicted == label[j]).sum().item()
+                            if pred[j] == anomaly_data[j]:
+                                correct += 1
 
                     accuracy = 100 * correct / total
                     print(f'Accuracy on train data: {accuracy:.2f}%')

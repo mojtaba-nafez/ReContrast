@@ -212,7 +212,7 @@ def knn_evaluate(model, test_loader, train_loader_normal, device):
 
     with torch.no_grad():
         # Extract features for the test set
-        for inputs, targets in test_loader:
+        for inputs, targets, _ in test_loader:
             inputs, targets = inputs.to(device), targets.to(torch.int64).to(device)
             features = model.get_encoder_features(inputs)
             test_feature_space.append(features.detach().cpu())

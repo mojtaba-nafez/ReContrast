@@ -163,8 +163,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     bn = bn.to(device)
     decoder = decoder.to(device)
     encoder_freeze = copy.deepcopy(encoder)
-
-    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder, image_size=image_size, crop_size=crop_size, device=)
+    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder, image_size=image_size, crop_size=crop_size, device=device)
     # for m in encoder.modules():
     #     if isinstance(m, torch.nn.BatchNorm2d):
     #         m.eps = 1e-8

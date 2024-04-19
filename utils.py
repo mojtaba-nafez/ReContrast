@@ -49,7 +49,7 @@ def contrastive_loss(a, b, anomaly_data, layer_num=2):
     # a(enc), b(dec): [[16,256,64,64], [16,512,32,32], [16,1024,16,16]]
     a_ = torch.mean(a[layer_num].view(a[layer_num].size(0), a[layer_num].size(1), -1), dim=2)
     b_ = torch.mean(b[layer_num].view(b[layer_num].size(0), b[layer_num].size(1), -1), dim=2)
-    # a.shape, b.shape torch.Size([8, 1024]) torch.Size([8, 1024])
+    # a.shape, b.shape torch.Size([16, 1024]) torch.Size([16, 1024])
     data = torch.cat([a_, b_])
     data = normalize(data)  # normalize
     sim_matrix = torch.mm(data, data.t()) 

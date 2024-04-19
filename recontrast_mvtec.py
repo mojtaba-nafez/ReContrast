@@ -109,7 +109,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
-def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0, augmented_view=False, batch_size=16):
+def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0, augmented_view=False, batch_size=16, model='wide_res50'):
     print_fn(_class_)
     setup_seed(111)
 
@@ -151,10 +151,15 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
-    # resnet18, de_resnet18
-    encoder, bn = wide_resnet50_2(pretrained=True)
-    decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
-
+    if model=='wide_res50'
+        encoder, bn = wide_resnet50_2(pretrained=True)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    elif model == 'res18':
+        encoder, bn = resnet18(pretrained=True)
+        decoder = de_resnet18(pretrained=False, output_conv=2)
+    else:
+        encoder, bn = wide_resnet50_2(pretrained=True)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
@@ -276,6 +281,8 @@ if __name__ == '__main__':
     parser.add_argument('--training_using_pad', action='store_true')
     parser.add_argument('--max_ratio', type=float, default=0)
     parser.add_argument('--augmented_view', action='store_true')
+    parser.add_argument('--model', type=str, default='wide_res50')
+
     args = parser.parse_args()
 
     if args.training_shrink_factor:
@@ -299,7 +306,7 @@ if __name__ == '__main__':
 
     for i, item in enumerate(item_list):
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_using_pad=args.training_using_pad, max_ratio=args.max_ratio, augmented_view=args.augmented_view, batch_size=args.batch_size)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_using_pad=args.training_using_pad, max_ratio=args.max_ratio, augmented_view=args.augmented_view, batch_size=args.batch_size, model=args.model)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
             result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])

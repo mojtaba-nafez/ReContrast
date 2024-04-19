@@ -102,7 +102,7 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_):
+def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None):
     print_fn(_class_)
     setup_seed(111)
 
@@ -121,9 +121,9 @@ def train(_class_):
     test_data2 = BrainTest(transform=data_transform, test_id=2)
 
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
-    visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')
-    visualize_random_samples_from_clean_dataset(test_data2, f'test data aptos2')
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset brain')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data brain1')
+    visualize_random_samples_from_clean_dataset(test_data2, f'test data brain2')
 
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
@@ -225,6 +225,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    en1_path = args.encoder1_path if args.encoder1_path != '' else None
+    en2_path = args.encoder2_path if args.encoder2_path != '' else None
+
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info
 
@@ -233,4 +236,4 @@ if __name__ == '__main__':
 
     item_list = ['APTOS']
     for item in item_list:
-        train(item)
+        train(item, unode1_checkpoint=en1_path, unode2_checkpoint=en2_path)

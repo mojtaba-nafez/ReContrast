@@ -215,6 +215,7 @@ def knn_evaluate(model, test_loader, train_loader_normal, device):
         for img, _, label, _ in test_loader:  # Adjust unpacking here
             img, label = img.to(device), label.to(torch.int64).to(device)
             features = model.get_encoder_features(img)
+            print(features)
             test_feature_space.append(features.detach().cpu())
             test_labels.append(label.detach().cpu())
 
@@ -233,7 +234,7 @@ def knn_evaluate(model, test_loader, train_loader_normal, device):
     distances = knn_score(train_feature_space, test_feature_space)
     auc = roc_auc_score(test_labels, distances)
 
-    return auc, distances, test_labels
+    return auc
 def evaluation_dn2(model, test_dataloader, train_dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
 
     auc = knn_evaluate(model, test_dataloader, train_dataloader, device)

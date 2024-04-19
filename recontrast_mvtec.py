@@ -121,7 +121,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     if augmented_view:
         train_data_transforms = transforms.Compose([
             transforms.Resize((image_size, image_size)),
-            transforms.AutoAugment(),
+            transforms.RandomHorizontalFlip(),    # Random horizontal flip
+            transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
+            transforms.RandomGrayscale(p=0.2),    # Random grayscale
             transforms.ToTensor(),
             transforms.CenterCrop(crop_size),
         ])
@@ -199,8 +201,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # img : [16, 3, 256, 256]
             img = img.to(device)
 
-            anomaly_data = np.ones(len(img))*1
-            anomaly_data[:int(len(anomaly_data)/2)] = 1
+            anomaly_data = np.ones(len(img))
+            anomaly_data[int(len(anomaly_data)/2):] = 1 #-1
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
@@ -215,7 +217,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
             # loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
             #            (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
-            loss = loss1
+            loss = loss1 # + loss2
             '''
             loss2 = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=0) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=1) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2)
             loss3 = contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=0) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=1) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2)

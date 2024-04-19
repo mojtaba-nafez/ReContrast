@@ -241,7 +241,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
         new_model = model
 
     optimizer3 = torch.optim.AdamW(list(new_model.parameters()),
-                                   lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
+                                   lr=1e-3, betas=(0.9, 0.999), weight_decay=1e-5)
 
     new_model.train()
     criteron = nn.CrossEntropyLoss()
@@ -413,36 +413,37 @@ if __name__ == '__main__':
               unode2_checkpoint=en2_path,
               update_decoder=update_decoder)
 
-    for i in range(len(classes)):
-        item = item_list[int(classes[i])]
-        print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
-                                                                                          shrink_factor=args.shrink_factor,
-                                                                                          total_iters=args.total_iters,
-                                                                                          unode1_checkpoint=en1_path,
-                                                                                          unode2_checkpoint=en2_path,
-                                                                                          update_decoder=update_decoder
-                                                                                          )
+    else:
+        for i in range(len(classes)):
+            item = item_list[int(classes[i])]
+            print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
+            auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
+                                                                                              shrink_factor=args.shrink_factor,
+                                                                                              total_iters=args.total_iters,
+                                                                                              unode1_checkpoint=en1_path,
+                                                                                              unode2_checkpoint=en2_path,
+                                                                                              update_decoder=update_decoder
+                                                                                              )
+            for pad in pad_size:
+                result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
+                result_list_best[str(pad)].append(
+                    [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
+
         for pad in pad_size:
-            result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
-            result_list_best[str(pad)].append(
-                [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
+            print(f'-------- shrink factor = {pad} --------')
+            mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
+            mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
+            mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+            print_fn(result_list[str(pad)])
+            print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
+                                                                                            mean_aupro_px))
 
-    for pad in pad_size:
-        print(f'-------- shrink factor = {pad} --------')
-        mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
-        mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
-        mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
-        print_fn(result_list[str(pad)])
-        print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-                                                                                        mean_aupro_px))
-
-        best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
-        best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
-        best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
-        print_fn(result_list_best[str(pad)])
-        print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
-                                                                                        best_aupro_px))
+            best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
+            best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
+            best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
+            print_fn(result_list_best[str(pad)])
+            print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
+                                                                                            best_aupro_px))
 
     # for i, item in enumerate(item_list[0:num_classes]):
     #     auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,

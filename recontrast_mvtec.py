@@ -327,7 +327,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                         correct = 0
                         total = 0
                         for j in range(len(img)):
-                            output = model(img[j])
+                            output = new_model(img[j])
                             _, predicted = torch.max(output.data, 1)
                             total += 1
                             correct += (predicted == label[j]).sum().item()

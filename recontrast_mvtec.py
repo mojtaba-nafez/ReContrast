@@ -134,16 +134,16 @@ class NewModel(nn.Module):
         # print('out[2]', out[2])
         # print('out[5]', out[5])  # these 2 are different!
         layer3 = out[2]
-        print('out[2] shape', out[2].shape)  # ([32, 256, 16, 16])
+        # print('out[2] shape', out[2].shape)  # ([32, 256, 16, 16])
         features = layer3[::2, :, :, :]
-        print('features shape', features.shape)  # [16, 256, 16, 16])
+        # print('features shape', features.shape)  # [16, 256, 16, 16])
         features = features.mean(dim=(-2, -1), keepdim=True).squeeze()
-        print('shape now', features.shape)  # ([16, 256])
+        # print('shape now', features.shape)  # ([16, 256])
         output = self.classifier(features)
-        print('forward out:', output.shape)  # ([16, 2])
+        # print('forward out:', output.shape)  # ([16, 2])
         _, predicted = torch.max(output, dim=1)
-        print('pred:', predicted.shape)  # ([16])
-        print(predicted)
+        # print('pred:', predicted.shape)  # ([16])
+        # print(predicted)
         return output, predicted
 
 
@@ -284,9 +284,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
             else:
                 logits, pred = new_model(img)
                 anomaly_data = anomaly_data.to(torch.long)
-                print('anom, logits', anomaly_data.shape, logits.shape)
-                print('logist', logits.dtype)
-                print('anom', anomaly_data.dtype)
+                # print('anom, logits', anomaly_data.shape, logits.shape)
+                # print('logist', logits.dtype)
+                # print('anom', anomaly_data.dtype)
                 loss = criteron(logits, anomaly_data)
                 optimizer3.zero_grad()
                 loss.backward()

@@ -36,8 +36,8 @@ def NT_xent(sim_matrix, temperature=0.5, chunk=2, eps=1e-8):
     denom = torch.sum(sim_matrix, dim=1, keepdim=True)
     sim_matrix = -torch.log(sim_matrix / (denom + eps) + eps)  # loss matrix
     if chunk == 2:
-        # loss = torch.sum(sim_matrix[:B, B:].diag() + sim_matrix[B:, :B].diag()) / (2 * B)
-        loss = torch.sum(sim_matrix[:int(B/2), B:int(3*B/2)].diag() + sim_matrix[B:int(3*B/2), :int(B/2)].diag()) / (B)
+        loss = torch.sum(sim_matrix[:B, B:].diag() + sim_matrix[B:, :B].diag()) / (2 * B)
+        # loss = torch.sum(sim_matrix[:int(B/2), B:int(3*B/2)].diag() + sim_matrix[B:int(3*B/2), :int(B/2)].diag()) / (B)
     elif chunk == 3:
         loss = torch.sum(sim_matrix[0:B, B:2 * B].diag() + sim_matrix[B:2 * B, 0:B].diag() +
                          sim_matrix[0:B, 2 * B:].diag() + sim_matrix[2 * B:, 0:B].diag() +
@@ -45,10 +45,10 @@ def NT_xent(sim_matrix, temperature=0.5, chunk=2, eps=1e-8):
                          ) / float(sim_matrix.size(0))  
     return loss
 
-def contrastive_loss(a, b, anomaly_data):
+def contrastive_loss(a, b, anomaly_data, layer_num=2):
     # a(enc), b(dec): [[16,256,64,64], [16,512,32,32], [16,1024,16,16]]
-    a_ = torch.mean(a[2].view(a[2].size(0), a[2].size(1), -1), dim=2)
-    b_ = torch.mean(b[2].view(b[2].size(0), b[2].size(1), -1), dim=2)
+    a_ = torch.mean(a[layer_num].view(a[layer_num].size(0), a[layer_num].size(1), -1), dim=2)
+    b_ = torch.mean(b[layer_num].view(b[layer_num].size(0), b[layer_num].size(1), -1), dim=2)
     # a.shape, b.shape torch.Size([8, 1024]) torch.Size([8, 1024])
     data = torch.cat([a_, b_])
     data = normalize(data)  # normalize

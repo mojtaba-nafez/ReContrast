@@ -284,9 +284,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
             else:
                 logits, pred = new_model(img)
                 print('anom, logits', anomaly_data.shape, logits.shape)
-                loss = criteron(logits, anomaly_data)
                 print('logist', logits.dtype)
                 print('anom', anomaly_data.dtype)
+                loss = criteron(logits, anomaly_data)
                 optimizer3.zero_grad()
                 loss.backward()
                 optimizer3.step()

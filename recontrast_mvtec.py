@@ -202,8 +202,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         loss_list = []
         for img, label in train_dataloader:
             # img : [16, 3, 256, 256]
-            img = img.to(device)
+            img = torch.stack([img, img])
 
+            img = img.to(device)
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(anomaly_data)/2):] = -1
             for i in range(len(anomaly_data)):

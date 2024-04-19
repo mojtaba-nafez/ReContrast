@@ -121,7 +121,7 @@ class NewModel(nn.Module):
         self.classifier = self.classifier.to('cuda')
 
     def forward(self, x):
-        print('new model input:', x.shape)  # new model input: torch.Size([16, 3, 256, 256])
+        # print('new model input:', x.shape)  # new model input: torch.Size([16, 3, 256, 256])
         out = self.existing_model(x)  # len = 6
         '''
         0 : torch.Size([32, 64, 64, 64])

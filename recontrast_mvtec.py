@@ -121,6 +121,7 @@ class NewModel(nn.Module):
         self.classifier = self.classifier.to('cuda')
 
     def forward(self, x):
+        print('new model input:', x.shape)
         features = self.existing_model(x)[2][0]
         print('shape', features.shape)
         features = features.mean(dim=(-2, -1), keepdim=True).squeeze()

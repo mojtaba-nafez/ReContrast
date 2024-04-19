@@ -283,6 +283,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                 loss_list.append(loss.item())
             else:
                 logits, pred = new_model(img)
+                anomaly_data = anomaly_data.to(torch.float32)
                 print('anom, logits', anomaly_data.shape, logits.shape)
                 print('logist', logits.dtype)
                 print('anom', anomaly_data.dtype)

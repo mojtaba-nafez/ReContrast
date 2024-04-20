@@ -242,6 +242,9 @@ def knn_evaluate(model, test_loader, train_loader_normal, device):
     test_feature_space = torch.cat(test_feature_space, dim=0).numpy()
     train_feature_space = torch.cat(train_feature_space, dim=0).numpy()
 
+    print("Train feature space shape: ", train_feature_space.shape)
+    print("Test feature space shape: ", test_feature_space.shape)
+
     # Compute KNN distance scores and evaluate using the ROC AUC metric.
     distances = knn_score(train_feature_space, test_feature_space)
     auc = roc_auc_score(test_labels, distances)

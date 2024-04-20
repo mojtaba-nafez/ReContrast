@@ -16,6 +16,8 @@ import argparse
 from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss
 from torch.nn import functional as F
 from functools import partial
+import matplotlib.pyplot as plt
+
 from cutpaste_visa import *
 
 import warnings

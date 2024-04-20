@@ -19,7 +19,7 @@ from functools import partial
 from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
-
+from exposure_dataset import get_exposure_set
 import warnings
 import copy
 import logging
@@ -143,8 +143,27 @@ class NewModel(nn.Module):
         return out
 
 
+def populate_dataset_to_fixed_count(dataset, target_length):
+
+    if not dataset:
+        raise ValueError("Dataset cannot be empty.")
+
+    original_length = len(dataset)
+    if original_length >= target_length:
+        return dataset
+
+    # Calculate the number of times the dataset needs to be repeated
+    repeat_count = (target_length // original_length) + 1
+
+    # Extend the dataset by repeating it
+    extended_dataset = dataset * repeat_count
+
+    # If the extended dataset is longer than the target, slice it to the target length
+    return extended_dataset[:target_length]
+
+
 def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
-          unode1_checkpoint=None, unode2_checkpoint=None):
+          unode1_checkpoint=None, unode2_checkpoint=None, data_count=10000):
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
@@ -155,8 +174,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
 
     total_iters = total_iters
     batch_size = 16
-    image_size = 256
-    crop_size = 256
+    image_size = 224 #256
+    crop_size = 224 #256
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
@@ -164,6 +183,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
     test_path = '/kaggle/input/mvtec-ad/' + _class_
 
     train_data = ImageFolder(root=train_path, transform=data_transform)
+    populate_dataset_to_fixed_count(train_data, data_count/2)
+    exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count/2)
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
                              shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
@@ -172,6 +193,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
+    visualize_random_samples_from_clean_dataset(exposure_dataset, f"exposure_data_{_class_}", train_data=False)
 
     encoder, bn = resnet18(pretrained=True)
     decoder = de_resnet18(pretrained=False, output_conv=2)
@@ -387,6 +409,7 @@ if __name__ == '__main__':
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
+    parser.add_argument('--data_count', type=int, default=10000)
 
     # ADDING U NODE
     parser.add_argument('--encoder1_path', type=str, default='')
@@ -438,7 +461,8 @@ if __name__ == '__main__':
                                                                                           total_iters=args.total_iters,
                                                                                           unode1_checkpoint=en1_path,
                                                                                           unode2_checkpoint=en2_path,
-                                                                                          update_decoder=update_decoder
+                                                                                          update_decoder=update_decoder,
+                                                                                          data_count=args.data_count
                                                                                           )
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])

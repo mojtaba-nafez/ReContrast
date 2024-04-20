@@ -56,7 +56,7 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_, model, batch_size, total_iters, evaluation_epochs):
+def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio, shrink_factor):
     print_fn(_class_)
     setup_seed(111)
 
@@ -107,8 +107,16 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs):
         transforms.ToPILImage(),
         CutPasteUnion(transform = transforms.Compose([transforms.ToTensor(),])),
     ])
+    auroc_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
 
+    auroc_sp_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_sp_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+
+    auroc_aupro_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_aupro_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
+
     it = 0
 
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
@@ -146,20 +154,28 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs):
             optimizer2.step()
             loss_list.append(loss.item())
             if (it + 1) % evaluation_epochs == 0:
-                auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
+                pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
+
+                for shrink_factor in pad_size:
+                    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
+                    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+                    
+                    auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation(model, test_dataloader, device, max_ratio=max_ratio)
+                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]))
+                    
+                    if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
+                        auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+
                 model.train(encoder_bn_train=_class_ not in ['cashew', 'pcb1'])
 
-                print_fn(
-                    'Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
-                if auroc_sp >= auroc_sp_best:
-                    auroc_px_best, auroc_sp_best, aupro_px_best = auroc_px, auroc_sp, aupro_px
             it += 1
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
     visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
-    return auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best
+    # return auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
 
 
 if __name__ == '__main__':
@@ -176,6 +192,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--total_iters', type=int, default=2000)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
+    parser.add_argument('--shrink_factor', type=float, default=None)
+    parser.add_argument('--max_ratio', type=float, default=0)
 
     args = parser.parse_args()
 
@@ -188,23 +206,29 @@ if __name__ == '__main__':
     device = 'cuda:' + args.gpu if torch.cuda.is_available() else 'cpu'
     print_fn(device)
 
-    result_list = []
-    result_list_best = []
+    result_list = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
+    result_list_best = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
+    pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
+
     for i, item in enumerate(item_list):
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters)
-        result_list.append([item, auroc_px, auroc_sp, aupro_px])
-        result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters, max_ratio=args.max_ratio, shrink_factor=args.shrink_factor)
+        for pad in pad_size:
+            result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
+            result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
 
-    mean_auroc_px = np.mean([result[1] for result in result_list])
-    mean_auroc_sp = np.mean([result[2] for result in result_list])
-    mean_aupro_px = np.mean([result[3] for result in result_list])
-    print_fn(result_list)
-    print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-                                                                                    mean_aupro_px))
+    for pad in pad_size:
+        print(f'-------- shrink factor = {pad} --------')
+        mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
+        mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
+        mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+        print_fn(result_list[str(pad)])
+        print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
+                                                                                        mean_aupro_px))
 
-    best_auroc_px = np.mean([result[1] for result in result_list_best])
-    best_auroc_sp = np.mean([result[2] for result in result_list_best])
-    best_aupro_px = np.mean([result[3] for result in result_list_best])
-    print_fn(result_list_best)
-    print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
-                                                                                    best_aupro_px))
+        best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
+        best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
+        best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
+        print_fn(result_list_best[str(pad)])
+        print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
+                                                                                        best_aupro_px))
+

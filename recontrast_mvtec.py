@@ -299,9 +299,6 @@ if __name__ == '__main__':
     device = 'cuda:' + args.gpu if torch.cuda.is_available() else 'cpu'
     print_fn(device)
 
-    result_list = []
-    result_list_best = []
-
     result_list = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
     result_list_best = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
     pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]

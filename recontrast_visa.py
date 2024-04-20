@@ -10,7 +10,7 @@ from torchvision import transforms
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, resnext50_32x4d
 from models.de_resnet import de_wide_resnet50_2, de_resnet18, de_resnet34, de_resnet50, de_resnext50_32x4d
 from models.recontrast import ReContrast, ReContrast
-from dataset import MVTecDataset, Train_MVTecDataset
+from dataset import MVTecDataset, Train_MVTecDataset, Train_Visa
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss

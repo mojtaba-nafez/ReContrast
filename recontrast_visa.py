@@ -260,6 +260,8 @@ if __name__ == '__main__':
     pad_size = [1.0]
 
     for i, item in enumerate(item_list):
+        print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
+
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters, max_ratio=args.max_ratio, shrink_factor=args.shrink_factor, training_using_pad=args.training_using_pad)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])

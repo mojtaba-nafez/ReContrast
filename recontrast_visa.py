@@ -6,6 +6,7 @@ import numpy as np
 import random
 import os
 from torch.utils.data import DataLoader
+from torchvision import transforms
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, resnext50_32x4d
 from models.de_resnet import de_wide_resnet50_2, de_resnet18, de_resnet34, de_resnet50, de_resnext50_32x4d
 from models.recontrast import ReContrast, ReContrast

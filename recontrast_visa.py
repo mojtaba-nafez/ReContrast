@@ -13,7 +13,7 @@ from models.recontrast import ReContrast, ReContrast
 from dataset import MVTecDataset
 import torch.backends.cudnn as cudnn
 import argparse
-from utils import evaluation, visualize, global_cosine, global_cosine_hm
+from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss
 from torch.nn import functional as F
 from functools import partial
 from cutpaste_transformation import *

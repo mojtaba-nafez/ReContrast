@@ -143,7 +143,7 @@ class NewModel(nn.Module):
         return out
 
 
-def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
+def train(_class_, shrink_factor=None, total_iters=2000,
           unode1_checkpoint=None, unode2_checkpoint=None):
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
@@ -329,7 +329,6 @@ if __name__ == '__main__':
     result_list = []
     result_list_best = []
 
-    update_decoder = False if args.update_decoder == '0' else True
 
     # decoder_path = args.use_new_decoder if args.use_new_decoder != '' else None
     #
@@ -354,8 +353,7 @@ if __name__ == '__main__':
                                                                                           shrink_factor=args.shrink_factor,
                                                                                           total_iters=args.total_iters,
                                                                                           unode1_checkpoint=en1_path,
-                                                                                          unode2_checkpoint=en2_path,
-                                                                                          update_decoder=update_decoder
+                                                                                          unode2_checkpoint=en2_path
                                                                                           )
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])

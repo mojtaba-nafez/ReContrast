@@ -196,11 +196,17 @@ if __name__ == '__main__':
     parser.add_argument('--evaluation_epochs', type=int, default=250)
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--max_ratio', type=float, default=0)
+    parser.add_argument('--item_list_selection', type=int, default=None)
 
     args = parser.parse_args()
 
     item_list = ['candle', 'capsules', 'cashew', 'chewinggum', 'fryum', 'macaroni1', 'macaroni2',
                  'pcb1', 'pcb2', 'pcb3', 'pcb4', 'pipe_fryum']
+    if args.item_list_selection == 1:
+        item_list = item_list[:6]
+    elif args.item_list_selection == 2:
+        item_list = item_list[6:]
+        
     # item_list = ['pcb1']
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info

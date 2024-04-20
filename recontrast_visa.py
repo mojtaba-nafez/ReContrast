@@ -166,7 +166,7 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio,
 
             img = img.to(device)
             anomaly_data = np.ones(len(img))
-            anomaly_data[int(len(anomaly_data)/2):] = -1
+            anomaly_data[int(len(anomaly_data)/2):] = 1
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
@@ -180,11 +180,11 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio,
             loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
             loss = loss1
-            
+            '''
             loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
                         (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
             loss = loss1 + loss2
-            
+            '''
             # loss = global_cosine(en[:3], de[:3]) / 2 + \
             #        global_cosine(en[3:], de[3:]) / 2
 
@@ -257,7 +257,7 @@ if __name__ == '__main__':
 
     result_list = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
     result_list_best = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
-    pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
+    pad_size = [1.0]
 
     for i, item in enumerate(item_list):
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters, max_ratio=args.max_ratio, shrink_factor=args.shrink_factor, training_using_pad=args.training_using_pad)

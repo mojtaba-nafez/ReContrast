@@ -3,6 +3,8 @@ import torch.nn as nn
 from cutpaste_transformation import CutPasteUnion
 from dataset import get_data_transforms, get_strong_transforms
 from torchvision.datasets import ImageFolder
+from torch.utils.data import ConcatDataset
+
 import numpy as np
 import random
 import os
@@ -185,9 +187,16 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
     train_data = ImageFolder(root=train_path, transform=data_transform)
     populate_dataset_to_fixed_count(train_data, data_count/2)
     exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count/2)
+
+    combined_dataset = ConcatDataset([exposure_dataset, train_data])
+
+    print("Length of Exposure Dataset: ", len(exposure_dataset))
+    print("Length of Train Data: ", len(train_data))
+    print("Length of Combined Dataset: ", len(combined_dataset))
+
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
                              shrink_factor=shrink_factor)
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
+    train_dataloader = torch.utils.data.DataLoader(combined_dataset, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
@@ -219,83 +228,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
         encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode2_checkpoint, fc=False)
 
     encoder_freeze = encoder_freeze.to(device)
-
-    if update_decoder:
-        print('updating decoder...')
-        anomaly_transforms = transforms.Compose([
-            transforms.ToPILImage(),
-            CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
-        ])
-
-        new_model = NewModel(encoder, bn, decoder)
-        criteron = nn.CrossEntropyLoss()
-        optimizer = torch.optim.AdamW(list(new_model.parameters()),
-                                      lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
-        encoder.eval()
-        bn.eval()
-        decoder.train()
-        for epoch in range(21):
-            loss_list = []
-            for img, label in train_dataloader:
-                img = img.to(device)
-
-                anomaly_data = np.ones(len(img)) * 0
-                numbers = list(range(len(img)))
-                random.shuffle(numbers)
-                anomaly_data[numbers[:int(len(numbers) / 2)]] = 1
-
-                for i in range(len(anomaly_data)):
-                    if anomaly_data[i] == 1:
-                        img[i] = anomaly_transforms(img[i])
-                anomaly_data = torch.tensor(anomaly_data).to(device)
-
-                logits = new_model(img)
-                anomaly_data = anomaly_data.to(torch.long)
-                loss = criteron(logits, anomaly_data)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                loss_list.append(loss.item())
-            print('loss:', np.mean(loss_list))
-
-            if epoch % 10 == 0:
-                decoder.eval()
-                correct = 0
-                total = 0
-                for img, _, label, _ in test_dataloader:
-                    img = img.to(device)
-                    label = label.to(device)
-                    with torch.no_grad():
-                        output = new_model(img)
-                        total += len(img)
-                        if len(img) > 1:
-                            _, pred = torch.max(output, dim=1)
-                        else:
-                            pred = 0 if output[0] > output[1] else 1
-                        correct += (pred == label).sum().item()
-
-                accuracy = 100 * correct / total
-                print(f'Accuracy on test data: {accuracy:.2f}%')
-
-                correct = 0
-                total = 0
-                for img, label in train_dataloader:
-                    img = img.to(device)
-                    label = label.to(device)
-                    with torch.no_grad():
-                        output = new_model(img)
-                        total += len(img)
-                        _, pred = torch.max(output, dim=1)
-                        correct += (pred == label).sum().item()
-
-                accuracy = 100 * correct / total
-                print(f'Accuracy on train data: {accuracy:.2f}%')
-
-                decoder.train()
-
-
-        torch.save(decoder.state_dict(), 'decoder_trained.pth')
-        print('saved decoder...')
 
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
     # for m in encoder.modules():
@@ -356,7 +288,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
 
-            if (it + 1) % (total_iters / 2) == 0:
+            if (it + 1) % (250) == 0:
                 pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
                 for shrink_factor in pad_size:
@@ -379,14 +311,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                                                                            str(shrink_factor)], auroc_aupro_px_list[
                                                                            str(shrink_factor)]
 
-
-                # auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
-                # model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'], update_decoder=update_decoder)
-
-                # print_fn(
-                #     'Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
-                # if auroc_sp >= auroc_sp_best:
-                #     auroc_px_best, auroc_sp_best, aupro_px_best = auroc_px, auroc_sp, aupro_px
             it += 1
             if it == total_iters:
                 break
@@ -414,13 +338,12 @@ if __name__ == '__main__':
     # ADDING U NODE
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
-    parser.add_argument('--classes', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='classes of mvtec')
-    parser.add_argument('--update_decoder', type=str, default='0')
+    parser.add_argument('--class_idx', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='classes of mvtec')
     # parser.add_argument('--use_new_decoder', type=str, default='')
     args = parser.parse_args()
 
-    classes = args.classes.split(',')
-    print('classes: ', classes)
+    class_idx = args.class_idx.split(',')
+    print('class_idx: ', class_idx)
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
                  'transistor', 'metal_nut', 'screw', 'toothbrush', 'zipper', 'tile', 'wood']
@@ -453,8 +376,8 @@ if __name__ == '__main__':
 
     # num_classes = int(args.num_classes)
 
-    for i in range(len(classes)):
-        item = item_list[int(classes[i])]
+    for i in range(len(class_idx)):
+        item = item_list[int(class_idx[i])]
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
                                                                                           shrink_factor=args.shrink_factor,
@@ -484,26 +407,3 @@ if __name__ == '__main__':
         print_fn(result_list_best[str(pad)])
         print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
                                                                                         best_aupro_px))
-
-    # for i, item in enumerate(item_list[0:num_classes]):
-    #     auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
-    #                                                                                       shrink_factor=args.shrink_factor,
-    #                                                                                       total_iters=args.total_iters,
-    #                                                                                       unode1_checkpoint=en1_path,
-    #                                                                                       unode2_checkpoint=en2_path)
-    #     result_list.append([item, auroc_px, auroc_sp, aupro_px])
-    #     result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
-    #
-    # mean_auroc_px = np.mean([result[1] for result in result_list])
-    # mean_auroc_sp = np.mean([result[2] for result in result_list])
-    # mean_aupro_px = np.mean([result[3] for result in result_list])
-    # print_fn(result_list)
-    # print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-    #                                                                                 mean_aupro_px))
-    #
-    # best_auroc_px = np.mean([result[1] for result in result_list_best])
-    # best_auroc_sp = np.mean([result[2] for result in result_list_best])
-    # best_aupro_px = np.mean([result[3] for result in result_list_best])
-    # print_fn(result_list_best)
-    # print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
-    #                                                                                 best_aupro_px))

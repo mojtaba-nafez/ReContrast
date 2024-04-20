@@ -16,6 +16,7 @@ import argparse
 from utils import evaluation, visualize, global_cosine, global_cosine_hm
 from torch.nn import functional as F
 from functools import partial
+from cutpaste_transformation import *
 
 import warnings
 import copy

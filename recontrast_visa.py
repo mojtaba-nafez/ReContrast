@@ -65,8 +65,8 @@ def train(_class_):
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    train_path = '../VisA_pytorch/1cls/' + _class_ + '/train'
-    test_path = '../VisA_pytorch/1cls/' + _class_
+    train_path = '/kaggle/input/visa-ds/VisA/1cls' + _class_ + '/train'
+    test_path = '/kaggle/input/visa-ds/VisA/1cls' + _class_
 
     train_data = ImageFolder(root=train_path, transform=data_transform)
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test")

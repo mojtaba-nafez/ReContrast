@@ -56,7 +56,7 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio, shrink_factor):
+def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio, shrink_factor, augmented_view):
     print_fn(_class_)
     setup_seed(111)
 
@@ -67,10 +67,16 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio,
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    train_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_ + '/train'
     test_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_
 
     train_data = ImageFolder(root=train_path, transform=data_transform)
+    if training_using_pad:
+        train_path = '/kaggle/input/visa-ds/VisA/1cls/'
+        train_data = Train_MVTecDataset(root=train_path, category=_class_, transform=data_transform)
+    else:
+        train_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_ + '/train'
+        train_data = ImageFolder(root=train_path, transform=data_transform)
+
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test")
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
@@ -197,6 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--max_ratio', type=float, default=0)
     parser.add_argument('--item_list_selection', type=int, default=None)
+    parser.add_argument('--augmented_view', action='store_true')
 
     args = parser.parse_args()
 
@@ -206,7 +213,7 @@ if __name__ == '__main__':
         item_list = item_list[:6]
     elif args.item_list_selection == 2:
         item_list = item_list[6:]
-        
+
     # item_list = ['pcb1']
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info
@@ -219,7 +226,7 @@ if __name__ == '__main__':
     pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
 
     for i, item in enumerate(item_list):
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters, max_ratio=args.max_ratio, shrink_factor=args.shrink_factor)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters, max_ratio=args.max_ratio, shrink_factor=args.shrink_factor, augmented_view=args.augmented_view)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
             result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])

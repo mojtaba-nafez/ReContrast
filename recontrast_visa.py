@@ -85,7 +85,7 @@ def train(_class_):
     # for m in encoder.modules():
     #     if isinstance(m, torch.nn.BatchNorm2d):
     #         m.eps = 1e-8
-    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
+    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,  image_size=image_size, crop_size=crop_size, device=device)
 
     optimizer = torch.optim.AdamW(list(decoder.parameters()) + list(bn.parameters()),
                                   lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)

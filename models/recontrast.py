@@ -79,8 +79,8 @@ class ReContrast(nn.Module):
         
         with torch.no_grad():
             # en_freeze = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
-            # en_freeze = self.encoder_freeze(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
-            en_freeze = self.encoder_freeze(x)
+            en_freeze = self.encoder_freeze(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
+            # en_freeze = self.encoder_freeze(x)
 
         en_2 = [[2, 256, 64, 64], [2, 512, 32, 32], [2, 1024, 16, 16]]
         # en_2 = [torch.cat([a, b], dim=0) for a, b in zip(en, en_freeze)]

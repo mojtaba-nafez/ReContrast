@@ -213,7 +213,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (it + 1) % 500 == 0:
+
+
+            if (it + 1) % 500 == 0 or it == 0:
                 pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
                 for shrink_factor in pad_size:
@@ -231,13 +233,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
                         auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
                         auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
                             str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
-                # auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
                 model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
 
-                # print_fn(
-                #     'Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
-                # if auroc_sp >= auroc_sp_best:
-                #     auroc_px_best, auroc_sp_best, aupro_px_best = auroc_px, auroc_sp, aupro_px
             it += 1
             if it == total_iters:
                 break

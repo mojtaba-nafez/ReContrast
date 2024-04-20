@@ -56,12 +56,12 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_):
+def train(_class_, model, batch_size, total_iters, evaluation_epochs):
     print_fn(_class_)
     setup_seed(111)
 
-    total_iters = 3000
-    batch_size = 16
+    total_iters = total_iters
+    batch_size = batch_size
     image_size = 256
     crop_size = 256
 
@@ -76,8 +76,15 @@ def train(_class_):
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
-    encoder, bn = wide_resnet50_2(pretrained=True)
-    decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    if model=='wide_res50':
+        encoder, bn = wide_resnet50_2(pretrained=True)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    elif model == 'res18':
+        encoder, bn = resnet18(pretrained=True)
+        decoder = de_resnet18(pretrained=False, output_conv=2)
+    else:
+        encoder, bn = wide_resnet50_2(pretrained=True)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
 
     encoder = encoder.to(device)
     bn = bn.to(device)
@@ -138,7 +145,7 @@ def train(_class_):
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (it + 1) % 250 == 0:
+            if (it + 1) % evaluation_epochs == 0:
                 auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
                 model.train(encoder_bn_train=_class_ not in ['cashew', 'pcb1'])
 
@@ -165,6 +172,11 @@ if __name__ == '__main__':
                         default='recontrast_visa_256_es_it3k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
+    parser.add_argument('--model', type=str, default='wide_res50')
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--total_iters', type=int, default=2000)
+    parser.add_argument('--evaluation_epochs', type=int, default=250)
+
     args = parser.parse_args()
 
     item_list = ['candle', 'capsules', 'cashew', 'chewinggum', 'fryum', 'macaroni1', 'macaroni2',
@@ -179,7 +191,7 @@ if __name__ == '__main__':
     result_list = []
     result_list_best = []
     for i, item in enumerate(item_list):
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters)
         result_list.append([item, auroc_px, auroc_sp, aupro_px])
         result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
 

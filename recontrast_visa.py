@@ -180,11 +180,11 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio,
             loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
             loss = loss1
-            '''
+            
             loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
                         (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
             loss = loss1 + loss2
-            '''
+            
             # loss = global_cosine(en[:3], de[:3]) / 2 + \
             #        global_cosine(en[3:], de[3:]) / 2
 

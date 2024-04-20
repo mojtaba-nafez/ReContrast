@@ -185,9 +185,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
         print('Applying U-node as encoder 1...')
         encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
 
-        last_layer = encoder.fc
-        print("Type of last layer:", type(last_layer))
-        print("Output features of last layer:", last_layer.out_features)
+        # last_layer = encoder.fc
+        # print("Type of last layer:", type(last_layer))
+        # print("Output features of last layer:", last_layer.out_features)
         print(encoder)
 
     encoder = encoder.to(device)
@@ -200,83 +200,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
         encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode2_checkpoint, fc=False)
 
     encoder_freeze = encoder_freeze.to(device)
-
-    if update_decoder:
-        print('updating decoder...')
-        anomaly_transforms = transforms.Compose([
-            transforms.ToPILImage(),
-            CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
-        ])
-
-        new_model = NewModel(encoder, bn, decoder)
-        criteron = nn.CrossEntropyLoss()
-        optimizer = torch.optim.AdamW(list(new_model.parameters()),
-                                      lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
-        encoder.eval()
-        bn.eval()
-        decoder.train()
-        for epoch in range(21):
-            loss_list = []
-            for img, label in train_dataloader:
-                img = img.to(device)
-
-                anomaly_data = np.ones(len(img)) * 0
-                numbers = list(range(len(img)))
-                random.shuffle(numbers)
-                anomaly_data[numbers[:int(len(numbers) / 2)]] = 1
-
-                for i in range(len(anomaly_data)):
-                    if anomaly_data[i] == 1:
-                        img[i] = anomaly_transforms(img[i])
-                anomaly_data = torch.tensor(anomaly_data).to(device)
-
-                logits = new_model(img)
-                anomaly_data = anomaly_data.to(torch.long)
-                loss = criteron(logits, anomaly_data)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                loss_list.append(loss.item())
-            print('loss:', np.mean(loss_list))
-
-            if epoch % 10 == 0:
-                decoder.eval()
-                correct = 0
-                total = 0
-                for img, _, label, _ in test_dataloader:
-                    img = img.to(device)
-                    label = label.to(device)
-                    with torch.no_grad():
-                        output = new_model(img)
-                        total += len(img)
-                        if len(img) > 1:
-                            _, pred = torch.max(output, dim=1)
-                        else:
-                            pred = 0 if output[0] > output[1] else 1
-                        correct += (pred == label).sum().item()
-
-                accuracy = 100 * correct / total
-                print(f'Accuracy on test data: {accuracy:.2f}%')
-
-                correct = 0
-                total = 0
-                for img, label in train_dataloader:
-                    img = img.to(device)
-                    label = label.to(device)
-                    with torch.no_grad():
-                        output = new_model(img)
-                        total += len(img)
-                        _, pred = torch.max(output, dim=1)
-                        correct += (pred == label).sum().item()
-
-                accuracy = 100 * correct / total
-                print(f'Accuracy on train data: {accuracy:.2f}%')
-
-                decoder.train()
-
-
-        torch.save(decoder.state_dict(), 'decoder_trained.pth')
-        print('saved decoder...')
 
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
     # for m in encoder.modules():
@@ -360,14 +283,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
                                                                            str(shrink_factor)], auroc_aupro_px_list[
                                                                            str(shrink_factor)]
 
-
-                # auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
-                # model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'], update_decoder=update_decoder)
-
-                # print_fn(
-                #     'Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
-                # if auroc_sp >= auroc_sp_best:
-                #     auroc_px_best, auroc_sp_best, aupro_px_best = auroc_px, auroc_sp, aupro_px
             it += 1
             if it == total_iters:
                 break
@@ -395,8 +310,7 @@ if __name__ == '__main__':
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
     parser.add_argument('--classes', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='classes of mvtec')
-    parser.add_argument('--update_decoder', type=str, default='0')
-    # parser.add_argument('--use_new_decoder', type=str, default='')
+
     args = parser.parse_args()
 
     classes = args.classes.split(',')
@@ -463,26 +377,3 @@ if __name__ == '__main__':
         print_fn(result_list_best[str(pad)])
         print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
                                                                                         best_aupro_px))
-
-    # for i, item in enumerate(item_list[0:num_classes]):
-    #     auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
-    #                                                                                       shrink_factor=args.shrink_factor,
-    #                                                                                       total_iters=args.total_iters,
-    #                                                                                       unode1_checkpoint=en1_path,
-    #                                                                                       unode2_checkpoint=en2_path)
-    #     result_list.append([item, auroc_px, auroc_sp, aupro_px])
-    #     result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
-    #
-    # mean_auroc_px = np.mean([result[1] for result in result_list])
-    # mean_auroc_sp = np.mean([result[2] for result in result_list])
-    # mean_aupro_px = np.mean([result[3] for result in result_list])
-    # print_fn(result_list)
-    # print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-    #                                                                                 mean_aupro_px))
-    #
-    # best_auroc_px = np.mean([result[1] for result in result_list_best])
-    # best_auroc_sp = np.mean([result[2] for result in result_list_best])
-    # best_aupro_px = np.mean([result[3] for result in result_list_best])
-    # print_fn(result_list_best)
-    # print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
-    #                                                                                 best_aupro_px))

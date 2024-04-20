@@ -55,6 +55,33 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+def show_images(images, labels, dataset_name):
+    num_images = len(images)
+    rows = int(num_images / 5) + 1
+
+    fig, axes = plt.subplots(rows, 5, figsize=(15, rows * 3))
+
+    for i, ax in enumerate(axes.flatten()):
+        if i < num_images:
+            ax.imshow(images[i].permute(1, 2, 0))  # permute to (H, W, C) for displaying RGB images
+            ax.set_title(f"Label: {labels[i]}")
+        ax.axis("off")
+
+    plt.savefig(f'{dataset_name}_visualization.png')
+def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_data=True):
+    print(f"Start visualization of clean dataset: {dataset_name}")
+    if len(dataset) > 20:
+        random_indices = random.sample(range(len(dataset)), 20)
+    else:
+        random_indices = [i for i in range(len(dataset))]
+    random_samples = [dataset[i] for i in random_indices]
+    if train_data:
+        images, labels = zip(*random_samples)
+    else:
+        images, _, labels, _ = zip(*random_samples)
+    labels = torch.tensor(labels)
+
+    show_images(images, labels, dataset_name)
 
 def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio, shrink_factor, training_using_pad):
     print_fn(_class_)
@@ -80,6 +107,9 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio,
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+    
+    visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
+    visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
     if model=='wide_res50':
         encoder, bn = wide_resnet50_2(pretrained=True)
@@ -147,9 +177,12 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio,
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
             loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
+            loss = loss1
+            '''
             loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
                         (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
             loss = loss1 + loss2
+            '''
             # loss = global_cosine(en[:3], de[:3]) / 2 + \
             #        global_cosine(en[3:], de[3:]) / 2
 

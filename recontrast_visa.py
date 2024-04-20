@@ -56,7 +56,7 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio, shrink_factor, augmented_view):
+def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio, shrink_factor, training_using_pad):
     print_fn(_class_)
     setup_seed(111)
 
@@ -203,7 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--max_ratio', type=float, default=0)
     parser.add_argument('--item_list_selection', type=int, default=None)
-    parser.add_argument('--augmented_view', action='store_true')
+    parser.add_argument('--training_using_pad', action='store_true')
 
     args = parser.parse_args()
 
@@ -226,7 +226,7 @@ if __name__ == '__main__':
     pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
 
     for i, item in enumerate(item_list):
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters, max_ratio=args.max_ratio, shrink_factor=args.shrink_factor, augmented_view=args.augmented_view)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, model=args.model, batch_size=args.batch_size, evaluation_epochs=args.evaluation_epochs, total_iters=args.total_iters, max_ratio=args.max_ratio, shrink_factor=args.shrink_factor, training_using_pad=args.training_using_pad)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
             result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])

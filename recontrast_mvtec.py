@@ -116,8 +116,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
 
     total_iters = total_iters
     batch_size = 16
-    image_size = 256
-    crop_size = 256
+    image_size = 224
+    crop_size = 224
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 

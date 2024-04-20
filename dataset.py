@@ -59,7 +59,7 @@ class IMAGENET30_TEST_DATASET(Dataset):
 
         # Map each class to an index
         self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(sorted(os.listdir(root_dir)))}
-        print(f"self.class_to_idx in ImageNet30_Test_Dataset:\n{self.class_to_idx}")
+        # print(f"self.class_to_idx in ImageNet30_Test_Dataset:\n{self.class_to_idx}")
 
         # Walk through the directory and collect information about the images and their labels
         for i, class_name in enumerate(os.listdir(root_dir)):

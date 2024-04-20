@@ -223,7 +223,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, unode1_checkpoint=None,
 
                     auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
                         str(shrink_factor)] = evaluation_dn2(model, test_dataloader, train_dataloader, device)
-                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
+                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{}, Sample Auroc:{:.3f}, Pixel Aupro:{}'.format(
                         shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
                         auroc_aupro_px_list[str(shrink_factor)]))
 

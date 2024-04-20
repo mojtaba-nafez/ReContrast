@@ -196,7 +196,7 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio,
             optimizer2.step()
             loss_list.append(loss.item())
             if (it + 1) % evaluation_epochs == 0:
-                pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
+                pad_size = [1.0]
 
                 for shrink_factor in pad_size:
                     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)

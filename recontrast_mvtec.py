@@ -325,3 +325,29 @@ if __name__ == '__main__':
         print_fn(result_list_best[str(pad)])
         print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
                                                                                         best_aupro_px))
+
+
+
+class Train_Visa(torch.utils.data.Dataset):
+    def __init__(self, root, transform=None):
+
+        self.transform = transform
+        self.img_paths = glob.glob(root)
+        self.labels = [0]*len(self.img_paths)
+        print(len(self.img_paths))
+        self.imagenet_30 = IMAGENET30_TEST_DATASET()
+
+    def __len__(self):
+        return len(self.img_paths)
+
+    def __getitem__(self, idx):
+        img_path, label = self.img_paths[idx], self.labels[idx]
+        image = Image.open(img_path).convert('RGB')
+        random_index = int(random.random() * len(self.imagenet_30))
+        imagenet30_img, _ = self.imagenet_30[random_index]
+        imagenet30_img = imagenet30_img.convert('RGB')
+        factors = [0.98, 0.95, 0.93, 0.91, 0.88, 0.82, 0.90, 0.97, 0.85, 0.80]
+        image  = center_paste_2(imagenet30_img, image, random.choice(factors))
+            
+        image = self.transform(image)
+        return image, label

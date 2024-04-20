@@ -99,8 +99,8 @@ def train(_class_, model, batch_size, total_iters, evaluation_epochs, max_ratio,
     test_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_
 
     if training_using_pad:
-        train_path = '/kaggle/input/visa-ds/VisA/1cls/'
-        train_data = Train_MVTecDataset(root=train_path, category=_class_, transform=data_transform)
+        train_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_ + '/train/good/*'
+        train_data = Train_Visa(root=train_path, transform=data_transform)
     else:
         train_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_ + '/train'
         train_data = ImageFolder(root=train_path, transform=data_transform)

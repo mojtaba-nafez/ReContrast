@@ -94,6 +94,11 @@ def train(_class_):
     print_fn('train image number:{}'.format(len(train_data)))
     print_fn('test image number:{}'.format(len(test_data)))
 
+    anomaly_transforms = transforms.Compose([
+        transforms.ToPILImage(),
+        CutPasteUnion(transform = transforms.Compose([transforms.ToTensor(),])),
+    ])
+
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
 
@@ -104,12 +109,22 @@ def train(_class_):
         loss_list = []
         for img, label in train_dataloader:
             img = img.to(device)
+
+            img = img.to(device)
+            anomaly_data = np.ones(len(img))
+            anomaly_data[int(len(anomaly_data)/2):] = 1
+            for i in range(len(anomaly_data)):
+                if anomaly_data[i] == -1:
+                    img[i] = anomaly_transforms(img[i])
+            anomaly_data = torch.tensor(anomaly_data).to(device)
+
+
             en, de = model(img)
 
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
-                   global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
+            loss = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
+                   global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
 
             # loss = global_cosine(en[:3], de[:3]) / 2 + \
             #        global_cosine(en[3:], de[3:]) / 2

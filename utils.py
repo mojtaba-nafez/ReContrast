@@ -168,9 +168,12 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
     pr_list_sp = []
     aupro_list = []
 
+    normal_scores = []
+    anomaly_scores = []
+
     with torch.no_grad():
         for img, gt, label, _ in dataloader:
-            print(label)
+            # print(label)  # LABELS: 12 * [0] + 30 * [1]
             img = img.to(device)
 
             en, de = model(img)
@@ -197,6 +200,15 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
             pr_list_px.extend(anomaly_map.ravel())
             gt_list_sp.append(np.max(gt.cpu().numpy().astype(int)))
             pr_list_sp.append(sp_score)
+
+            if label.item() == 0:
+                normal_scores.append(sp_score)
+            else:
+                anomaly_scores.append(sp_score)
+
+        #  Save in npy
+        np.save('recon_normal_scores.npy', np.array(normal_scores))
+        np.save('recon_anomaly_scores.npy', np.array(anomaly_scores))
 
         auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)

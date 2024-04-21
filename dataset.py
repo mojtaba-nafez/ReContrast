@@ -11,7 +11,6 @@ from PIL import ImageFilter, Image, ImageOps
 from torchvision.datasets.folder import default_loader
 import os
 import random
-from exposure_dataset import get_exposure_set
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 

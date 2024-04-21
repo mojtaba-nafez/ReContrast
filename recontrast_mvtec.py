@@ -20,6 +20,8 @@ from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
 from torch.utils.data import ConcatDataset
+from exposure_dataset import get_exposure_set
+
 
 import warnings
 import copy
@@ -195,7 +197,6 @@ def train(_class_, shrink_factor=None, total_iters=2000,
 
     encoder_train_dataloader = torch.utils.data.DataLoader(combined_dataset, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count / 2)
 
 
     print('len train set: ', len(train_data))

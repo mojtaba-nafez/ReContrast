@@ -34,8 +34,8 @@ def get_exposure_set(image_size=224, count=5000, tiny_percent=0.2, category='car
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
 
-    tiny_count = count*tiny_percent
-    cutpaste_count = count(1-tiny_percent)
+    tiny_count =  int(count*tiny_percent)
+    cutpaste_count = int(count(1-tiny_percent))
 
     train_ds_mvtech_cutpasted = []
 

@@ -19,6 +19,7 @@ from functools import partial
 from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
+from torch.utils.data import ConcatDataset
 
 import warnings
 import copy
@@ -111,6 +112,23 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
+def populate_dataset_to_fixed_count(dataset, target_length):
+
+    if not dataset:
+        raise ValueError("Dataset cannot be empty.")
+
+    original_length = len(dataset)
+    if original_length >= target_length:
+        return dataset
+
+    # Calculate the number of times the dataset needs to be repeated
+    repeat_count = (target_length // original_length) + 1
+
+    # Extend the dataset by repeating it
+    extended_dataset = dataset * repeat_count
+
+    # If the extended dataset is longer than the target, slice it to the target length
+    return extended_dataset[:target_length]
 
 class NewModel(nn.Module):
 
@@ -144,7 +162,7 @@ class NewModel(nn.Module):
 
 
 def train(_class_, shrink_factor=None, total_iters=2000,
-          unode1_checkpoint=None, unode2_checkpoint=None):
+          unode1_checkpoint=None, unode2_checkpoint=None, data_count=10000):
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
@@ -166,12 +184,27 @@ def train(_class_, shrink_factor=None, total_iters=2000,
     train_data = ImageFolder(root=train_path, transform=data_transform)
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
                              shrink_factor=shrink_factor)
+    train_data = populate_dataset_to_fixed_count(train_data, data_count)
+    exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count / 2)
+
+    combined_dataset = ConcatDataset([exposure_dataset, train_data])
+
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
+
+
+    encoder_train_dataloader = torch.utils.data.DataLoader(combined_dataset, batch_size=batch_size, shuffle=True, num_workers=4,
+                                                   drop_last=False)
+    exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count / 2)
+
+
+
+
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
+    visualize_random_samples_from_clean_dataset(exposure_dataset, f"exposure_data_{_class_}", train_data=True)
 
     encoder, bn = resnet18(pretrained=True)
     decoder = de_resnet18(pretrained=False, output_conv=2)
@@ -186,9 +219,9 @@ def train(_class_, shrink_factor=None, total_iters=2000,
         encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
 
         encoder.fc = nn.Sequential(
-            nn.Flatten(),  # Flatten the (512, 1, 1) to (512)
-            nn.Linear(512, 1),  # Fully connected layer to map 512 features to 1 output
-            nn.Sigmoid()  # Sigmoid activation to map output to [0, 1]
+            nn.Flatten(),  # Flatten the output to make it suitable for input to a linear layer
+            nn.Linear(512, 2),  # Change the output features from 1 to 2
+            nn.Softmax(dim=1)  # Optional: Apply softmax to convert logits to probabilities
         )
 
         # last_layer = encoder.fc
@@ -216,6 +249,9 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                                   lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
     optimizer2 = torch.optim.AdamW(list(encoder.parameters()),
                                    lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
+
+    criterion = nn.BCELoss()
+
     print_fn('train image number:{}'.format(len(train_data)))
     print_fn('test image number:{}'.format(len(test_data)))
     macs, params = get_model_complexity_info(model, (3, crop_size, crop_size),
@@ -241,30 +277,45 @@ def train(_class_, shrink_factor=None, total_iters=2000,
 
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
-        model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
+        print(f"Epoch {epoch + 1}/{int(np.ceil(total_iters / len(train_dataloader)))}")
 
-        loss_list = []
-        for img, label in train_dataloader:
-            img = img.to(device)
+        if epoch % 2 == 1:  # Even epochs
+            # Train only the encoder's head, rest of the encoder is frozen
+            for param in model.encoder.parameters():
+                param.requires_grad = True  # Freeze the encoder except its head
+            model.encoder.fc.requires_grad = True  # Unfreeze the head
 
+            for img, label in encoder_train_dataloader:  # Different dataset for encoder training
+                img = img.to(device)
+                label = label.to(device)  # Assuming label is for binary classification
+                output = model.encoder(img)
+                loss = criterion(output, label.float())
+                optimizer2.zero_grad()
+                loss.backward()
+                optimizer2.step()
+        else:  # Odd epochs
+            # Train the entire ReContrast model, encoder's head is frozen
+            model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
+            for param in model.parameters():
+                param.requires_grad = True  # Unfreeze all
+            model.encoder.fc.requires_grad = False  # Freeze the head
 
-            en, de = model(img)
+            for img, label in train_dataloader:
+                img = img.to(device)
+                en, de = model(img)
+                alpha_final = 1
+                alpha = min(-3 + (alpha_final - -3) * epoch / (total_iters * 0.1), alpha_final)
+                loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
+                       global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
 
-            alpha_final = 1
-            alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
-                   global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
+                optimizer.zero_grad()
+                optimizer2.zero_grad()
+                loss.backward()
 
-            optimizer.zero_grad()
-            optimizer2.zero_grad()
-            loss.backward()
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
-            optimizer.step()
-            optimizer2.step()
-            loss_list.append(loss.item())
+                optimizer.step()
+                optimizer2.step()
+                loss_list.append(loss.item())
 
-            # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
-            #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
 
             if (it + 1) % (total_iters / 2) == 0:
                 pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
@@ -311,6 +362,7 @@ if __name__ == '__main__':
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
+    parser.add_argument('--data_count', type=int, default=10000)
 
     # ADDING U NODE
     parser.add_argument('--encoder1_path', type=str, default='')
@@ -359,7 +411,8 @@ if __name__ == '__main__':
                                                                                           shrink_factor=args.shrink_factor,
                                                                                           total_iters=args.total_iters,
                                                                                           unode1_checkpoint=en1_path,
-                                                                                          unode2_checkpoint=en2_path
+                                                                                          unode2_checkpoint=en2_path,
+                                                                                          data_count=args.data_count
                                                                                           )
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])

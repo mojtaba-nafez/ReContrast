@@ -20,7 +20,7 @@ from torch.utils.data import ConcatDataset
 
 
 
-def get_exposure_set(image_size=[224, 224], count=5000, tiny_percent=0.2, category='carpet'):
+def get_exposure_set(image_size=(224, 224), count=5000, tiny_percent=0.2, category='carpet'):
 
     tiny_transform = transforms.Compose([
         transforms.Resize((image_size[0], image_size[1])),

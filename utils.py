@@ -292,7 +292,7 @@ def evaluation_brain(model, dataloader, device, _class_=None, calc_pro=True, max
             pr_list_px.extend(anomaly_map.ravel())
             gt_list_sp.append(label)
             pr_list_sp.append(sp_score)
-    
+            break
         auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
 

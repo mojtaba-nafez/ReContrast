@@ -86,7 +86,10 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     else:
         random_indices = [i for i in range(len(dataset))]
     random_samples = [dataset[i] for i in random_indices]
-    images, labels, _ = zip(*random_samples)
+    try:
+        images, labels, _ = zip(*random_samples)
+    except:
+        images, labels = zip(*random_samples)
     labels = torch.tensor(labels)
     show_images(images, labels, dataset_name)
 

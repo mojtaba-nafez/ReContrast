@@ -325,7 +325,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_ratio', type=float, default=0)
     parser.add_argument('--augmented_view', action='store_true')
     parser.add_argument('--model', type=str, default='wide_res50')
-    parser.add_argument('--item_list', type=int, default=0)
+    parser.add_argument('--item_list', type=str, default='0,15')
 
     args = parser.parse_args()
 
@@ -334,7 +334,11 @@ if __name__ == '__main__':
 
     item_list = ['screw', 'cable', 'transistor', 'carpet', 'bottle', 'hazelnut', 'leather', 'capsule', 'grid', 'pill',
                  'metal_nut', 'toothbrush', 'zipper', 'tile', 'wood']
-    item_list = item_list[args.item_list:]
+
+    items = args.item_list.split(',')
+    st = items[0]
+    ed = items[1]
+    item_list = item_list[st: ed]
     print(item_list)
     # item_list = ['toothbrush']
 

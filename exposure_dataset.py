@@ -43,8 +43,7 @@ def get_exposure_set(image_size=224, count=5000, tiny_percent=0.2, category='car
     imagenet_exposure = ImageNetExposure(root='./tiny-imagenet-200', count=tiny_count, transform=tiny_transform)
 
 
-    train_ds_mvtech_cutpasted.append(
-        MVTecDataset_Cutpasted(root='./mvtec_anomaly_detection', train=True, category=category, transform=train_transform_cutpasted, count=cutpaste_count))
+    train_ds_mvtech_cutpasted = (MVTecDataset_Cutpasted(root='./mvtec_anomaly_detection', train=True, category=category, transform=train_transform_cutpasted, count=cutpaste_count))
 
     print('imagenet length: ', len(imagenet_exposure))
     print('cutpaste dataset length : ', len(train_ds_mvtech_cutpasted))
@@ -80,7 +79,7 @@ class MVTecDataset_Cutpasted(Dataset):
     def __init__(self, root, category, transform=None, train=True, count=-1):
         self.transform = transform
         self.image_files = []
-        print("category MVTecDataset_Cutpasted:", category)
+        print("category MVTecDataset_Cutpasted before population: ", category)
         if train:
             self.image_files = glob(os.path.join(root, category, "train", "good", "*.png"))
             print('len image files cutpast: ', len(self.image_files))
@@ -97,7 +96,7 @@ class MVTecDataset_Cutpasted(Dataset):
                 for i in range(count-t):
                     self.image_files.append(random.choice(self.image_files[:t]))
         print('len image files cutpast: ', len(self.image_files))
-        # self.image_files.sort(key=lambda y: y.lower())
+        self.image_files.sort(key=lambda y: y.lower())
         self.train = train
     def __getitem__(self, index):
         image_file = self.image_files[index]

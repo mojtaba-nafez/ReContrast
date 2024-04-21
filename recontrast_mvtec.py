@@ -279,6 +279,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
         print(f"Epoch {epoch + 1}/{int(np.ceil(total_iters / len(train_dataloader)))}")
+        loss_list = []
 
         if epoch % 2 == 1:  # Even epochs
             # Train only the encoder's head, rest of the encoder is frozen

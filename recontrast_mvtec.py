@@ -185,6 +185,12 @@ def train(_class_, shrink_factor=None, total_iters=2000,
         print('Applying U-node as encoder 1...')
         encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
 
+        encoder.fc = nn.Sequential(
+            nn.Flatten(),  # Flatten the (512, 1, 1) to (512)
+            nn.Linear(512, 1),  # Fully connected layer to map 512 features to 1 output
+            nn.Sigmoid()  # Sigmoid activation to map output to [0, 1]
+        )
+
         # last_layer = encoder.fc
         # print("Type of last layer:", type(last_layer))
         # print("Output features of last layer:", last_layer.out_features)

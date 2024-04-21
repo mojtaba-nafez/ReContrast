@@ -110,7 +110,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     show_images(images, labels, dataset_name)
 
 
-def train(_class_, shrink_factor=None, total_iters=2000):
+def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
     print_fn(_class_)
     setup_seed(111)
 
@@ -160,6 +160,12 @@ def train(_class_, shrink_factor=None, total_iters=2000):
 
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
+
+    if eval_only:
+        auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
+        print_fn('Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
+        return auroc_px, auroc_sp, aupro_px
+
     epochs = int(np.ceil(total_iters / len(train_dataloader)))
     for epoch in range(epochs):
         # encoder batchnorm in eval for these classes.
@@ -215,6 +221,7 @@ if __name__ == '__main__':
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
     parser.add_argument('--cls', type=int, default=11)
+    parser.add_argument('--eval_only', action='store_true')
     args = parser.parse_args()
 
     item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
@@ -233,7 +240,8 @@ if __name__ == '__main__':
         print(item)
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
                                                                                           shrink_factor=args.shrink_factor,
-                                                                                          total_iters=args.total_iters)
+                                                                                          total_iters=args.total_iters,
+                                                                                          eval_only=args.eval_only)
         result_list.append([item, auroc_px, auroc_sp, aupro_px])
         result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
 

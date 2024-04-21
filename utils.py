@@ -456,7 +456,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     gt_list_sp = []
     pr_list_sp = []
     with torch.no_grad():
-        for img, label, _ in dataloader:
+        for img, _, label, _ in dataloader:
             img = img.to(device)
             en, de = model(img)
 

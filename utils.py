@@ -170,6 +170,7 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
 
     with torch.no_grad():
         for img, gt, label, _ in dataloader:
+            print(label)
             img = img.to(device)
 
             en, de = model(img)

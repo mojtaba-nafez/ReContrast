@@ -105,6 +105,7 @@ def center_paste(large_img, small_img):
 class MVTecDataset(torch.utils.data.Dataset):
     def __init__(self, root, transform, gt_transform, phase, shrink_factor=None, count=-1):
         self.count = count
+        self.phase = phase
         if phase == 'train':
             self.img_path = os.path.join(root, 'train')
         else:
@@ -184,7 +185,8 @@ class MVTecDataset(torch.utils.data.Dataset):
             gt = self.gt_transform(gt)
 
         assert img.size()[1:] == gt.size()[1:], "image.size != gt.size !!!"
-
+        if self.phase == 'train':
+            return img, label
         return img, gt, label, img_path
 
 

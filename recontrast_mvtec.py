@@ -224,7 +224,9 @@ if __name__ == '__main__':
 
     result_list = []
     result_list_best = []
+    print(args.cls, item_list[args.cls])
     for i, item in enumerate(item_list[args.cls]):
+        print(item)
         auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters)
         result_list.append([item, auroc_px, auroc_sp, aupro_px])
         result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])

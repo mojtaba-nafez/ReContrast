@@ -620,3 +620,54 @@ class AptosTrain(torch.utils.data.Dataset):
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
         return img, 0
+
+
+class ISICTest(torch.utils.data.Dataset):
+    def __init__(self, transform, test_id=1):
+
+        self.transform = transform
+        self.test_id = test_id
+
+        test_normal_path = glob.glob('/kaggle/input/isic-task3-dataset/dataset/test/NORMAL/*')
+        test_anomaly_path = glob.glob('/kaggle/input/isic-task3-dataset/dataset/test/ABNORMAL/*')
+
+        self.test_path = test_normal_path + test_anomaly_path
+        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+        if self.test_id == 2:
+            df = pd.read_csv('/kaggle/input/pad-ufes-20/PAD-UFES-20/metadata.csv')
+
+            shifted_test_label = df["diagnostic"].to_numpy()
+            shifted_test_label = (shifted_test_label != "NEV")
+
+            shifted_test_path = df["img_id"].to_numpy()
+            shifted_test_path = '/kaggle/input/pad-ufes-20/PAD-UFES-20/Dataset/' + shifted_test_path
+
+            self.test_path = shifted_test_path
+            self.test_label = shifted_test_label
+
+    def __len__(self):
+        return len(self.test_path)
+
+    def __getitem__(self, idx):
+
+        img_path = self.test_path[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+
+        has_anomaly = 0 if self.test_label[idx] == 0 else 1
+
+        return img, has_anomaly, img_path
+class ISICTrain(torch.utils.data.Dataset):
+    def __init__(self, transform):
+        self.transform = transform
+        self.image_paths = glob.glob('/kaggle/input/isic-task3-dataset/dataset/train/NORMAL/*')
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+        return img, 0, img_path

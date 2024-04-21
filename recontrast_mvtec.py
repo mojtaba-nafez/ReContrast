@@ -162,6 +162,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
     it = 0
 
     if eval_only:
+        model.load_state_dict(torch.load('model.pth'))
         auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
         print_fn('Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
         return auroc_px, auroc_sp, aupro_px
@@ -204,6 +205,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
+    torch.save(model.state_dict(), 'model.pth')
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
     return auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best
 

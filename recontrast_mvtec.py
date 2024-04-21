@@ -294,6 +294,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 # print("Output :", output)
                 # print("Label :", label)
                 # print('label type: ', type(label))
+                print(type(output))
                 loss = criterion(output, label.float())
                 optimizer2.zero_grad()
                 loss.backward()

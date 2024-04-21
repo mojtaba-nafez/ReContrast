@@ -244,6 +244,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)
             en_3rd = en[5]
+            print('en3', en_3rd.shape, en_3rd.dtype)
+            print('anomaly_data', anomaly_data.shape, anomaly_data.dtype)
             cls_output = cls(en_3rd)
             cls_loss = criterion(cls_output, anomaly_data)
             print('lolz')

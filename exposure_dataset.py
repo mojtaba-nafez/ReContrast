@@ -20,17 +20,17 @@ from torch.utils.data import ConcatDataset
 
 
 
-def get_exposure_set(image_size=(224, 224), count=5000, tiny_percent=0.2, category='carpet'):
+def get_exposure_set(image_size=224, count=5000, tiny_percent=0.2, category='carpet'):
 
     tiny_transform = transforms.Compose([
-        transforms.Resize((image_size[0], image_size[1])),
+        transforms.Resize((image_size, image_size)),
         transforms.AutoAugment(),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor()
     ])
     train_transform_cutpasted = transforms.Compose([
         transforms.Resize((256, 256)),
-        transforms.CenterCrop((image_size[0], image_size[1])),
+        transforms.CenterCrop((image_size, image_size)),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
 

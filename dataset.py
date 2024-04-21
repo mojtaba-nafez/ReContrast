@@ -542,7 +542,7 @@ class BrainTest(torch.utils.data.Dataset):
         gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
 
         # return img, , has_anomaly, img_path
-        return img, gt, label, img_path
+        return img, gt, has_anomaly, img_path
 
 
 class BrainTrain(torch.utils.data.Dataset):

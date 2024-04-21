@@ -285,7 +285,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
             # Train only the encoder's head, rest of the encoder is frozen
             for param in model.encoder.parameters():
                 param.requires_grad = True  # Freeze the encoder except its head
-            model.encoder.fc.requires_grad = True  # Unfreeze the head
+            model.fc_bc.requires_grad = True  # Unfreeze the head
 
             for img, label in encoder_train_dataloader:  # Different dataset for encoder training
                 img = img.to(device)

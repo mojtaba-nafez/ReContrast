@@ -223,11 +223,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
         print('Applying U-node as encoder 1...')
         encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
 
-        encoder.fc = nn.Sequential(
-            nn.Flatten(),  # Flatten the output to make it suitable for input to a linear layer
-            nn.Linear(512, 2),  # Change the output features from 1 to 2
-            nn.Softmax(dim=1)  # Optional: Apply softmax to convert logits to probabilities
-        )
+
 
         # last_layer = encoder.fc
         # print("Type of last layer:", type(last_layer))

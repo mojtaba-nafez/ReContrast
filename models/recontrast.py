@@ -50,7 +50,11 @@ class ReContrast(nn.Module):
         super(ReContrast, self).__init__()
         self.encoder = encoder
         self.encoder.layer4 = None
-        self.encoder.fc = None
+        self.encoder.fc = nn.Sequential(
+            nn.Flatten(),  # Flatten the output to make it suitable for input to a linear layer
+            nn.Linear(512, 2),  # Change the output features from 1 to 2
+            nn.Softmax(dim=1)  # Optional: Apply softmax to convert logits to probabilities
+        )
 
         self.encoder_freeze = encoder_freeze
         self.encoder_freeze.layer4 = None

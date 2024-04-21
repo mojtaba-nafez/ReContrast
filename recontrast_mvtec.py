@@ -291,6 +291,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 img = img.to(device)
                 label = label.to(device)  # Assuming label is for binary classification
                 output = model.encoder(img)
+                print(len(output))
                 # print("Output :", output)
                 # print("Label :", label)
                 # print('label type: ', type(label))

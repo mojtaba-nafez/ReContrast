@@ -246,7 +246,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             en_3rd = en[5]
             cls_output = cls(en_3rd)
             print('en3', en_3rd.shape, en_3rd.dtype)
-            print('anomaly_data', anomaly_data.shape, anomaly_data.dtype, type(anomaly_data.long()), type(cls_output))
+            print('anomaly_data', anomaly_data.shape, anomaly_data.dtype, anomaly_data.long().dtype, cls_output.dtype)
             cls_loss = criterion(cls_output, anomaly_data.long())
 
             print('lolz')

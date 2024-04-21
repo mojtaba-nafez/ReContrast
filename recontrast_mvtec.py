@@ -131,7 +131,7 @@ class BinaryClassifier(nn.Module):
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
-          augmented_view=False, batch_size=16, model='wide_res50'):
+          augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-5):
     print_fn(_class_)
     setup_seed(111)
 
@@ -195,7 +195,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     #         m.eps = 1e-8
 
     criterion = nn.CrossEntropyLoss()
-    optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=1e-3, betas=(0.9, 0.999), weight_decay=1e-5)
+    optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=lr_cls, betas=(0.9, 0.999), weight_decay=1e-5)
 
     optimizer = torch.optim.AdamW(list(decoder.parameters()) + list(bn.parameters()),
                                   lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
@@ -326,6 +326,7 @@ if __name__ == '__main__':
     parser.add_argument('--augmented_view', action='store_true')
     parser.add_argument('--model', type=str, default='wide_res50')
     parser.add_argument('--item_list', type=str, default='0,15')
+    parser.add_argument('--lr_cls', type=float, default=0.00001)
 
     args = parser.parse_args()
 
@@ -362,7 +363,8 @@ if __name__ == '__main__':
                                                                                           max_ratio=args.max_ratio,
                                                                                           augmented_view=args.augmented_view,
                                                                                           batch_size=args.batch_size,
-                                                                                          model=args.model)
+                                                                                          model=args.model,
+                                                                                          lr_cls=args.lr_cls)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
             result_list_best[str(pad)].append(

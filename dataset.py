@@ -116,15 +116,8 @@ class MVTecDataset(torch.utils.data.Dataset):
         self.img_paths, self.gt_paths, self.labels, self.types = self.load_dataset()  # self.labels => good : 0, anomaly : 1
         self.imagenet30_testset = IMAGENET30_TEST_DATASET()
         self.shrink_factor = shrink_factor
-
-        if count != -1:
-            if count < len(self.image_files):
-                self.image_files = self.image_files[:count]
-            else:
-                t = len(self.image_files)
-                for i in range(count - t):
-                    self.image_files.append(random.choice(self.image_files[:t]))
-        self.image_files.sort(key=lambda y: y.lower())
+        self.count = count
+        
         print(f"self.shrink_factor: {self.shrink_factor}")
 
     def load_dataset(self):
@@ -140,6 +133,16 @@ class MVTecDataset(torch.utils.data.Dataset):
             if defect_type == 'good':
                 img_paths = glob.glob(os.path.join(self.img_path, defect_type) + "/*.png") + \
                             glob.glob(os.path.join(self.img_path, defect_type) + "/*.JPG")
+
+                if self.count != -1:
+                    if self.count < len(img_paths):
+                        img_paths = img_paths[:count]
+                    else:
+                        t = len(img_paths)
+                        for i in range(self.count - t):
+                            img_paths.append(random.choice(img_paths[:t]))
+                img_paths.sort(key=lambda y: y.lower())
+                
                 img_tot_paths.extend(img_paths)
                 gt_tot_paths.extend([0] * len(img_paths))
                 tot_labels.extend([0] * len(img_paths))

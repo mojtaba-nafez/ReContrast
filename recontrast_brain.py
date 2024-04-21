@@ -12,7 +12,7 @@ from models.recontrast import ReContrast, ReContrast
 from dataset import BrainTest, BrainTrain
 import torch.backends.cudnn as cudnn
 import argparse
-from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss, evaluation_brain
+from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss, evaluation_brain, evaluation_noseg_brain
 from torch.nn import functional as F
 from functools import partial
 from ptflops import get_model_complexity_info

@@ -451,6 +451,30 @@ def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max'):
     return auroc_sp, f1, acc
 
 
+def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max'):
+    model.eval()
+    gt_list_sp = []
+    pr_list_sp = []
+    with torch.no_grad():
+        for img, label, _ in dataloader:
+            img = img.to(device)
+            en, de = model(img)
+
+            anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+            anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+            gt_list_sp.append(label.item())
+            if reduction == 'max':
+                pr_list_sp.append(np.max(anomaly_map))
+            elif reduction == 'mean':
+                pr_list_sp.append(np.mean(anomaly_map))
+
+        thresh = return_best_thr(gt_list_sp, pr_list_sp)
+        acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
+        f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
+        auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+    return auroc_sp, f1, acc
+
+
 def visualize(model, dataloader, device, _class_='None', save_name='save'):
     model.eval()
     save_dir = os.path.join('./visualize', save_name)

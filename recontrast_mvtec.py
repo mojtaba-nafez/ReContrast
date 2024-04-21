@@ -281,7 +281,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
         print(f"Epoch {epoch + 1}/{int(np.ceil(total_iters / len(train_dataloader)))}")
         loss_list = []
 
-        if epoch % 2 == 1:  # Even epochs
+        if epoch % 2 == 1:  # odd epochs
             # Train only the encoder's head, rest of the encoder is frozen
             for param in model.encoder.parameters():
                 param.requires_grad = True  # Freeze the encoder except its head
@@ -290,8 +290,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
             for img, label in encoder_train_dataloader:  # Different dataset for encoder training
                 img = img.to(device)
                 label = label.to(device)  # Assuming label is for binary classification
-                output = model.encoder(img)
-
+                output = model.forward_bc(img)
 
                 print(len(output))
                 # print("Output :", output)
@@ -303,7 +302,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 optimizer2.zero_grad()
                 loss.backward()
                 optimizer2.step()
-        else:  # Odd epochs
+        else:  # even epochs
             # Train the entire ReContrast model, encoder's head is frozen
             model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
             for param in model.parameters():

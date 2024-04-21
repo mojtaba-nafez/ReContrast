@@ -50,7 +50,8 @@ class ReContrast(nn.Module):
         super(ReContrast, self).__init__()
         self.encoder = encoder
         self.encoder.layer4 = None
-        self.encoder.fc = nn.Sequential(
+
+        self.fc_bc = nn.Sequential(
             nn.Flatten(),  # Flatten the output to make it suitable for input to a linear layer
             nn.Linear(512, 2),  # Change the output features from 1 to 2
             nn.Softmax(dim=1)  # Optional: Apply softmax to convert logits to probabilities
@@ -62,6 +63,12 @@ class ReContrast(nn.Module):
 
         self.bottleneck = bottleneck
         self.decoder = decoder
+
+    def forward_bc(self, x):
+        # print('recon input:', x.shape)\
+        en = self.encoder(x)
+        out = self.fc_bc(en[-1])
+        return out
 
     def forward(self, x):
         # print('recon input:', x.shape)\

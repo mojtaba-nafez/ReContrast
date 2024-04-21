@@ -295,6 +295,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 # print("Label :", label)
                 # print('label type: ', type(label))
                 print(type(output))
+                output = torch.tensor(output, device='cuda:0')
                 loss = criterion(output, label.float())
                 optimizer2.zero_grad()
                 loss.backward()

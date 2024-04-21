@@ -292,7 +292,7 @@ if __name__ == '__main__':
     result_list = {"main":[], "shifted":[]}
     result_list_best = {"main":[], "shifted":[]}
     pad_size = ["main", "shifted"]
-    item = 'brain'
+    item = 'isic'
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
     auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_using_pad=args.training_using_pad, max_ratio=args.max_ratio, augmented_view=args.augmented_view, batch_size=args.batch_size, model=args.model)
     for pad in pad_size:

@@ -1,4 +1,3 @@
-
 import torch
 from dataset import get_data_transforms, get_strong_transforms
 from torchvision.datasets import ImageFolder
@@ -56,6 +55,7 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 def show_images(images, labels, dataset_name):
     num_images = len(images)
     rows = int(num_images / 5) + 1
@@ -69,6 +69,7 @@ def show_images(images, labels, dataset_name):
         ax.axis("off")
 
     plt.savefig(f'{dataset_name}_visualization.png')
+
 
 def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_data=True):
     print(f"Start visualization of clean dataset: {dataset_name}")
@@ -108,6 +109,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
+
 def train(_class_, shrink_factor=None, total_iters=2000):
     print_fn(_class_)
     setup_seed(111)
@@ -123,7 +125,8 @@ def train(_class_, shrink_factor=None, total_iters=2000):
     test_path = '/kaggle/input/mvtec-ad/' + _class_
 
     train_data = ImageFolder(root=train_path, transform=data_transform)
-    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
+    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
+                             shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
@@ -157,7 +160,8 @@ def train(_class_, shrink_factor=None, total_iters=2000):
 
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
-    for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
+    epochs = int(np.ceil(total_iters / len(train_dataloader)))
+    for epoch in range(epochs):
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
 
@@ -181,7 +185,7 @@ def train(_class_, shrink_factor=None, total_iters=2000):
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (it + 1) % 250 == 0:
+            if epoch == epochs - 1:
                 auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
                 model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
 
@@ -227,7 +231,9 @@ if __name__ == '__main__':
     print(args.cls, item_list[args.cls])
     for i, item in enumerate([item_list[args.cls]]):
         print(item)
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
+                                                                                          shrink_factor=args.shrink_factor,
+                                                                                          total_iters=args.total_iters)
         result_list.append([item, auroc_px, auroc_sp, aupro_px])
         result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
 

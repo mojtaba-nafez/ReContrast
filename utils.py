@@ -488,7 +488,6 @@ def compute_pro(masks: ndarray, amaps: ndarray, num_th: int = 200) -> None:
         amaps (ndarray): All anomaly maps in test. amaps.shape -> (num_test_data, h, w)
         num_th (int, optional): Number of thresholds
     """
-    print("set(masks.flatten())", set(masks.flatten()))
 
     assert isinstance(amaps, ndarray), "type(amaps) must be ndarray"
     assert isinstance(masks, ndarray), "type(masks) must be ndarray"

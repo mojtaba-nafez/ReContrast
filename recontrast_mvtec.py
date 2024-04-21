@@ -307,7 +307,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
             model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
             for param in model.parameters():
                 param.requires_grad = True  # Unfreeze all
-            model.encoder.fc.requires_grad = False  # Freeze the head
+            model.fc_bc.requires_grad = False  # Freeze the head
 
             for img, label in train_dataloader:
                 img = img.to(device)

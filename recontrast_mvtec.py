@@ -291,6 +291,8 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 img = img.to(device)
                 label = label.to(device)  # Assuming label is for binary classification
                 output = model.encoder(img)
+                print("Output size:", output.size())
+                print("Label size:", label.size())
                 loss = criterion(output, label.float())
                 optimizer2.zero_grad()
                 loss.backward()

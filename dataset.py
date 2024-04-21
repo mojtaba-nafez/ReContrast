@@ -537,8 +537,15 @@ class BrainTest(torch.utils.data.Dataset):
         img = self.transform(img)
 
         has_anomaly = 0 if self.test_label[idx] == 0 else 1
+        
+        # this is fake:)
+        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
 
-        return img, has_anomaly, img_path
+        mask
+        # return img, , has_anomaly, img_path
+        return img, gt, label, img_path
+
+
 class BrainTrain(torch.utils.data.Dataset):
     def __init__(self, transform):
         self.transform = transform
@@ -551,4 +558,4 @@ class BrainTrain(torch.utils.data.Dataset):
         img_path = self.image_paths[idx]
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
-        return img, 0, img_path
+        return img, 0

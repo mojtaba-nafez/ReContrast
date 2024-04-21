@@ -1,4 +1,3 @@
-
 import torch
 from dataset import get_data_transforms, get_strong_transforms
 from torchvision.datasets import ImageFolder
@@ -57,6 +56,7 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 def show_images(images, labels, dataset_name):
     num_images = len(images)
     rows = int(num_images / 5) + 1
@@ -70,6 +70,7 @@ def show_images(images, labels, dataset_name):
         ax.axis("off")
 
     plt.savefig(f'{dataset_name}_visualization.png')
+
 
 def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_data=True):
     print(f"Start visualization of clean dataset: {dataset_name}")
@@ -109,20 +110,22 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
-def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0, augmented_view=False, batch_size=16, model='wide_res50'):
+
+def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
+          augmented_view=False, batch_size=16, model='wide_res50'):
     print_fn(_class_)
     setup_seed(111)
 
     total_iters = total_iters
     image_size = 256
     crop_size = 256
-    
+
     if augmented_view:
         train_data_transforms = transforms.Compose([
             transforms.Resize((image_size, image_size)),
-            transforms.RandomHorizontalFlip(),    # Random horizontal flip
+            transforms.RandomHorizontalFlip(),  # Random horizontal flip
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
-            transforms.RandomGrayscale(p=0.2),    # Random grayscale
+            transforms.RandomGrayscale(p=0.2),  # Random grayscale
             transforms.ToTensor(),
             transforms.CenterCrop(crop_size),
         ])
@@ -141,8 +144,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     else:
         train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
         train_data = ImageFolder(root=train_path, transform=train_data_transforms)
-    
-    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
+
+    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
+                             shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
@@ -150,7 +154,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
-    if model=='wide_res50':
+    if model == 'wide_res50':
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
@@ -163,7 +167,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     bn = bn.to(device)
     decoder = decoder.to(device)
     encoder_freeze = copy.deepcopy(encoder)
-    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder, image_size=image_size, crop_size=crop_size, device=device)
+    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
+                       image_size=image_size, crop_size=crop_size, device=device)
     # for m in encoder.modules():
     #     if isinstance(m, torch.nn.BatchNorm2d):
     #         m.eps = 1e-8
@@ -182,18 +187,18 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
 
-    auroc_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-    auroc_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
-    auroc_sp_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-    auroc_sp_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
+    auroc_sp_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_sp_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
-    auroc_aupro_px_list = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-    auroc_aupro_px_list_best = {"0.8":0, "0.85":0, "0.9":0, "0.95":0, "0.98":0, "1.0":0}
-    
+    auroc_aupro_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_aupro_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
-        CutPasteUnion(transform = transforms.Compose([transforms.ToTensor(),])),
+        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
@@ -206,7 +211,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
             img = img.to(device)
             anomaly_data = np.ones(len(img))
-            anomaly_data[int(len(anomaly_data)/2):] = -1
+            anomaly_data[int(len(anomaly_data) / 2):] = -1
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
@@ -216,12 +221,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             en, de = model(img)
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            
+
             loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
-                   global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
+                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
             loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
-                        (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
-            loss = loss1  + loss2
+                    (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
+            loss = loss1 + loss2
             '''
             loss2 = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=0) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=1) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2)
             loss3 = contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=0) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=1) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2)
@@ -241,23 +246,28 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
 
                 for shrink_factor in pad_size:
-                    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=shrink_factor)
+                    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
+                                             phase="test", shrink_factor=shrink_factor)
                     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
-                    
-                    auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation(model, test_dataloader, device, max_ratio=max_ratio)
-                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]))
-                    
+
+                    auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
+                        str(shrink_factor)] = evaluation(model, test_dataloader, device, max_ratio=max_ratio)
+                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
+                        shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
+                        auroc_aupro_px_list[str(shrink_factor)]))
+
                     if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
-                        auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
-                
+                        auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
+                        auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                            str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+
                 model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
-                
+
             it += 1
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
-   
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
     return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
 
@@ -287,29 +297,39 @@ if __name__ == '__main__':
 
     if args.training_shrink_factor:
         args.training_using_pad = True
-    
-    item_list = ['screw', 'cable', 'transistor', 'carpet', 'bottle', 'hazelnut', 'leather', 'capsule', 'grid', 'pill' ,'metal_nut', 'toothbrush', 'zipper', 'tile', 'wood']
+
+    item_list = ['screw', 'cable', 'transistor', 'carpet', 'bottle', 'hazelnut', 'leather', 'capsule', 'grid', 'pill',
+                 'metal_nut', 'toothbrush', 'zipper', 'tile', 'wood']
     item_list = item_list[args.item_list:]
     print(item_list)
     # item_list = ['toothbrush']
-    
+
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info
 
     device = 'cuda:' + args.gpu if torch.cuda.is_available() else 'cpu'
     print_fn(device)
 
-    result_list = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
-    result_list_best = {"0.8":[], "0.85":[], "0.9":[], "0.95":[], "0.98":[], "1.0":[]}
+    result_list = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
+    result_list_best = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
     pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
 
     for i, item in enumerate(item_list):
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_using_pad=args.training_using_pad, max_ratio=args.max_ratio, augmented_view=args.augmented_view, batch_size=args.batch_size, model=args.model)
+        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
+                                                                                          shrink_factor=args.shrink_factor,
+                                                                                          total_iters=args.total_iters,
+                                                                                          evaluation_epochs=args.evaluation_epochs,
+                                                                                          training_using_pad=args.training_using_pad,
+                                                                                          max_ratio=args.max_ratio,
+                                                                                          augmented_view=args.augmented_view,
+                                                                                          batch_size=args.batch_size,
+                                                                                          model=args.model)
         for pad in pad_size:
             result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
-            result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
-    
+            result_list_best[str(pad)].append(
+                [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
+
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')
         mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
@@ -325,6 +345,3 @@ if __name__ == '__main__':
         print_fn(result_list_best[str(pad)])
         print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
                                                                                         best_aupro_px))
-
-
-

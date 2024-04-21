@@ -60,12 +60,9 @@ def setup_seed(seed):
 def show_images(images, labels, dataset_name):
     num_images = len(images)
     rows = int(np.ceil(num_images / 5))  # Use np.ceil to ensure enough rows
-
     fig, axes = plt.subplots(rows, 5, figsize=(15, rows * 3), squeeze=False)  # Ensure axes is always a 2D array
-
     for i, ax in enumerate(axes.flatten()):
         if i < num_images:
-            # Check if image is a tensor, if so, convert to numpy
             if isinstance(images[i], torch.Tensor):
                 image = images[i].numpy()
             else:
@@ -81,23 +78,16 @@ def show_images(images, labels, dataset_name):
 
     plt.tight_layout()
     plt.savefig(f'{dataset_name}_visualization.png')
+
 def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     print(f"Start visualization of clean dataset: {dataset_name}")
-    # Choose 20 random indices from the dataset
     if len(dataset) > 20:
         random_indices = random.sample(range(len(dataset)), 20)
     else:
         random_indices = [i for i in range(len(dataset))]
-
-    # Retrieve corresponding samples
     random_samples = [dataset[i] for i in random_indices]
-
-    # Separate images and labels
     images, labels, _ = zip(*random_samples)
-
     labels = torch.tensor(labels)
-
-    # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0, augmented_view=False, batch_size=16, model='wide_res50'):
@@ -167,7 +157,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     optimizer2 = torch.optim.AdamW(list(encoder.parameters()),
                                    lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
     print_fn('train image number:{}'.format(len(train_data)))
-    print_fn('test image number:{}'.format(len(test_data)))
+    print_fn('test image number:{}'.format(len(test_data1)))
     macs, params = get_model_complexity_info(model, (3, crop_size, crop_size),
                                              as_strings=True, print_per_layer_stat=False)
     print_fn('Computation:{}'.format(macs))
@@ -234,13 +224,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             if (it + 1) % evaluation_epochs == 0:
 
                 shrink_factor = "main" 
-                auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation(model, test_dataloader, device, max_ratio=max_ratio)
+                auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation(model, test_dataloader1, device, max_ratio=max_ratio)
                 print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]))
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
                 
                 shrink_factor = "shifted"
-                auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation(model, test_dataloader, device, max_ratio=max_ratio)
+                auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation(model, test_dataloader2, device, max_ratio=max_ratio)
                 print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]))
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]

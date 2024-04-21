@@ -36,6 +36,7 @@ def get_exposure_set(image_size=224, count=5000, tiny_percent=0.2, category='car
 
     tiny_count =  int(count*tiny_percent)
     cutpaste_count = int(count*(1-tiny_percent))
+    print(tiny_count, cutpaste_count)
 
     train_ds_mvtech_cutpasted = []
 
@@ -82,6 +83,7 @@ class MVTecDataset_Cutpasted(Dataset):
         print("category MVTecDataset_Cutpasted:", category)
         if train:
             self.image_files = glob(os.path.join(root, category, "train", "good", "*.png"))
+            print('len image files cutpast: ', len(self.image_files))
         else:
             image_files = glob(os.path.join(root, category, "test", "*", "*.png"))
             normal_image_files = glob(os.path.join(root, category, "test", "good", "*.png"))

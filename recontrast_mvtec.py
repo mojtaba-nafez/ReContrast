@@ -291,13 +291,15 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 img = img.to(device)
                 label = label.to(device)  # Assuming label is for binary classification
                 output = model.encoder(img)
+
+
                 print(len(output))
                 # print("Output :", output)
                 # print("Label :", label)
                 # print('label type: ', type(label))
                 print(type(output))
-                output = torch.tensor(output, device='cuda:0')
-                loss = criterion(output, label.float())
+                output_for_loss = outputs[2]  # Select the correct output for loss calculation
+                loss = criterion(output_for_loss.squeeze(), label.float())
                 optimizer2.zero_grad()
                 loss.backward()
                 optimizer2.step()

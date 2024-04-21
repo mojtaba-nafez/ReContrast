@@ -364,7 +364,7 @@ if __name__ == '__main__':
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
-    parser.add_argument('--data_count', type=int, default=10000)
+    parser.add_argument('--data_count', type=int, default=1000)
 
     # ADDING U NODE
     parser.add_argument('--encoder1_path', type=str, default='')

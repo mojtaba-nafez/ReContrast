@@ -245,9 +245,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             en, de = model(img)
             en_3rd = en[5]
             cls_output = cls(en_3rd)
-            cls_loss = criterion(cls_output, anomaly_data.long())
             print('en3', en_3rd.shape, en_3rd.dtype)
-            print('anomaly_data', anomaly_data.shape, anomaly_data.dtype)
+            print('anomaly_data', anomaly_data.shape, anomaly_data.dtype, type(anomaly_data.long()), type(cls_output))
+            cls_loss = criterion(cls_output, anomaly_data.long())
+
             print('lolz')
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)

@@ -161,6 +161,16 @@ def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
 
+    auroc_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+
+    auroc_sp_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_sp_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+
+    auroc_aupro_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_aupro_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+
+
     if eval_only:
         model.load_state_dict(torch.load('model.pth'))
         auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
@@ -193,13 +203,25 @@ def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
             optimizer2.step()
             loss_list.append(loss.item())
             if epoch == epochs - 1:
-                auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
-                model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
+                pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
 
-                print_fn(
-                    'Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
-                if auroc_sp >= auroc_sp_best:
-                    auroc_px_best, auroc_sp_best, aupro_px_best = auroc_px, auroc_sp, aupro_px
+                for shrink_factor in pad_size:
+                    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
+                                             phase="test", shrink_factor=shrink_factor)
+                    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+
+                    auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
+                        str(shrink_factor)] = evaluation(model, test_dataloader, device)
+                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
+                        shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
+                        auroc_aupro_px_list[str(shrink_factor)]))
+
+                    if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
+                        auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
+                        auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                            str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+
+                model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
             it += 1
             if it == total_iters:
                 break

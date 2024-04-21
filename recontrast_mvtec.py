@@ -241,7 +241,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     img[i] = anomaly_transforms(img[i])
             anomaly_data = torch.tensor(anomaly_data).to(device)
             # we also need one where instead on -1s we have 1s
-            anomaly_one = [1 if x == -1 else -1 for x in anomaly_data]
+            anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]
             anomaly_one = torch.tensor(anomaly_one).to(device)
             print(anomaly_one)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
@@ -252,7 +252,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             print('en3', en_3rd.shape, en_3rd.dtype)
             print('anomaly_data', anomaly_one.shape, anomaly_one.dtype, anomaly_one.long().dtype, cls_output.dtype)
             print('shape:', cls_output.shape)
-            cls_loss = criterion(cls_output, anomaly_data.to(torch.int64))
+            cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
 
             print('lolz')
             alpha_final = 1

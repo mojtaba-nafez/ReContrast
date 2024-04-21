@@ -12,7 +12,7 @@ from models.recontrast import ReContrast, ReContrast
 from dataset import AptosTest, AptosTrain
 import torch.backends.cudnn as cudnn
 import argparse
-from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss, evaluation_brain
+from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss, evaluation_noseg_brain
 from torch.nn import functional as F
 from functools import partial
 from ptflops import get_model_complexity_info
@@ -188,7 +188,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     ])
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
-        model.train()
+        model.train(encoder_bn_train=True)
 
         loss_list = []
         for img, label in train_dataloader:
@@ -197,7 +197,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
             img = img.to(device)
             anomaly_data = np.ones(len(img))
-            anomaly_data[int(len(anomaly_data)/2):] = -1
+            anomaly_data[int(len(anomaly_data)/2):] = 1
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
@@ -210,9 +210,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             
             loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
-            loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
+            #loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
                         (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
-            loss = loss1  + loss2
+            loss = loss1  #+ loss2
             '''
             loss2 = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=0) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=1) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2)
             loss3 = contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=0) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=1) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2)
@@ -243,7 +243,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
                 
-                model.train()
+                model.train(encoder_bn_train=True)
                 
             it += 1
             if it == total_iters:

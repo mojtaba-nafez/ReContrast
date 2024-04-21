@@ -96,6 +96,7 @@ class MVTecDataset_Cutpasted(Dataset):
                 t = len(self.image_files)
                 for i in range(count-t):
                     self.image_files.append(random.choice(self.image_files[:t]))
+        print('len image files cutpast: ', len(self.image_files))
         self.image_files.sort(key=lambda y: y.lower())
         self.train = train
     def __getitem__(self, index):

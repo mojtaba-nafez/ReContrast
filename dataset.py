@@ -541,7 +541,6 @@ class BrainTest(torch.utils.data.Dataset):
         # this is fake:)
         gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
 
-        mask
         # return img, , has_anomaly, img_path
         return img, gt, label, img_path
 

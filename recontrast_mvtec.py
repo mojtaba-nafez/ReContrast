@@ -178,7 +178,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
+    train_path = '/kaggle/input/mvtec-ad/' + _class_
     test_path = '/kaggle/input/mvtec-ad/' + _class_
 
     train_data = MVTecDataset(root=train_path, transform=data_transform, gt_transform=gt_transform, phase='train', count=data_count//2)

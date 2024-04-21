@@ -265,7 +265,6 @@ def evaluation_brain(model, dataloader, device, _class_=None, calc_pro=True, max
     aupro_list = []
 
     with torch.no_grad():
-        k=0
         for img, gt, label, _ in dataloader:
             img = img.to(device)
 
@@ -293,10 +292,7 @@ def evaluation_brain(model, dataloader, device, _class_=None, calc_pro=True, max
             pr_list_px.extend(anomaly_map.ravel())
             gt_list_sp.append(label)
             pr_list_sp.append(sp_score)
-            k += 1
-            if k > 20:
-                break
-        print(pr_list_sp, gt_list_sp)
+
         auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
 

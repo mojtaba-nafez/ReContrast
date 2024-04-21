@@ -229,7 +229,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
 
     torch.save(model.state_dict(), 'model.pth')
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
-    return auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
 
 
 if __name__ == '__main__':

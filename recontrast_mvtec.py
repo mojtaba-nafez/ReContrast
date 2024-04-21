@@ -110,6 +110,160 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     show_images(images, labels, dataset_name)
 
 
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
+
+def _get_features(P, model, loader, interp=False, imagenet=False, simclr_aug=None,
+                  sample_num=1, layers=('simclr', 'shift')):
+
+    # layers = ['simclr', 'shift']
+    if not isinstance(layers, (list, tuple)):
+        layers = [layers]
+
+    # check if arguments are valid
+    assert simclr_aug is not None
+
+    if imagenet is True:  # assume batch_size = 1 for ImageNet
+        sample_num = 1
+
+    # compute features in full dataset
+    model.eval()
+    feats_all = {layer: [] for layer in layers}  # initialize: empty list
+    for i, (x, _) in enumerate(loader):
+        # interp: False
+        if interp:
+            x_interp = (x + last) / 2 if i > 0 else x  # omit the first batch, assume batch sizes are equal
+            last = x  # save the last batch
+            x = x_interp  # use interp as current batch
+
+        if imagenet is True:
+            x = torch.cat(x[0], dim=0)  # augmented list of x
+
+        x = x.to(device)  # gpu tensor
+
+        # compute features in one batch
+        feats_batch = {layer: [] for layer in layers}  # initialize: empty list
+        # sample_num=10
+        for seed in range(sample_num):
+            set_random_seed(seed)
+
+            if P.K_shift > 1:
+                # train time call:
+                #   x   = torch.Size([128, 3, 32, 32])
+                #   x_t = torch.Size([512, 3, 32, 32])
+                # test time call:
+                #   x   = torch.Size([100, 3, 32, 32])
+                #   x_t = torch.Size([400, 3, 32, 32])
+                x_t = torch.cat([P.shift_trans(hflip(x), k) for k in range(P.K_shift)])
+            else:
+                x_t = x # No shifting: SimCLR
+            x_t = simclr_aug(x_t)
+
+            # compute augmented features
+            with torch.no_grad():
+                # layers = ['simclr', 'shift']
+                kwargs = {layer: True for layer in layers}  # only forward selected layers
+                _, output_aux = model(x_t, **kwargs)
+
+            # add features in one batch
+            for layer in layers:
+                # train time call
+                #   output_aux["shift"] torch.Size([512, 4])
+                #   output_aux["simclr"] torch.Size([512, 128])
+                # test time call
+                #   output_aux["shift"] torch.Size([400, 4])
+                #   output_aux["simclr"] torch.Size([400, 128])
+                feats = output_aux[layer].cpu()
+                # imagenet = False
+                if imagenet is False:
+                    # feats.chunk(P.K_shift):
+                    #   Train:   4 * torch.Size([128, 128])   ||   4 * torch.Size([128, 4])
+                    #   Test:    4 * torch.Size([100, 128])   ||   4 * torch.Size([100, 4])
+
+                    # feats_batch[layer] = array of len=4
+                    # train:    40 * torch.Size([128, 128])  ||  40 * torch.Size([128, 4])
+                    # test:     40 * torch.Size([100, 128])  ||  40 * torch.Size([100, 4])
+                    feats_batch[layer] += feats.chunk(P.K_shift)
+                else:
+                    feats_batch[layer] += [feats]  # (B, d) cpu tensor
+
+        # concatenate features in one batch
+        for key, val in feats_batch.items():
+            if imagenet:
+                feats_batch[key] = torch.stack(val, dim=0)  # (B, T, d)
+            else:
+                feats_batch[key] = torch.stack(val, dim=1)  # (B, T, d)
+        # feats_batch
+        # feats_batch["simclr"] = torch.Size([128, 40, 128]) || torch.Size([100, 40, 128])
+        # feats_batch["shift"]  = torch.Size([128, 40, 4])   || torch.Size([100, 40, 4])
+
+        # add features in full dataset
+        for layer in layers:
+            feats_all[layer] += [feats_batch[layer]]
+    # feats_all["shift or simclr"] is an array len=40 --> element: [128, 40, 128]
+    #   train time call:   simclr=[40, 128, 40, 128]  || shift=[40, 128, 40, 4]
+    #   test time call:    simclr=[10, 100, 40, 128]  || shift=[10, 100, 40, 4]
+
+    # concatenate features in full dataset
+    for key, val in feats_all.items():
+        feats_all[key] = torch.cat(val, dim=0)  # (N, T, d)
+    # train time call feats_all[key]:
+    #        torch.Size([5000, 40, 128])
+    #        torch.Size([5000, 40, 4])
+    # train time call feats_all[key]:
+    #        torch.Size([1000, 40, 128])
+    #        torch.Size([1000, 40, 4])
+
+    # reshape order
+    if imagenet is False:
+        # Convert [1,2,3,4, 1,2,3,4] -> [1,1, 2,2, 3,3, 4,4]
+        for key, val in feats_all.items():
+            N, T, d = val.size()  # T = K * T'
+            val = val.view(N, -1, P.K_shift, d)  # (N, T', K, d)
+            val = val.transpose(2, 1)  # (N, 4, T', d)
+            val = val.reshape(N, T, d)  # (N, T, d)
+            feats_all[key] = val
+    # train time call feats_all[key]:
+    #        torch.Size([5000, 40, 128])
+    #        torch.Size([5000, 40, 4])
+    # train time call feats_all[key]:
+    #        torch.Size([1000, 40, 128])
+    #        torch.Size([1000, 40, 4])
+    return feats_all
+
+
+def get_features(P, data_name, model, loader, interp=False, prefix='',
+                 simclr_aug=None, sample_num=1, layers=('simclr', 'shift')):
+
+    if not isinstance(layers, (list, tuple)):
+        layers = [layers]
+
+    # load pre-computed features if exists
+    feats_dict = dict()
+    # for layer in layers:
+    #     path = prefix + f'_{data_name}_{layer}.pth'
+    #     if os.path.exists(path):
+    #         feats_dict[layer] = torch.load(path)
+
+    # pre-compute features and save to the path
+    # left= ['simclr', 'shift']
+    left = [layer for layer in layers if layer not in feats_dict.keys()]
+    if len(left) > 0:
+        _feats_dict = _get_features(P, model, loader, interp, P.dataset == 'imagenet',
+                                    simclr_aug, sample_num, layers=left)
+
+        for layer, feats in _feats_dict.items():
+            path = prefix + f'_{data_name}_{layer}.pth'
+            torch.save(_feats_dict[layer], path)
+            feats_dict[layer] = feats  # update value
+
+    return feats_dict
+
+
 def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
     print_fn(_class_)
     setup_seed(111)
@@ -170,6 +324,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
     auroc_aupro_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
     auroc_aupro_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
+    kwargs = {
+        'simclr_aug': simclr_aug,
+        'sample_num': P.ood_samples,
+        'layers': P.ood_layer,
+    }
+
+    print('Pre-compute global statistics...')
+    feats_train = get_features(P, f'{P.dataset}_train', model, train_dataloader, **kwargs)  # (M, T, d)
 
     if eval_only:
         model.load_state_dict(torch.load('model.pth'))
@@ -186,6 +348,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, eval_only=False):
         for img, label in train_dataloader:
             img = img.to(device)
             en, de = model(img)
+
+
 
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)

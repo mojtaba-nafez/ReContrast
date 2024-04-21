@@ -129,9 +129,8 @@ class BinaryClassifier(nn.Module):
         return x
 
 
-
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
-          augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-5):
+          augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-3):
     print_fn(_class_)
     setup_seed(111)
 
@@ -220,6 +219,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     auroc_aupro_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
     auroc_aupro_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
+    auroc_cls_auc_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_cls_auc_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
@@ -249,8 +251,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             en_3rd = en[5]
             cls_output = cls(en_3rd)
             cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
-
-
 
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
@@ -285,25 +285,30 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
                     auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                        str(shrink_factor)] = evaluation(model, test_dataloader, device, max_ratio=max_ratio)
-                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
+                        str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)] = evaluation(model, test_dataloader,
+                                                                                                 device,
+                                                                                                 max_ratio=max_ratio,
+                                                                                                 cls=cls)
+                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Map Auroc:{:.3f}, Pixel Aupro:{:.3}, Sample CLS AUROC:{:.3}'.format(
                         shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
-                        auroc_aupro_px_list[str(shrink_factor)]))
+                        auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)]))
 
                     if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                         auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
-                        auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
-                            str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+                        auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)] = \
+                            auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                                str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[
+                                str(shrink_factor)]
 
                 model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
-
+                cls.train()
             it += 1
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
-    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best
 
 
 if __name__ == '__main__':
@@ -326,7 +331,7 @@ if __name__ == '__main__':
     parser.add_argument('--augmented_view', action='store_true')
     parser.add_argument('--model', type=str, default='wide_res50')
     parser.add_argument('--item_list', type=str, default='0,15')
-    parser.add_argument('--lr_cls', type=float, default=0.00001)
+    parser.add_argument('--lr_cls', type=float, default=0.001)
 
     args = parser.parse_args()
 
@@ -355,7 +360,7 @@ if __name__ == '__main__':
 
     for i, item in enumerate(item_list):
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
+        auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(item,
                                                                                           shrink_factor=args.shrink_factor,
                                                                                           total_iters=args.total_iters,
                                                                                           evaluation_epochs=args.evaluation_epochs,
@@ -366,22 +371,24 @@ if __name__ == '__main__':
                                                                                           model=args.model,
                                                                                           lr_cls=args.lr_cls)
         for pad in pad_size:
-            result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
+            result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
             result_list_best[str(pad)].append(
-                [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
+                [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)], auroc_sp_cls_best[str(pad)]])
 
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')
         mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
         mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
         mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+        mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
         print_fn(result_list[str(pad)])
-        print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-                                                                                        mean_aupro_px))
+        print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
+                                                                                        mean_aupro_px, mean_auc_sp_cls))
 
         best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
         best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
         best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
+        best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
         print_fn(result_list_best[str(pad)])
-        print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
-                                                                                        best_aupro_px))
+        print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(best_auroc_px, best_auroc_sp,
+                                                                                        best_aupro_px, best_auc_sp_cls))

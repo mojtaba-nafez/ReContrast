@@ -192,7 +192,7 @@ def specificity_score(y_true, y_score):
     return TN / N
 
 
-def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
+def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0, cls=None):
     """
 
     :param model:
@@ -210,13 +210,17 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
     gt_list_sp = []
     pr_list_sp = []
     aupro_list = []
-
+    cls_list_sp = []
+    cls.eval()
     with torch.no_grad():
         for img, gt, label, _ in dataloader:
             img = img.to(device)
 
             en, de = model(img)
-
+            en_3rd = en[5]
+            cls_output = cls(en_3rd)
+            cls_score = cls_output[:, 1]
+            cls_list_sp.append(cls_score)
             anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
             anomaly_map = gaussian_filter(anomaly_map, sigma=4)
             # gt[gt > 0.5] = 1
@@ -241,9 +245,10 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
             pr_list_sp.append(sp_score)
 
         auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
-        auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+        auroc_sp_map = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+        auroc_sp_msp = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
 
-    return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
+    return auroc_px, auroc_sp_map, round(np.mean(aupro_list), 4), auroc_sp_msp
 
 
 def evaluation_batch(model, dataloader, device, _class_=None, reg_calib=False, max_ratio=0):

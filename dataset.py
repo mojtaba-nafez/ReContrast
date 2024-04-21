@@ -105,6 +105,7 @@ def center_paste(large_img, small_img):
 
 class MVTecDataset(torch.utils.data.Dataset):
     def __init__(self, root, transform, gt_transform, phase, shrink_factor=None, count=-1):
+        self.count = count
         if phase == 'train':
             self.img_path = os.path.join(root, 'train')
         else:
@@ -116,7 +117,7 @@ class MVTecDataset(torch.utils.data.Dataset):
         self.img_paths, self.gt_paths, self.labels, self.types = self.load_dataset()  # self.labels => good : 0, anomaly : 1
         self.imagenet30_testset = IMAGENET30_TEST_DATASET()
         self.shrink_factor = shrink_factor
-        self.count = count
+
         
         print(f"self.shrink_factor: {self.shrink_factor}")
 

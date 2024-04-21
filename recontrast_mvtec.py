@@ -181,10 +181,10 @@ def train(_class_, shrink_factor=None, total_iters=2000,
     train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
     test_path = '/kaggle/input/mvtec-ad/' + _class_
 
-    train_data = ImageFolder(root=train_path, transform=data_transform)
+    train_data = MVTecDataset(root=train_path, transform=data_transform, gt_transform=gt_transform, phase='train', count=data_count//2)
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
                              shrink_factor=shrink_factor)
-    train_data = populate_dataset_to_fixed_count(train_data, data_count)
+
     exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count / 2)
 
     combined_dataset = ConcatDataset([exposure_dataset, train_data])
@@ -197,6 +197,10 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                                                    drop_last=False)
     exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count / 2)
 
+
+    print('len train set: ', len(train_data))
+    print('len exposure set: ', len(exposure_dataset))
+    print('len combined set: ', len(combined_dataset))
 
 
 

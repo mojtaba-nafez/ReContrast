@@ -59,19 +59,29 @@ def setup_seed(seed):
 
 def show_images(images, labels, dataset_name):
     num_images = len(images)
-    rows = int(num_images / 5) + 1
+    rows = int(np.ceil(num_images / 5))  # Use np.ceil to ensure enough rows
 
-    fig, axes = plt.subplots(rows, 5, figsize=(15, rows * 3))
+    fig, axes = plt.subplots(rows, 5, figsize=(15, rows * 3), squeeze=False)  # Ensure axes is always a 2D array
 
     for i, ax in enumerate(axes.flatten()):
         if i < num_images:
-            ax.imshow(images[i].permute(1, 2, 0))  # permute to (H, W, C) for displaying RGB images
-            ax.set_title(f"Label: {labels[i]}")
+            # Check if image is a tensor, if so, convert to numpy
+            if isinstance(images[i], torch.Tensor):
+                image = images[i].numpy()
+            else:
+                image = images[i]
+            # If image is in (C, H, W) format, transpose it to (H, W, C)
+            if image.shape[0] in {1, 3}:  # Assuming grayscale (1 channel) or RGB (3 channels)
+                image = image.transpose(1, 2, 0)
+            if image.shape[2] == 1:  # If grayscale, convert to RGB for consistency
+                image = np.repeat(image, 3, axis=2)
+            ax.imshow(image)
+            ax.set_title(f"Label: {labels[i].item()}")
         ax.axis("off")
 
+    plt.tight_layout()
     plt.savefig(f'{dataset_name}_visualization.png')
-
-def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_data=True):
+def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     print(f"Start visualization of clean dataset: {dataset_name}")
     # Choose 20 random indices from the dataset
     if len(dataset) > 20:
@@ -83,27 +93,8 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     random_samples = [dataset[i] for i in random_indices]
 
     # Separate images and labels
-    if train_data:
-        images, labels = zip(*random_samples)
-    else:
-        images, _, labels, _ = zip(*random_samples)
+    images, labels, _ = zip(*random_samples)
 
-    # print(f"len(labels): {len(labels)}")
-    # print(f"type(labels): {type(labels)}")
-    # print(f"type(images): {type(images)}")
-    # print(f"type(labels[0]): {type(labels[0])}")
-    # print(f"labels[0]: {labels[0]}")
-    # print(f"labels.size(): {labels.size()}")
-
-    # Convert PIL images to PyTorch tensors
-    # transform = transforms.ToTensor()
-    # images = [transform(image) for image in images]
-
-    # Convert labels to PyTorch tensor
-    print(f"len(labels): {len(labels)}")
-    print(f"type(labels): {type(labels)}")
-    print(f"type(labels[0]): {type(labels[0])}")
-    print(f"labels[0]: {labels[0]}")
     labels = torch.tensor(labels)
 
     # Show the 20 random samples

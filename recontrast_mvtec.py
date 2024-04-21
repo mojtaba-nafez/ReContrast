@@ -243,18 +243,15 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # we also need one where instead on -1s we have 1s
             anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]
             anomaly_one = torch.tensor(anomaly_one).to(device)
-            print(anomaly_one)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)
             en_3rd = en[5]
             cls_output = cls(en_3rd)
-            print('en3', en_3rd.shape, en_3rd.dtype)
-            print('anomaly_data', anomaly_one.shape, anomaly_one.dtype, anomaly_one.long().dtype, cls_output.dtype)
-            print('shape:', cls_output.shape)
             cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
 
-            print('lolz')
+
+
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
 
@@ -262,7 +259,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
             loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
                     (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
-            loss = loss1 + loss2
+            loss = loss1 + loss2 + cls_loss
             '''
             loss2 = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=0) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=1) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2)
             loss3 = contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=0) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=1) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2)
@@ -270,11 +267,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             '''
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
-
+            optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
+            optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())

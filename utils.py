@@ -239,6 +239,7 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
             pr_list_px.extend(anomaly_map.ravel())
             gt_list_sp.append(np.max(gt.cpu().numpy().astype(int)))
             pr_list_sp.append(sp_score)
+            break
     
         auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)

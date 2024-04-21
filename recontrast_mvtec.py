@@ -17,6 +17,7 @@ from functools import partial
 from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
+import torch.nn as nn
 
 import warnings
 import copy
@@ -111,6 +112,24 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     show_images(images, labels, dataset_name)
 
 
+class BinaryClassifier(nn.Module):
+    def __init__(self):
+        super(BinaryClassifier, self).__init__()
+        # input shape: [Batch size, 256, 16, 16]
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # output shape: [Batch size, 256, 1, 1]
+        self.flatten = nn.Flatten()
+        # output shape: [Batch size, 256]
+        self.fc = nn.Linear(256, 2)
+
+    def forward(self, x):
+        x = self.adaptive_pool(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        return x
+
+
+
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50'):
     print_fn(_class_)
@@ -163,15 +182,20 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     else:
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    cls = BinaryClassifier()
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
     encoder_freeze = copy.deepcopy(encoder)
+    cls = cls.to(device)
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
                        image_size=image_size, crop_size=crop_size, device=device)
     # for m in encoder.modules():
     #     if isinstance(m, torch.nn.BatchNorm2d):
     #         m.eps = 1e-8
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=1e-3, betas=(0.9, 0.999), weight_decay=1e-5)
 
     optimizer = torch.optim.AdamW(list(decoder.parameters()) + list(bn.parameters()),
                                   lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
@@ -219,6 +243,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)
+            en_3rd = en[5]
+            cls_output = cls(en_3rd)
+            cls_loss = criterion(cls_output, anomaly_data)
+            print('lolz')
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
 

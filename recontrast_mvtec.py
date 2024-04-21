@@ -336,8 +336,8 @@ if __name__ == '__main__':
                  'metal_nut', 'toothbrush', 'zipper', 'tile', 'wood']
 
     items = args.item_list.split(',')
-    st = items[0]
-    ed = items[1]
+    st = int(items[0])
+    ed = int(items[1])
     item_list = item_list[st: ed]
     print(item_list)
     # item_list = ['toothbrush']

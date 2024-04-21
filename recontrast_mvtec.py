@@ -223,13 +223,6 @@ def train(_class_, shrink_factor=None, total_iters=2000,
         print('Applying U-node as encoder 1...')
         encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
 
-
-
-        # last_layer = encoder.fc
-        # print("Type of last layer:", type(last_layer))
-        # print("Output features of last layer:", last_layer.out_features)
-        print(encoder)
-
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)

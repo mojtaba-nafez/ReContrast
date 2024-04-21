@@ -656,8 +656,11 @@ class ISICTest(torch.utils.data.Dataset):
         img = self.transform(img)
 
         has_anomaly = 0 if self.test_label[idx] == 0 else 1
-
-        return img, _, has_anomaly, img_path
+        
+        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+        gt[:,:,1:3] = 1
+        
+        return img, gt, has_anomaly, img_path
 
 class ISICTrain(torch.utils.data.Dataset):
     def __init__(self, transform):

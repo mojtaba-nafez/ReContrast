@@ -239,12 +239,64 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
             pr_list_px.extend(anomaly_map.ravel())
             gt_list_sp.append(np.max(gt.cpu().numpy().astype(int)))
             pr_list_sp.append(sp_score)
-
+    
         auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
 
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
 
+def evaluation_brain(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
+    """
+
+    :param model:
+    :param dataloader:
+    :param device:
+    :param _class_:
+    :param calc_pro:
+    :param max_ratio: if 0, use the max value of anomaly map as the image anomaly score.
+     if 0.1, use the mean of max 10% anomaly map value, etc.
+    :return:
+    """
+    model.eval()
+    gt_list_px = []
+    pr_list_px = []
+    gt_list_sp = []
+    pr_list_sp = []
+    aupro_list = []
+
+    with torch.no_grad():
+        for img, gt, label, _ in dataloader:
+            img = img.to(device)
+
+            en, de = model(img)
+
+            anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+            anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+            # gt[gt > 0.5] = 1
+            # gt[gt <= 0.5] = 0
+            gt = gt.bool()
+
+            if calc_pro:
+                if label.item() != 0:
+                    aupro_list.append(compute_pro(gt.squeeze(0).cpu().numpy().astype(int),
+                                                  anomaly_map[np.newaxis, :, :]))
+
+            if max_ratio <= 0:
+                sp_score = anomaly_map.max()
+            else:
+                anomaly_map = anomaly_map.ravel()
+                sp_score = np.sort(anomaly_map)[-int(anomaly_map.shape[0] * max_ratio):]
+                sp_score = sp_score.mean()
+
+            gt_list_px.extend(gt.cpu().numpy().astype(int).ravel())
+            pr_list_px.extend(anomaly_map.ravel())
+            gt_list_sp.append(label)
+            pr_list_sp.append(sp_score)
+    
+        auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
+        auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+
+    return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
 
 def evaluation_batch(model, dataloader, device, _class_=None, reg_calib=False, max_ratio=0):
     model.eval()

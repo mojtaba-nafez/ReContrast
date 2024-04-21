@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, wide_resnet101_2
 from models.de_resnet import de_wide_resnet50_2
 from models.recontrast import ReContrast, ReContrast
-from dataset import MedicalDataset
+from dataset import AptosTest, AptosTrain
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation_noseg, visualize_noseg
@@ -70,11 +70,20 @@ def train(_class_):
     train_path = '../APTOS/'
     test_path = '../APTOS/'
 
-    train_data = MedicalDataset(root=train_path, transform=data_transform, phase="train")
-    test_data = MedicalDataset(root=test_path, transform=data_transform, phase="test")
+    train_data = AptosTrain(transform=data_transform)
+    test_data1 = AptosTest(transform=data_transform, test_id=1)
+    test_data2 = AptosTest(transform=data_transform, test_id=2)
+
+
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')
+    visualize_random_samples_from_clean_dataset(test_data2, f'test data aptos2')
+
+
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
     encoder, bn = wide_resnet50_2(pretrained=True)
     decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)

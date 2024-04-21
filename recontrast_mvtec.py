@@ -187,7 +187,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
                              shrink_factor=shrink_factor)
 
-    exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count / 2)
+    exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count // 2)
 
     combined_dataset = ConcatDataset([exposure_dataset, train_data])
 

@@ -41,8 +41,12 @@ def get_exposure_set(image_size=224, count=5000, tiny_percent=0.2, category='car
 
     imagenet_exposure = ImageNetExposure(root='./tiny-imagenet-200', count=tiny_count, transform=tiny_transform)
 
+
     train_ds_mvtech_cutpasted.append(
         MVTecDataset_Cutpasted(root='./mvtec_anomaly_detection', train=True, category=category, transform=train_transform_cutpasted, count=cutpaste_count))
+
+    print('imagenet length: ', len(imagenet_exposure))
+    print('cutpaste dataset length : ', len(train_ds_mvtech_cutpasted))
 
     exposureset = torch.utils.data.ConcatDataset([imagenet_exposure, train_ds_mvtech_cutpasted])
     return exposureset

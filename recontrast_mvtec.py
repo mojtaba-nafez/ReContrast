@@ -242,7 +242,7 @@ if __name__ == '__main__':
                         default='recontrast_mvtec_it2k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
-    parser.add_argument('--shrink_factor', type=float, default=None)
+    parser.add_argument('--shrink_factor', type=float, default=1)
     parser.add_argument('--total_iters', type=int, default=2000)
     parser.add_argument('--cls', type=int, default=11)
     parser.add_argument('--eval_only', action='store_true')

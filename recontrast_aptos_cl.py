@@ -216,8 +216,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             
             # img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
             img_ = torch.cat([img[:int(len(img)/2)], img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)], img[int(len(img)/2)+int(int(len(img)/2)*0.4):]])
-            del img_expo
-            gc.collect()
 
             img_ = img_.to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]

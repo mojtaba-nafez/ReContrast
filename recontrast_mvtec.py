@@ -269,12 +269,12 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 label = label.to(device)  # Assuming label is for binary classification
                 output = model.forward_bc(img)
 
-                print(len(output))
-                # print("Output :", output)
-                # print("Label :", label)
-                # print('label type: ', type(label))
-                print(type(output))
-                print(output.shape)
+                # print(len(output))
+                # # print("Output :", output)
+                # # print("Label :", label)
+                # # print('label type: ', type(label))
+                # print(type(output))
+                # print(output.shape)
 
                 loss = criterion(output, label)
                 optimizer2.zero_grad()

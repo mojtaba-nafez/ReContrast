@@ -188,13 +188,14 @@ class BinaryClassifier2(nn.Module):
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
-          augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False):
+          augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
+          image_size=256):
     print_fn(_class_)
     setup_seed(111)
 
     total_iters = total_iters
-    image_size = 256
-    crop_size = 256
+    image_size = image_size
+    crop_size = image_size
 
     if augmented_view:
         train_data_transforms = transforms.Compose([
@@ -430,8 +431,10 @@ if __name__ == '__main__':
     parser.add_argument('--different_view', action='store_true')
     parser.add_argument('--head_end', action='store_true',
                         help='put the cls head at the end of the encoder (instead of the 3rd layer)')
+    parser.add_argument('--image_size', type=int, default=256)
 
     args = parser.parse_args()
+    image_size = args.image_size
 
     if args.training_shrink_factor:
         args.training_using_pad = True
@@ -460,11 +463,14 @@ if __name__ == '__main__':
         batch_size=args.batch_size,
         model=args.model,
         different_view=args.different_view,
-        head_end=head_end)
+        head_end=head_end,
+        image_size=image_size)
     for pad in pad_size:
-        result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
+        result_list[str(pad)].append(
+            [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
         result_list_best[str(pad)].append(
-            [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)], auroc_sp_cls_best[str(pad)]])
+            [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)],
+             auroc_sp_cls_best[str(pad)]])
 
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')

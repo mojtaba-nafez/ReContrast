@@ -291,7 +291,8 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 # print("Label :", label)
                 # print('label type: ', type(label))
                 print(type(output))
-                output_for_loss = outputs[2]  # Select the correct output for loss calculation
+                print(output.shape)
+                output_for_loss = output  # Select the correct output for loss calculation
                 loss = criterion(output_for_loss.squeeze(), label.float())
                 optimizer2.zero_grad()
                 loss.backward()

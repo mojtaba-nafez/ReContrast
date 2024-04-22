@@ -418,7 +418,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_ratio', type=float, default=0)
     parser.add_argument('--augmented_view', action='store_true')
     parser.add_argument('--model', type=str, default='wide_res50')
-    parser.add_argument('--item_list', type=int, default=0)
+    parser.add_argument('--item_list', type=str, default='0,15')
     parser.add_argument('--head_end', action='store_true',
                         help='put the cls head at the end of the encoder (instead of the 3rd layer)')
 

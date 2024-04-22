@@ -75,7 +75,7 @@ class ReContrast(nn.Module):
     def forward(self, x, head_end=False):
         # en = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
         # en = self.encoder(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
-        en4 = self.encoder(x, include_4=head_end)
+        en4 = self.encoder(x, head_end=head_end)
         en = [en4[0], en4[1], en4[2]]
         
         with torch.no_grad():

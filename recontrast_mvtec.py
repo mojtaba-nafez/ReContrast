@@ -129,6 +129,16 @@ class BinaryClassifier(nn.Module):
         return x
 
 
+class BinaryClassifier2(nn.Module):
+
+    def __init__(self):
+        super(BinaryClassifier2, self).__init__()
+        self.fc = nn.Linear(1000, 2)
+
+    def forward(self, x):
+        return self.fc(x)
+
+
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-3, head_end=False):
     print_fn(_class_)
@@ -172,18 +182,19 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
-    kwargs = {'num_classes': 2}
-
     if model == 'wide_res50':
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
-        encoder, bn = resnet18(pretrained=True, **kwargs)
+        encoder, bn = resnet18(pretrained=True)
         decoder = de_resnet18(pretrained=False, output_conv=2)
     else:
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
-    cls = BinaryClassifier()
+    if not head_end:
+        cls = BinaryClassifier()
+    else:
+        cls = BinaryClassifier2()
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
@@ -196,8 +207,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     #         m.eps = 1e-8
 
     criterion = nn.CrossEntropyLoss()
-    if not head_end:
-        optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=lr_cls, betas=(0.9, 0.999), weight_decay=1e-5)
+    optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=lr_cls, betas=(0.9, 0.999), weight_decay=1e-5)
 
     optimizer = torch.optim.AdamW(list(decoder.parameters()) + list(bn.parameters()),
                                   lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
@@ -254,7 +264,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 en, de = model(img, head_end=head_end)
                 cls_output = cls(en[5])
             else:
-                en, de, cls_output = model(img, head_end=head_end)
+                en, de, en3 = model(img, head_end=head_end)
+                cls_output = cls(en3)
 
             cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
 

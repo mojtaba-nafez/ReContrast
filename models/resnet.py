@@ -186,8 +186,7 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, 1000)
-        self.fc2 = nn.Linear(512 * block.expansion, num_classes)
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
@@ -251,8 +250,9 @@ class ResNet(nn.Module):
         # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
         return [feature_a, feature_b, feature_c]
 
-
-    def forward_4(self, x: Tensor) -> Tensor:
+    def forward(self, x: Tensor, head_end=False) -> Tensor:
+        if not head_end:
+            return self._forward_impl(x)
         x = self.norm(x)
         x = self.conv1(x)
         x = self.bn1(x)
@@ -263,17 +263,11 @@ class ResNet(nn.Module):
         feature_b = self.layer2(feature_a)
         feature_c = self.layer3(feature_b)
         feature_d = self.layer4(feature_c)
-        avg = self.avgpool(feature_d)
-        avg = torch.flatten(avg, 1)
-        out = self.fc2(avg)
-        # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape, feature_d.shape)
+        out = self.avgpool(feature_d)
+        out = torch.flatten(out, 1)
+        out = self.fc(out)
+        # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
         return [feature_a, feature_b, feature_c, out]
-
-    def forward(self, x: Tensor, include_4=False) -> Tensor:
-        if not include_4:
-            return self._forward_impl(x)
-        else:
-            return self.forward_4(x)
 
 
 def _resnet(

@@ -42,6 +42,14 @@ def get_logger(name, save_path=None, level='INFO'):
 
     return logger
 
+class BinaryClassifier2(nn.Module):
+
+    def __init__(self):
+        super(BinaryClassifier2, self).__init__()
+        self.fc = nn.Linear(1000, 2)
+
+    def forward(self, x):
+        return self.fc(x)
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

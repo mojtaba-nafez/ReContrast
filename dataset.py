@@ -11,6 +11,8 @@ from PIL import ImageFilter, Image, ImageOps
 from torchvision.datasets.folder import default_loader
 import os
 import random
+import pandas as pd
+import pydicom
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 
@@ -20,9 +22,9 @@ def get_data_transforms(size, isize, mean_train=None, std_train=None):
     data_transforms = transforms.Compose([
         transforms.Resize((size, size)),
         transforms.ToTensor(),
-        transforms.CenterCrop(isize),])
-        # transforms.Normalize(mean=mean_train,
-        #                      std=std_train)])
+        transforms.CenterCrop(isize),
+        transforms.Normalize(mean=mean_train,
+                             std=std_train)])
     gt_transforms = transforms.Compose([
         transforms.Resize((size, size)),
         transforms.CenterCrop(isize),
@@ -58,6 +60,7 @@ class IMAGENET30_TEST_DATASET(Dataset):
 
         # Map each class to an index
         self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(sorted(os.listdir(root_dir)))}
+        print(f"self.class_to_idx in ImageNet30_Test_Dataset:\n{self.class_to_idx}")
 
         # Walk through the directory and collect information about the images and their labels
         for i, class_name in enumerate(os.listdir(root_dir)):
@@ -102,9 +105,7 @@ def center_paste(large_img, small_img):
 
 
 class MVTecDataset(torch.utils.data.Dataset):
-    def __init__(self, root, transform, gt_transform, phase, shrink_factor=None, count=-1):
-        self.count = count
-        self.phase = phase
+    def __init__(self, root, transform, gt_transform, phase, shrink_factor=None):
         if phase == 'train':
             self.img_path = os.path.join(root, 'train')
         else:
@@ -116,8 +117,6 @@ class MVTecDataset(torch.utils.data.Dataset):
         self.img_paths, self.gt_paths, self.labels, self.types = self.load_dataset()  # self.labels => good : 0, anomaly : 1
         self.imagenet30_testset = IMAGENET30_TEST_DATASET()
         self.shrink_factor = shrink_factor
-
-        
         print(f"self.shrink_factor: {self.shrink_factor}")
 
     def load_dataset(self):
@@ -133,16 +132,6 @@ class MVTecDataset(torch.utils.data.Dataset):
             if defect_type == 'good':
                 img_paths = glob.glob(os.path.join(self.img_path, defect_type) + "/*.png") + \
                             glob.glob(os.path.join(self.img_path, defect_type) + "/*.JPG")
-
-                if self.count != -1:
-                    if self.count < len(img_paths):
-                        img_paths = img_paths[:self.count]
-                    else:
-                        t = len(img_paths)
-                        for i in range(self.count - t):
-                            img_paths.append(random.choice(img_paths[:t]))
-                img_paths.sort(key=lambda y: y.lower())
-                
                 img_tot_paths.extend(img_paths)
                 gt_tot_paths.extend([0] * len(img_paths))
                 tot_labels.extend([0] * len(img_paths))
@@ -184,8 +173,7 @@ class MVTecDataset(torch.utils.data.Dataset):
             gt = self.gt_transform(gt)
 
         assert img.size()[1:] == gt.size()[1:], "image.size != gt.size !!!"
-        if self.phase == 'train':
-            return img, label
+
         return img, gt, label, img_path
 
 
@@ -327,6 +315,243 @@ class LOCODataset(torch.utils.data.Dataset):
         assert img.size()[1:] == gt.size()[1:], "image.size != gt.size !!!"
 
         return img, gt, label, img_path, type, size
+
+
+class AptosTest(torch.utils.data.Dataset):
+    def __init__(self, transform, test_id=1):
+
+        self.transform = transform
+        self.test_id = test_id
+
+        test_normal_path = glob.glob('/kaggle/working/APTOS/test/NORMAL/*')
+        test_anomaly_path = glob.glob('/kaggle/working/APTOS/test/ABNORMAL/*')
+
+        self.test_path = test_normal_path + test_anomaly_path
+        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+        if self.test_id == 2:
+            df = pd.read_csv('/kaggle/input/ddrdataset/DR_grading.csv')
+            label = df["diagnosis"].to_numpy()
+            path = df["id_code"].to_numpy()
+
+            normal_path = path[label == 0]
+            anomaly_path = path[label != 0]
+
+            shifted_test_path = list(normal_path) + list(anomaly_path)
+            shifted_test_label = [0] * len(normal_path) + [1] * len(anomaly_path)
+
+            shifted_test_path = ["/kaggle/input/ddrdataset/DR_grading/DR_grading/" + s for s in shifted_test_path]
+
+            self.test_path = shifted_test_path
+            self.test_label = shifted_test_label
+
+    def __len__(self):
+        return len(self.test_path)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img_path = self.test_path[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+
+        has_anomaly = 0 if self.test_label[idx] == 0 else 1
+
+        return img, has_anomaly, img_path
+class AptosTrain(torch.utils.data.Dataset):
+    def __init__(self, transform):
+        self.transform = transform
+        self.image_paths = glob.glob('/kaggle/working/APTOS/train/NORMAL/*')
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+        return img, 0, img_path
+
+class ISICTest(torch.utils.data.Dataset):
+    def __init__(self, transform, test_id=1):
+
+        self.transform = transform
+        self.test_id = test_id
+
+        test_normal_path = glob.glob('/kaggle/input/isic-task3-dataset/dataset/test/NORMAL/*')
+        test_anomaly_path = glob.glob('/kaggle/input/isic-task3-dataset/dataset/test/ABNORMAL/*')
+
+        self.test_path = test_normal_path + test_anomaly_path
+        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+        if self.test_id == 2:
+            df = pd.read_csv('/kaggle/input/pad-ufes-20/PAD-UFES-20/metadata.csv')
+
+            shifted_test_label = df["diagnostic"].to_numpy()
+            shifted_test_label = (shifted_test_label != "NEV")
+
+            shifted_test_path = df["img_id"].to_numpy()
+            shifted_test_path = '/kaggle/input/pad-ufes-20/PAD-UFES-20/Dataset/' + shifted_test_path
+
+            self.test_path = shifted_test_path
+            self.test_label = shifted_test_label
+
+    def __len__(self):
+        return len(self.test_path)
+
+    def __getitem__(self, idx):
+
+        img_path = self.test_path[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+
+        has_anomaly = 0 if self.test_label[idx] == 0 else 1
+
+        return img, has_anomaly, img_path
+class ISICTrain(torch.utils.data.Dataset):
+    def __init__(self, transform):
+        self.transform = transform
+        self.image_paths = glob.glob('/kaggle/input/isic-task3-dataset/dataset/train/NORMAL/*')
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+        return img, 0, img_path
+
+class BrainTest(torch.utils.data.Dataset):
+    def __init__(self, transform, test_id=1):
+
+        self.transform = transform
+        self.test_id = test_id
+
+        test_normal_path = glob.glob('./Br35H/dataset/test/normal/*')
+        test_anomaly_path = glob.glob('./Br35H/dataset/test/anomaly/*')
+
+        self.test_path = test_normal_path + test_anomaly_path
+        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+        if self.test_id == 2:
+            test_normal_path = glob.glob('./brats/dataset/test/normal/*')
+            test_anomaly_path = glob.glob('./brats/dataset/test/anomaly/*')
+
+            self.test_path = test_normal_path + test_anomaly_path
+            self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+    def __len__(self):
+        return len(self.test_path)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img_path = self.test_path[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+
+        has_anomaly = 0 if self.test_label[idx] == 0 else 1
+
+        return img, has_anomaly, img_path
+class BrainTrain(torch.utils.data.Dataset):
+    def __init__(self, transform):
+        self.transform = transform
+        self.image_paths = glob.glob('./Br35H/dataset/train/normal/*')
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+        return img, 0, img_path
+
+class RSNATRAIN(torch.utils.data.Dataset):
+    def __init__(self, transform):
+        self.transform = transform
+        self.image_paths = glob.glob('/kaggle/working/train/normal/*')
+
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        dicom = pydicom.dcmread(self.image_paths[idx])
+        image = dicom.pixel_array
+
+        # Convert to a PIL Image
+        image = Image.fromarray(image).convert('RGB')
+
+        # Apply the transform if it's provided
+        if self.transform is not None:
+            image = self.transform(image)
+
+        return image, 0, self.image_paths[idx]
+
+class RSNATEST(torch.utils.data.Dataset):
+    def __init__(self, transform, test_id=1):
+
+        self.transform = transform
+        self.test_id = test_id
+
+        test_normal_path = glob.glob('/kaggle/working/test/normal/*')
+        test_anomaly_path = glob.glob('/kaggle/working/test/anomaly/*')
+
+        self.test_path = test_normal_path + test_anomaly_path
+        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+        if self.test_id == 2:
+            shifted_test_normal_path = glob.glob('/kaggle/working/4. Operations Department/Test/1/*')
+            shifted_test_anomaly_path = (glob.glob('/kaggle/working/4. Operations Department/Test/0/*') + glob.glob(
+                '/kaggle/working/4. Operations Department/Test/2/*') +
+                glob.glob('/kaggle/working/4. Operations Department/Test/3/*'))
+
+            self.test_path = shifted_test_normal_path + shifted_test_anomaly_path
+            self.test_label = [0] * len(shifted_test_normal_path) + [1] * len(shifted_test_anomaly_path)
+
+
+        if self.test_id == 3:
+            test_normal_path = glob.glob('/kaggle/working/chest_xray/test/NORMAL/*')
+            test_anomaly_path = glob.glob('/kaggle/working/chest_xray/test/PNEUMONIA/*')
+
+            self.test_path = test_normal_path + test_anomaly_path
+            self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+    def __len__(self):
+        return len(self.test_path)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        if self.test_id == 1:
+            dicom = pydicom.dcmread(self.test_path[idx])
+            image = dicom.pixel_array
+
+            # Convert to a PIL Image
+            image = Image.fromarray(image).convert('RGB')
+
+            # Apply the transform if it's provided
+            if self.transform is not None:
+                image = self.transform(image)
+
+            return image, self.test_label[idx], self.test_path[idx]
+
+
+        img_path = self.test_path[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+
+        has_anomaly = 0 if self.test_label[idx] == 0 else 1
+
+        return img, has_anomaly, img_path
+
+
+
 
 
 class MedicalDataset(torch.utils.data.Dataset):

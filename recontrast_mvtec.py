@@ -20,7 +20,6 @@ from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
 from torch.utils.data import ConcatDataset
-from exposure_dataset import get_exposure_set
 from cutpaste_transformation import *
 
 
@@ -193,7 +192,6 @@ def train(_class_, shrink_factor=None, total_iters=2000,
 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
-    visualize_random_samples_from_clean_dataset(exposure_dataset, f"exposure_data_{_class_}", train_data=True)
 
     encoder, bn = resnet18(pretrained=True)
     decoder = de_resnet18(pretrained=False, output_conv=2)

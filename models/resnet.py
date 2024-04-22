@@ -275,7 +275,7 @@ class ResNet(nn.Module):
         feature_d = self.layer4(feature_c)
         out = self.avgpool(feature_d)
         out = torch.flatten(out, 1)
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        # self.fc = nn.Linear(512 * block.expansion, num_classes)
         out = self.fc(out)
         # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
         return [feature_a, feature_b, feature_c, out]

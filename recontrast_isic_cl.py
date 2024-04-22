@@ -152,7 +152,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
     imagenet_exposure_dataset = ImageNetExposure(root='/kaggle/input/tiny-imagenet-dataset/tiny-imagenet-200', count=10000, transform=data_transform)
-    exposure_dataloader = torch.utils.data.DataLoader(imagenet_exposure_dataset, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=False)
+    exposure_dataloader = torch.utils.data.DataLoader(imagenet_exposure_dataset, batch_size=batch_size, shuffle=True)
 
     train_path = '../ISIC2018/'
     test_path = '../ISIC2018/'
@@ -165,8 +165,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(test_data1, f'test data isic1')
     visualize_random_samples_from_clean_dataset(test_data2, f'test data isic2')
 
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
-                                                   drop_last=False)
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
@@ -226,7 +225,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         loss_list = []
         exposure_iter = iter(exposure_dataloader)
         for img, label in train_dataloader:
-            img = img.to(device)
             try:
                 img_expo , _ = next(exposure_iter)
                 if len(img_expo)<len(img):
@@ -234,6 +232,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     img_expo , _ = next(exposure_iter)
             except:
                 exposure_iter = iter(exposure_dataloader)
+                img_expo , _ = next(exposure_iter)
                 
             anomaly_data = np.ones(len(img))
             anomaly_data = np.ones(len(img))
@@ -243,8 +242,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     img[i] = anomaly_transforms(img[i])
             anomaly_data[int(len(anomaly_data)/2):] = -1
             anomaly_data = torch.tensor(anomaly_data).to(device)
-            img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)]
             
+            # img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
+            img_ = torch.cat([img[:int(len(img)/2)], img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)], img[int(len(img)/2)+int(int(len(img)/2)*0.4):]])
+
+            img_ = img_.to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)

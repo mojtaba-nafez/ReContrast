@@ -220,7 +220,7 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
             en_3rd = en[5]
             cls_output = cls(en_3rd)
             cls_score = cls_output[:, 1]
-            cls_list_sp.append(cls_score)
+            cls_list_sp.append(cls_score.cpu().numpy())
             anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
             anomaly_map = gaussian_filter(anomaly_map, sigma=4)
             # gt[gt > 0.5] = 1

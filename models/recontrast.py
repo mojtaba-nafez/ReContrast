@@ -49,7 +49,8 @@ class ReContrast(nn.Module):
             decoder,
             image_size,
             crop_size,
-            device
+            device,
+            different_view=False,
     ) -> None:
         super(ReContrast, self).__init__()
         self.encoder = encoder
@@ -65,22 +66,26 @@ class ReContrast(nn.Module):
         self.cl_transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((image_size, image_size)),
-            transforms.RandomHorizontalFlip(),    # Random horizontal flip
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
             transforms.RandomGrayscale(p=0.2),    # Random grayscale
             transforms.ToTensor(),
         ])
+        self.different_view = different_view
         self.device = device
 
     def forward(self, x):
         # en = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
-        # en = self.encoder(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
-        en = self.encoder(x)
+        if self.different_view:
+            en = self.encoder(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
+        else:
+            en = self.encoder(x)
         
         with torch.no_grad():
             # en_freeze = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
-            # en_freeze = self.encoder_freeze(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
-            en_freeze = self.encoder_freeze(x)
+            if self.different_view:
+                en_freeze = self.encoder_freeze(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
+            else:
+                en_freeze = self.encoder_freeze(x)
 
         # en_2 = [[2, 256, 64, 64], [2, 512, 32, 32], [2, 1024, 16, 16]]
         en_2 = [torch.cat([a, b], dim=0) for a, b in zip(en, en_freeze)]

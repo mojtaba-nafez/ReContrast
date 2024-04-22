@@ -105,7 +105,7 @@ def global_cosine_hm_1(a, b, anomaly_data, alpha=1., factor=0.):
 
         a_ = a_[anomaly_data==1]
         b_ = b_[anomaly_data==1]
-        if len(a_)<1 or len(b<1):
+        if (len(a_) < 1) or (len(b) < 1):
             print("a_, b_", a_, b_)
             print("a, b", a, b)
             continue

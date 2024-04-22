@@ -53,8 +53,8 @@ class ReContrast(nn.Module):
     ) -> None:
         super(ReContrast, self).__init__()
         self.encoder = encoder
-        self.encoder.layer4 = None
-        self.encoder.fc = None
+        # self.encoder.layer4 = None
+        # self.encoder.fc = None
 
         self.encoder_freeze = encoder_freeze
         self.encoder_freeze.layer4 = None

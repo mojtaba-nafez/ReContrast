@@ -244,7 +244,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
     optimizer2 = torch.optim.AdamW(list(encoder.parameters()),
                                    lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
 
-    criterion = nn.BCELoss()
+    criterion = nn.CrossEntropyLoss()
 
     print_fn('train image number:{}'.format(len(train_data)))
     print_fn('test image number:{}'.format(len(test_data)))

@@ -137,7 +137,7 @@ class MVTecDataset(torch.utils.data.Dataset):
 
                 if self.count != -1:
                     if self.count < len(img_paths):
-                        img_paths = img_paths[:count]
+                        img_paths = img_paths[:self.count]
                     else:
                         t = len(img_paths)
                         for i in range(self.count - t):

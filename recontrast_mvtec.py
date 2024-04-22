@@ -158,8 +158,8 @@ def train(_class_, shrink_factor=None, total_iters=2000,
 
     total_iters = total_iters
     batch_size = 16
-    image_size = 256
-    crop_size = 256
+    image_size = 224
+    crop_size = 224
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
@@ -304,7 +304,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 loss_list.append(loss.item())
 
 
-            if (it + 1) % (total_iters / 2) == 0:
+            if (it + 1) % (total_iters / 2) == 0 or it == 2:
                 pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
 
                 for shrink_factor in pad_size:
@@ -331,6 +331,9 @@ def train(_class_, shrink_factor=None, total_iters=2000,
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
+
+    torch.save(model.state_dict(), 'model_weights.pth')
+    torch.save(model.encoder.state_dict(), 'model_encoder_weights.pth')
 
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
     return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best

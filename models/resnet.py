@@ -186,7 +186,8 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
-        print('printing layer 4\n', self.layer4)
+
+        # print('printing layer 4\n', self.layer4)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         if fc:
             self.fc = nn.Linear(512 * block.expansion, num_classes)
@@ -249,10 +250,11 @@ class ResNet(nn.Module):
         feature_a = self.layer1(x)
         feature_b = self.layer2(feature_a)
         feature_c = self.layer3(feature_b)
-        feature_d = self.layer4(feature_c)
-        print('feature d ', feature_d)
+        # print()
+        # feature_d = self.layer4(feature_c)
+        # print('feature d ', feature_d)
 
-        # print('encoder output:', [feature_a.shape, feature_b.shape, feature_c.shape, feature_d.shape])
+        print('encoder output:', [feature_a.shape, feature_b.shape, feature_c.shape])
 
         return [feature_a, feature_b, feature_c]
 

@@ -53,7 +53,7 @@ class ReContrast(nn.Module):
 
         self.fc_bc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(65536, 2),  # Adjusted to match the flattened output
+            nn.Linear(50176, 2),  # Adjusted to match the flattened output
             nn.Softmax(dim=1)
         )
 

@@ -189,8 +189,7 @@ class ResNet(nn.Module):
 
         # print('printing layer 4\n', self.layer4)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        if fc:
-            self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()

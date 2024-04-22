@@ -72,15 +72,17 @@ class ReContrast(nn.Module):
         ])
         self.device = device
 
-    def forward(self, x):
+    def forward(self, x, head_end=False):
         # en = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
         # en = self.encoder(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
-        en = self.encoder(x)
+        en4 = self.encoder(x, include_4=head_end)
+        en = [en4[0], en4[1], en4[2]]
         
         with torch.no_grad():
             # en_freeze = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
             # en_freeze = self.encoder_freeze(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
-            en_freeze = self.encoder_freeze(x)
+            enf4 = self.encoder_freeze(x)
+            en_freeze = [enf4[0], enf4[1], enf4[2]]
 
         # en_2 = [[2, 256, 64, 64], [2, 512, 32, 32], [2, 1024, 16, 16]]
         en_2 = [torch.cat([a, b], dim=0) for a, b in zip(en, en_freeze)]
@@ -97,6 +99,9 @@ class ReContrast(nn.Module):
 
         # en_freeze +en = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16], [1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
         # de=[[1,256,64,64], [1,512,32,32], [1,1024,16,16], [1,256,64,64], [1,512,32,32], [1,1024,16,16]]
+
+        if head_end:
+            return en_freeze + en, de, en4[3]
 
         return en_freeze + en, de
 

@@ -250,8 +250,29 @@ class ResNet(nn.Module):
         # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
         return [feature_a, feature_b, feature_c]
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self._forward_impl(x)
+
+    def forward_4(self, x: Tensor) -> Tensor:
+        x = self.norm(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        feature_a = self.layer1(x)
+        feature_b = self.layer2(feature_a)
+        feature_c = self.layer3(feature_b)
+        feature_d = self.layer4(feature_c)
+        avg = self.avgpool(feature_d)
+        avg = torch.flatten(avg, 1)
+        out = self.fc(avg)
+        # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape, feature_d.shape)
+        return [feature_a, feature_b, feature_c, out]
+
+    def forward(self, x: Tensor, include_4=False) -> Tensor:
+        if not include_4:
+            return self._forward_impl(x)
+        else:
+            return self.forward_4(x)
 
 
 def _resnet(

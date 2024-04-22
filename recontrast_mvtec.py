@@ -130,7 +130,7 @@ class BinaryClassifier(nn.Module):
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
-          augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-3):
+          augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-3, head_end=False):
     print_fn(_class_)
     setup_seed(111)
 
@@ -172,11 +172,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
+    kwargs = {'num_classes': 2}
+
     if model == 'wide_res50':
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
-        encoder, bn = resnet18(pretrained=True)
+        encoder, bn = resnet18(pretrained=True, **kwargs)
         decoder = de_resnet18(pretrained=False, output_conv=2)
     else:
         encoder, bn = wide_resnet50_2(pretrained=True)
@@ -194,7 +196,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     #         m.eps = 1e-8
 
     criterion = nn.CrossEntropyLoss()
-    optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=lr_cls, betas=(0.9, 0.999), weight_decay=1e-5)
+    if not head_end:
+        optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=lr_cls, betas=(0.9, 0.999), weight_decay=1e-5)
 
     optimizer = torch.optim.AdamW(list(decoder.parameters()) + list(bn.parameters()),
                                   lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
@@ -247,9 +250,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             anomaly_one = torch.tensor(anomaly_one).to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
-            en, de = model(img)
-            en_3rd = en[5]
-            cls_output = cls(en_3rd)
+            if not head_end:
+                en, de = model(img, head_end=head_end)
+                cls_output = cls(en[5])
+            else:
+                en, de, cls_output = model(img, head_end=head_end)
+
             cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
 
             alpha_final = 1
@@ -267,12 +273,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             '''
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
-            optimizer_cls.zero_grad()
+            if not head_end:
+                optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
-            optimizer_cls.step()
+            if not head_end:
+                optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
@@ -289,9 +297,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                                                  device,
                                                                                                  max_ratio=max_ratio,
                                                                                                  cls=cls)
-                    print_fn('Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Map Auroc:{:.3f}, Pixel Aupro:{:.3}, Sample CLS AUROC:{:.3}'.format(
-                        shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
-                        auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)]))
+                    print_fn(
+                        'Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Map Auroc:{:.3f}, Pixel Aupro:{:.3}, Sample CLS AUROC:{:.3}'.format(
+                            shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
+                            auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)]))
 
                     if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                         auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
@@ -332,6 +341,8 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='wide_res50')
     parser.add_argument('--item_list', type=str, default='0,15')
     parser.add_argument('--lr_cls', type=float, default=0.001)
+    parser.add_argument('--head_end', action='store_true',
+                        help='put the cls head at the end of the encoder (instead of the 3rd layer)')
 
     args = parser.parse_args()
 
@@ -347,6 +358,7 @@ if __name__ == '__main__':
     item_list = item_list[st: ed]
     print(item_list)
     # item_list = ['toothbrush']
+    head_end = args.head_end
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info
@@ -360,20 +372,24 @@ if __name__ == '__main__':
 
     for i, item in enumerate(item_list):
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(item,
-                                                                                          shrink_factor=args.shrink_factor,
-                                                                                          total_iters=args.total_iters,
-                                                                                          evaluation_epochs=args.evaluation_epochs,
-                                                                                          training_using_pad=args.training_using_pad,
-                                                                                          max_ratio=args.max_ratio,
-                                                                                          augmented_view=args.augmented_view,
-                                                                                          batch_size=args.batch_size,
-                                                                                          model=args.model,
-                                                                                          lr_cls=args.lr_cls)
+        auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
+            item,
+            shrink_factor=args.shrink_factor,
+            total_iters=args.total_iters,
+            evaluation_epochs=args.evaluation_epochs,
+            training_using_pad=args.training_using_pad,
+            max_ratio=args.max_ratio,
+            augmented_view=args.augmented_view,
+            batch_size=args.batch_size,
+            model=args.model,
+            lr_cls=args.lr_cls,
+            head_end=head_end)
         for pad in pad_size:
-            result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
+            result_list[str(pad)].append(
+                [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
             result_list_best[str(pad)].append(
-                [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)], auroc_sp_cls_best[str(pad)]])
+                [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)],
+                 auroc_sp_cls_best[str(pad)]])
 
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')
@@ -382,13 +398,15 @@ if __name__ == '__main__':
         mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
         mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
         print_fn(result_list[str(pad)])
-        print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-                                                                                        mean_aupro_px, mean_auc_sp_cls))
+        print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(
+            mean_auroc_px, mean_auroc_sp,
+            mean_aupro_px, mean_auc_sp_cls))
 
         best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
         best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
         best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
         best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
         print_fn(result_list_best[str(pad)])
-        print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(best_auroc_px, best_auroc_sp,
-                                                                                        best_aupro_px, best_auc_sp_cls))
+        print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(
+            best_auroc_px, best_auroc_sp,
+            best_aupro_px, best_auc_sp_cls))

@@ -2,6 +2,7 @@ import torch
 from dataset import get_data_transforms, get_strong_transforms
 from torchvision.datasets import ImageFolder
 import numpy as np
+import torch.nn as nn
 import random
 import os
 from torch.utils.data import DataLoader
@@ -24,7 +25,6 @@ import logging
 from cutpaste_transformation import *
 import glob
 from PIL import Image
-
 
 
 class BrainTest(torch.utils.data.Dataset):
@@ -153,8 +153,35 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     show_images(images, labels, dataset_name)
 
 
+class BinaryClassifier(nn.Module):
+    def __init__(self):
+        super(BinaryClassifier, self).__init__()
+        # input shape: [Batch size, 256, 16, 16]
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # output shape: [Batch size, 256, 1, 1]
+        self.flatten = nn.Flatten()
+        # output shape: [Batch size, 256]
+        self.fc = nn.Linear(256, 2)
+
+    def forward(self, x):
+        x = self.adaptive_pool(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        return x
+
+
+class BinaryClassifier2(nn.Module):
+
+    def __init__(self):
+        super(BinaryClassifier2, self).__init__()
+        self.fc = nn.Linear(1000, 2)
+
+    def forward(self, x):
+        return self.fc(x)
+
+
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
-          augmented_view=False, batch_size=16, model='wide_res50'):
+          augmented_view=False, batch_size=16, model='wide_res50', head_end=False):
     print_fn(_class_)
     setup_seed(111)
 
@@ -204,6 +231,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     else:
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+
+    if not head_end:
+        cls = BinaryClassifier()
+    else:
+        cls = BinaryClassifier2()
+
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
@@ -213,6 +246,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     # for m in encoder.modules():
     #     if isinstance(m, torch.nn.BatchNorm2d):
     #         m.eps = 1e-8
+    criterion = nn.CrossEntropyLoss()
+    optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=1e-3, betas=(0.9, 0.999), weight_decay=1e-5)
 
     optimizer = torch.optim.AdamW(list(decoder.parameters()) + list(bn.parameters()),
                                   lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
@@ -237,6 +272,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     auroc_aupro_px_list = {"main": 0, "shifted": 0}
     auroc_aupro_px_list_best = {"main": 0, "shifted": 0}
 
+    auroc_cls_auc_list = {"main": 0, "shifted": 0}
+    auroc_cls_auc_list_best = {"main": 0, "shifted": 0}
+
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
@@ -257,9 +295,20 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
             anomaly_data = torch.tensor(anomaly_data).to(device)
+            # we also need one where instead on -1s we have 1s
+            anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]
+            anomaly_one = torch.tensor(anomaly_one).to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
-            en, de = model(img)
+            if not head_end:
+                en, de = model(img, head_end=head_end)
+                cls_output = cls(en[5])
+            else:
+                en, de, en3 = model(img, head_end=head_end)
+                cls_output = cls(en3)
+
+            cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
+
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
 
@@ -277,10 +326,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
 
+            if not head_end:
+                optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
+            if not head_end:
+                optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
@@ -288,24 +341,33 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
                 shrink_factor = "main"
                 auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                    str(shrink_factor)] = evaluation_noseg_brain(model, test_dataloader1, device)
+                    str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)] = evaluation_noseg_brain(
+                    model, test_dataloader1, device, cls=cls, head_end=head_end)
                 #  auroc, f1, acc
                 # auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation_brain(model, test_dataloader1, device, max_ratio=max_ratio)
-                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}'.format(shrink_factor,
-                                                                                              auroc_px_list[
-                                                                                                  str(shrink_factor)],
-                                                                                              auroc_sp_list[
-                                                                                                  str(shrink_factor)],
-                                                                                              auroc_aupro_px_list[
-                                                                                                  str(shrink_factor)]))
+                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
+                    shrink_factor,
+                    auroc_px_list[
+                        str(shrink_factor)],
+                    auroc_sp_list[
+                        str(shrink_factor)],
+                    auroc_aupro_px_list[
+                        str(shrink_factor)],
+                    auroc_cls_auc_list[str(shrink_factor)]))
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
-                    auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
-                        str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+                    auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)] = \
+                        auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                            str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[
+                            str(shrink_factor)]
 
                 shrink_factor = "shifted"
                 auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                    str(shrink_factor)] = evaluation_noseg_brain(model, test_dataloader2, device)
+                    str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)] = evaluation_noseg_brain(model,
+                                                                                                         test_dataloader2,
+                                                                                                         device,
+                                                                                                         cls=cls,
+                                                                                                         head_end=head_end)
                 # auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation_brain(model, test_dataloader2, device, max_ratio=max_ratio)
                 print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}'.format(shrink_factor,
                                                                                               auroc_px_list[
@@ -313,13 +375,19 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                                               auroc_sp_list[
                                                                                                   str(shrink_factor)],
                                                                                               auroc_aupro_px_list[
-                                                                                                  str(shrink_factor)]))
+                                                                                                  str(shrink_factor)],
+                                                                                              auroc_cls_auc_list[
+                                                                                                  str(shrink_factor)]
+                                                                                              ))
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
-                    auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[
-                        str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+                    auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)] = \
+                        auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                            str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[
+                            str(shrink_factor)]
 
                 model.train(encoder_bn_train=True)
+                cls.train()
 
             it += 1
             if it == total_iters:
@@ -327,7 +395,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
-    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, \
+           auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best
 
 
 if __name__ == '__main__':
@@ -350,6 +419,8 @@ if __name__ == '__main__':
     parser.add_argument('--augmented_view', action='store_true')
     parser.add_argument('--model', type=str, default='wide_res50')
     parser.add_argument('--item_list', type=int, default=0)
+    parser.add_argument('--head_end', action='store_true',
+                        help='put the cls head at the end of the encoder (instead of the 3rd layer)')
 
     args = parser.parse_args()
 
@@ -358,9 +429,14 @@ if __name__ == '__main__':
 
     item_list = ['screw', 'cable', 'transistor', 'carpet', 'bottle', 'hazelnut', 'leather', 'capsule', 'grid', 'pill',
                  'metal_nut', 'toothbrush', 'zipper', 'tile', 'wood']
-    item_list = item_list[args.item_list:]
+
+    items = args.item_list.split(',')
+    st = int(items[0])
+    ed = int(items[1])
+    item_list = item_list[st: ed]
     print(item_list)
     # item_list = ['toothbrush']
+    head_end = args.head_end
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info
@@ -373,32 +449,38 @@ if __name__ == '__main__':
     pad_size = ["main", "shifted"]
     item = 'brain'
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-    auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
-                                                                                      shrink_factor=args.shrink_factor,
-                                                                                      total_iters=args.total_iters,
-                                                                                      evaluation_epochs=args.evaluation_epochs,
-                                                                                      training_using_pad=args.training_using_pad,
-                                                                                      max_ratio=args.max_ratio,
-                                                                                      augmented_view=args.augmented_view,
-                                                                                      batch_size=args.batch_size,
-                                                                                      model=args.model)
+    auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
+        item,
+        shrink_factor=args.shrink_factor,
+        total_iters=args.total_iters,
+        evaluation_epochs=args.evaluation_epochs,
+        training_using_pad=args.training_using_pad,
+        max_ratio=args.max_ratio,
+        augmented_view=args.augmented_view,
+        batch_size=args.batch_size,
+        model=args.model,
+        head_end=head_end)
     for pad in pad_size:
-        result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
+        result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
         result_list_best[str(pad)].append(
-            [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
+            [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)], auroc_sp_cls_best[str(pad)]])
 
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')
         mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
         mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
         mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+        mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
+
         print_fn(result_list[str(pad)])
         print_fn('Sample Auroc:{:.4f}, F1:{:.4f}, Acc:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-                                                                    mean_aupro_px))
+                                                                    mean_aupro_px, mean_auc_sp_cls))
 
         best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
         best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
         best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
+        best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
+
         print_fn(result_list_best[str(pad)])
         print_fn('Sample Auroc:{:.4f}, F1:{:.4f}, Acc:{:.4}'.format(best_auroc_px, best_auroc_sp,
-                                                                    best_aupro_px))
+                                                                    best_aupro_px, best_auc_sp_cls))

@@ -191,6 +191,83 @@ def specificity_score(y_true, y_score):
     N = (y_true == 0).sum()
     return TN / N
 
+def evaluation_brain(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
+    """
+
+    :param model:
+    :param dataloader:
+    :param device:
+    :param _class_:
+    :param calc_pro:
+    :param max_ratio: if 0, use the max value of anomaly map as the image anomaly score.
+     if 0.1, use the mean of max 10% anomaly map value, etc.
+    :return:
+    """
+    model.eval()
+    gt_list_px = []
+    pr_list_px = []
+    gt_list_sp = []
+    pr_list_sp = []
+    aupro_list = []
+
+    with torch.no_grad():
+        for img, gt, label, _ in dataloader:
+            img = img.to(device)
+
+            en, de = model(img)
+
+            anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+            anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+            # gt[gt > 0.5] = 1
+            # gt[gt <= 0.5] = 0
+            gt = gt.bool()
+
+            if calc_pro:
+                if label.item() != 0:
+                    aupro_list.append(compute_pro(gt.squeeze(0).cpu().numpy().astype(int),
+                                                  anomaly_map[np.newaxis, :, :]))
+
+            if max_ratio <= 0:
+                sp_score = anomaly_map.max()
+            else:
+                anomaly_map = anomaly_map.ravel()
+                sp_score = np.sort(anomaly_map)[-int(anomaly_map.shape[0] * max_ratio):]
+                sp_score = sp_score.mean()
+
+            gt_list_px.extend(gt.cpu().numpy().astype(int).ravel())
+            pr_list_px.extend(anomaly_map.ravel())
+            gt_list_sp.append(label)
+            pr_list_sp.append(sp_score)
+
+        auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
+        auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+
+    return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
+
+
+def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max'):
+    model.eval()
+    gt_list_sp = []
+    pr_list_sp = []
+    with torch.no_grad():
+        for img, _, label, _ in dataloader:
+            img = img.to(device)
+            en, de = model(img)
+
+            anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+            anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+            gt_list_sp.append(label.item())
+            if reduction == 'max':
+                pr_list_sp.append(np.max(anomaly_map))
+            elif reduction == 'mean':
+                pr_list_sp.append(np.mean(anomaly_map))
+
+        thresh = return_best_thr(gt_list_sp, pr_list_sp)
+        acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
+        f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
+        auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+    return auroc_sp, f1, acc
+
 
 def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0, cls=None, head_end=False):
     """

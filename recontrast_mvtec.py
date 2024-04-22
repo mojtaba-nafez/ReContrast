@@ -305,7 +305,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
 
 
             if (it + 1) % (total_iters / 2) == 0 or it == 2:
-                pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
+                pad_size = [1, 0.8, 0.85, 0.9, 0.95, 0.98]
 
                 for shrink_factor in pad_size:
                     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,

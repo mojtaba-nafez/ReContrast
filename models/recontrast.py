@@ -49,13 +49,9 @@ class ReContrast(nn.Module):
     ) -> None:
         super(ReContrast, self).__init__()
         self.encoder = encoder
-        self.encoder.layer4 = None
+        # self.encoder.layer4 = None
+        # self.encoder.fc = None
 
-        self.fc_bc = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(50176, 2),  # Adjusted to match the flattened output
-            nn.Softmax(dim=1)
-        )
 
         self.encoder_freeze = encoder_freeze
         self.encoder_freeze.layer4 = None
@@ -64,13 +60,7 @@ class ReContrast(nn.Module):
         self.bottleneck = bottleneck
         self.decoder = decoder
 
-    def forward_bc(self, x):
-        # print('recon input:', x.shape)\
-        en = self.encoder(x)
-        out = self.fc_bc(en[-1])
-        return out
-
-    def forward(self, x):
+    def forward(self, x, head=False):
         # print('recon input:', x.shape)\
         en = self.encoder(x)
 
@@ -80,6 +70,9 @@ class ReContrast(nn.Module):
         de = self.decoder(self.bottleneck(en_2))
         de = [a.chunk(dim=0, chunks=2) for a in de]
         de = [de[0][0], de[1][0], de[2][0], de[3][1], de[4][1], de[5][1]]
+
+        if head:
+            return en_freeze + en, de, en[-1]
 
         return en_freeze + en, de
 

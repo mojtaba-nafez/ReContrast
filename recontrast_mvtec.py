@@ -21,6 +21,7 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 from torch.utils.data import ConcatDataset
 from exposure_dataset import get_exposure_set
+from cutpaste_transformation import *
 
 
 import warnings
@@ -114,6 +115,14 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
+class BinaryClassifier2(nn.Module):
+
+    def __init__(self):
+        super(BinaryClassifier2, self).__init__()
+        self.fc = nn.Linear(1000, 2)
+
+    def forward(self, x):
+        return self.fc(x)
 
 class NewModel(nn.Module):
 
@@ -158,33 +167,25 @@ def train(_class_, shrink_factor=None, total_iters=2000,
 
     total_iters = total_iters
     batch_size = 16
-    image_size = 224
-    crop_size = 224
+    image_size = 256
+    crop_size = 256
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
     train_path = '/kaggle/input/mvtec-ad/' + _class_
     test_path = '/kaggle/input/mvtec-ad/' + _class_
 
-    train_data = MVTecDataset(root=train_path, transform=data_transform, gt_transform=gt_transform, phase='train', count=data_count//2)
+    train_data = MVTecDataset(root=train_path, transform=data_transform, gt_transform=gt_transform, phase='train', count=data_count)
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
                              shrink_factor=shrink_factor)
 
-    exposure_dataset = get_exposure_set(image_size=image_size, category=_class_, count=data_count // 2)
 
-    combined_dataset = ConcatDataset([exposure_dataset, train_data])
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
 
 
-    encoder_train_dataloader = torch.utils.data.DataLoader(combined_dataset, batch_size=batch_size, shuffle=True, num_workers=4,
-                                                   drop_last=False)
-
-
     print('len train set: ', len(train_data))
-    print('len exposure set: ', len(exposure_dataset))
-    print('len combined set: ', len(combined_dataset))
 
 
 
@@ -227,7 +228,13 @@ def train(_class_, shrink_factor=None, total_iters=2000,
     optimizer2 = torch.optim.AdamW(list(encoder.parameters()),
                                    lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
 
+    to_binary = BinaryClassifier2()
     criterion = nn.CrossEntropyLoss()
+
+    anomaly_transforms = transforms.Compose([
+        transforms.ToPILImage(),
+        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+    ])
 
     print_fn('train image number:{}'.format(len(train_data)))
     print_fn('test image number:{}'.format(len(test_data)))
@@ -253,79 +260,73 @@ def train(_class_, shrink_factor=None, total_iters=2000,
 
     model.to(device)
     print(total_iters, len(train_dataloader), int(np.ceil(total_iters / len(train_dataloader))))
-    for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
+
+
+    for epoch in range(20):
         # encoder batchnorm in eval for these classes.
         print(f"Epoch {epoch + 1}/{int(np.ceil(total_iters / len(train_dataloader)))}")
         loss_list = []
-
-        if epoch % 2 == 1:  # odd epochs
-            # Train only the encoder's head, rest of the encoder is frozen
-            for param in model.encoder.parameters():
-                param.requires_grad = True  # Freeze the encoder except its head
-            model.fc_bc.requires_grad = True  # Unfreeze the head
-
-            for img, label in encoder_train_dataloader:  # Different dataset for encoder training
-                img = img.to(device)
-                label = label.to(device)  # Assuming label is for binary classification
-                output = model.forward_bc(img)
-
-                # print(len(output))
-                # # print("Output :", output)
-                # # print("Label :", label)
-                # # print('label type: ', type(label))
-                # print(type(output))
-                # print(output.shape)
-
-                loss = criterion(output, label)
-                optimizer2.zero_grad()
-                loss.backward()
-                optimizer2.step()
-        else:  # even epochs
-            # Train the entire ReContrast model, encoder's head is frozen
-            model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
-            for param in model.parameters():
-                param.requires_grad = True  # Unfreeze all
-            model.fc_bc.requires_grad = False  # Freeze the head
-
-            for img, label in train_dataloader:
-                img = img.to(device)
-                en, de = model(img)
-                alpha_final = 1
-                alpha = min(-3 + (alpha_final - -3) * epoch / (total_iters * 0.1), alpha_final)
-                loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
-                       global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
-
-                optimizer.zero_grad()
-                optimizer2.zero_grad()
-                loss.backward()
-
-                optimizer.step()
-                optimizer2.step()
-                loss_list.append(loss.item())
+        model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
 
 
-            if (epoch+1) % 10 == 0:
-                pad_size = [1, 0.8, 0.85, 0.9, 0.95, 0.98]
 
-                for shrink_factor in pad_size:
-                    test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
-                                             phase="test", shrink_factor=shrink_factor)
-                    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False,
-                                                                  num_workers=1)
+        for img, label in train_dataloader:
 
-                    auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                        str(shrink_factor)] = evaluation(model, test_dataloader, device)
-                    print_fn(
-                        'Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
-                            shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
-                            auroc_aupro_px_list[str(shrink_factor)]))
+            img = img.to(device)
+            anomaly_data = np.ones(len(img))
+            anomaly_data[int(len(anomaly_data) / 2):] = -1
+            for i in range(len(anomaly_data)):
+                if anomaly_data[i] == -1:
+                    img[i] = anomaly_transforms(img[i])
+            anomaly_data = torch.tensor(anomaly_data).to(device)
+            # we also need one where instead on -1s we have 1s
+            anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]
+            anomaly_one = torch.tensor(anomaly_one).to(device)
 
-                    if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
-                        auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
-                        auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], \
-                                                                       auroc_sp_list[
-                                                                           str(shrink_factor)], auroc_aupro_px_list[
-                                                                           str(shrink_factor)]
+            en1, de1 , out= model(img, head=True)
+            out = to_binary(out)
+            head_loss = criterion(out, anomaly_one.to(torch.int64))
+
+            en, de = model(img[:len(img)/2])
+
+            alpha_final = 1
+            alpha = min(-3 + (alpha_final - -3) * epoch / (total_iters * 0.1), alpha_final)
+            model_loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
+                   global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
+
+            loss = model_loss + head_loss
+
+            optimizer.zero_grad()
+            optimizer2.zero_grad()
+            loss.backward()
+
+            optimizer.step()
+            optimizer2.step()
+            loss_list.append(loss.item())
+
+
+        if (epoch+1) % 5 == 0:
+            pad_size = [1, 0.8, 0.85, 0.9, 0.95, 0.98]
+
+            for shrink_factor in pad_size:
+                test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
+                                         phase="test", shrink_factor=shrink_factor)
+                test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False,
+                                                              num_workers=1)
+
+                auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
+                    str(shrink_factor)] = evaluation(model, test_dataloader, device)
+                print_fn(
+                    'Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
+                        shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
+                        auroc_aupro_px_list[str(shrink_factor)]))
+
+                if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
+                    auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
+                    auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], \
+                                                                   auroc_sp_list[
+                                                                       str(shrink_factor)], auroc_aupro_px_list[
+                                                                       str(shrink_factor)]
 
             it += 1
             if it == total_iters:

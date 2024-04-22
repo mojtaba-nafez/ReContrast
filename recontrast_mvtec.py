@@ -286,7 +286,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
             out = to_binary(out)
             head_loss = criterion(out, anomaly_one.to(torch.int64))
 
-            en, de = model(img[:len(img)/2])
+            en, de = model(img[:len(img)//2])
 
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * epoch / (total_iters * 0.1), alpha_final)

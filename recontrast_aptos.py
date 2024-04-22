@@ -185,7 +185,7 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None):
     for epoch in range(total_iters // len(train_dataloader) + 1):
         model.train(encoder_bn_train=True)
         loss_list = []
-        for img, label in train_dataloader:
+        for img, label , _ in train_dataloader:
 
             img = img.to(device)
             anomaly_data = np.ones(len(img))

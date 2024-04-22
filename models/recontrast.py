@@ -49,12 +49,14 @@ class ReContrast(nn.Module):
             decoder,
             image_size,
             crop_size,
-            device
+            device,
+            head_end=False
     ) -> None:
         super(ReContrast, self).__init__()
         self.encoder = encoder
-        # self.encoder.layer4 = None
-        # self.encoder.fc = None
+        if not head_end:
+            self.encoder.layer4 = None
+            self.encoder.fc = None
 
         self.encoder_freeze = encoder_freeze
         self.encoder_freeze.layer4 = None

@@ -250,7 +250,6 @@ if __name__ == '__main__':
                         default='recontrast_aptos_b32_it1k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
-    parser.add_argument('--test_id', default=1, type=int)
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
     args = parser.parse_args()

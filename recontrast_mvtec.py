@@ -114,23 +114,6 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
 
-def populate_dataset_to_fixed_count(dataset, target_length):
-
-    if not dataset:
-        raise ValueError("Dataset cannot be empty.")
-
-    original_length = len(dataset)
-    if original_length >= target_length:
-        return dataset
-
-    # Calculate the number of times the dataset needs to be repeated
-    repeat_count = (target_length // original_length) + 1
-
-    # Extend the dataset by repeating it
-    extended_dataset = dataset * repeat_count
-
-    # If the extended dataset is longer than the target, slice it to the target length
-    return extended_dataset[:target_length]
 
 class NewModel(nn.Module):
 
@@ -293,7 +276,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 print(type(output))
                 print(output.shape)
 
-                loss = criterion(output, label.float())
+                loss = criterion(output, label)
                 optimizer2.zero_grad()
                 loss.backward()
                 optimizer2.step()

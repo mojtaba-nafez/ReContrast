@@ -369,16 +369,15 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                                                          cls=cls,
                                                                                                          head_end=head_end)
                 # auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation_brain(model, test_dataloader2, device, max_ratio=max_ratio)
-                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}'.format(shrink_factor,
-                                                                                              auroc_px_list[
-                                                                                                  str(shrink_factor)],
-                                                                                              auroc_sp_list[
-                                                                                                  str(shrink_factor)],
-                                                                                              auroc_aupro_px_list[
-                                                                                                  str(shrink_factor)],
-                                                                                              auroc_cls_auc_list[
-                                                                                                  str(shrink_factor)]
-                                                                                              ))
+                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
+                    shrink_factor,
+                    auroc_px_list[
+                        str(shrink_factor)],
+                    auroc_sp_list[
+                        str(shrink_factor)],
+                    auroc_aupro_px_list[
+                        str(shrink_factor)],
+                    auroc_cls_auc_list[str(shrink_factor)]))
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
                     auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)] = \

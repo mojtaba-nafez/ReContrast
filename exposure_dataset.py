@@ -45,8 +45,8 @@ def get_exposure_set(image_size=224, count=5000, tiny_percent=0.2, category='car
 
     train_ds_mvtech_cutpasted = (MVTecDataset_Cutpasted(root='./mvtec_anomaly_detection', train=True, category=category, transform=train_transform_cutpasted, count=cutpaste_count))
 
-    print('imagenet length: ', len(imagenet_exposure))
-    print('cutpaste dataset length : ', len(train_ds_mvtech_cutpasted))
+    # print('imagenet length: ', len(imagenet_exposure))
+    # print('cutpaste dataset length : ', len(train_ds_mvtech_cutpasted))
 
     exposureset = torch.utils.data.ConcatDataset([imagenet_exposure, train_ds_mvtech_cutpasted])
     return exposureset
@@ -82,7 +82,7 @@ class MVTecDataset_Cutpasted(Dataset):
         print("category MVTecDataset_Cutpasted before population: ", category)
         if train:
             self.image_files = glob(os.path.join(root, category, "train", "good", "*.png"))
-            print('len image files cutpast: ', len(self.image_files))
+            # print('len image files cutpast: ', len(self.image_files))
         else:
             image_files = glob(os.path.join(root, category, "test", "*", "*.png"))
             normal_image_files = glob(os.path.join(root, category, "test", "good", "*.png"))
@@ -95,7 +95,7 @@ class MVTecDataset_Cutpasted(Dataset):
                 t = len(self.image_files)
                 for i in range(count-t):
                     self.image_files.append(random.choice(self.image_files[:t]))
-        print('len image files cutpast: ', len(self.image_files))
+        # print('len image files cutpast: ', len(self.image_files))
         self.image_files.sort(key=lambda y: y.lower())
         self.train = train
     def __getitem__(self, index):

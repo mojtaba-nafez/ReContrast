@@ -292,8 +292,8 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 # print('label type: ', type(label))
                 print(type(output))
                 print(output.shape)
-                output_for_loss = output  # Select the correct output for loss calculation
-                loss = criterion(output_for_loss.squeeze(), label.float())
+                pred_classes = torch.argmax(output, dim=1)
+                loss = criterion(pred_classes.squeeze(), label.float())
                 optimizer2.zero_grad()
                 loss.backward()
                 optimizer2.step()

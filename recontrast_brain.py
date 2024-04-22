@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, resnext50_32x4d
 from models.de_resnet import de_wide_resnet50_2, de_resnet18, de_resnet34, de_resnet50, de_resnext50_32x4d
 from models.recontrast import ReContrast, ReContrast
-from dataset import BrainTest, BrainTrain
+from dataset import BrainTest, BrainTrain, ImageNetExposure
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss, evaluation_brain, evaluation_noseg_brain
@@ -122,6 +122,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     test_data1 = BrainTest(transform=data_transform, test_id=1)
     test_data2 = BrainTest(transform=data_transform, test_id=2)
 
+    imagenet_exposure_dataset = ImageNetExposure(root='/kaggle/input/tiny-imagenet-dataset/tiny-imagenet-200', count=10000, transform=data_transform)
+    exposure_dataloader = torch.utils.data.DataLoader(imagenet_exposure_dataset, batch_size=batch_size, shuffle=True)
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
     visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')
@@ -187,17 +189,31 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         model.train(encoder_bn_train=True)
 
         loss_list = []
+        exposure_iter = iter(exposure_dataloader)
         for img, label in train_dataloader:
-            # img : [16, 3, 256, 256]
-            # img = torch.cat([img, img.clone()])
-
-            img = img.to(device)
+            try:
+                img_expo , _ = next(exposure_iter)
+                if len(img_expo)<len(img):
+                    exposure_iter = iter(exposure_dataloader)
+                    img_expo , _ = next(exposure_iter)
+            except:
+                exposure_iter = iter(exposure_dataloader)
+                img_expo , _ = next(exposure_iter)
+                
             anomaly_data = np.ones(len(img))
-            anomaly_data[int(len(anomaly_data)/2):] = -1
+            anomaly_data = np.ones(len(img))
+            anomaly_data[int(len(img)/2)+int(int(len(img)/2)*0.4):] = -1
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
+            anomaly_data[int(len(anomaly_data)/2):] = -1
             anomaly_data = torch.tensor(anomaly_data).to(device)
+            
+            # img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
+            img_ = torch.cat([img[:int(len(img)/2)], img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)], img[int(len(img)/2)+int(int(len(img)/2)*0.4):]])
+
+            img_ = img_.to(device)
+
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)

@@ -236,7 +236,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         cls = BinaryClassifier()
     else:
         cls = BinaryClassifier2()
-
+    cls = cls.to(device)
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)

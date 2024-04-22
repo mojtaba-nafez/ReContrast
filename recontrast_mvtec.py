@@ -257,6 +257,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
     # IMPORTANT: total_iters should be >= 250 so that return values get computed
 
     model.to(device)
+    to_binary.to(device)
     print(total_iters, len(train_dataloader), int(np.ceil(total_iters / len(train_dataloader))))
 
 

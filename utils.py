@@ -192,7 +192,7 @@ def specificity_score(y_true, y_score):
     return TN / N
 
 
-def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0, cls=None):
+def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0, cls=None, head_end=False):
     """
 
     :param model:
@@ -216,9 +216,13 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
         for img, gt, label, _ in dataloader:
             img = img.to(device)
 
-            en, de = model(img)
-            en_3rd = en[5]
-            cls_output = cls(en_3rd)
+            if not head_end:
+                en, de = model(img, head_end=head_end)
+                cls_output = cls(en[5])
+            else:
+                en, de, en3 = model(img, head_end=head_end)
+                cls_output = cls(en3)
+
             cls_score = cls_output[:, 1]
             cls_list_sp.append(cls_score.cpu().numpy())
             anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')

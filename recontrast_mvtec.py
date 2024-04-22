@@ -307,7 +307,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                         str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)] = evaluation(model, test_dataloader,
                                                                                                  device,
                                                                                                  max_ratio=max_ratio,
-                                                                                                 cls=cls)
+                                                                                                 cls=cls,
+                                                                                                 head_end=head_end)
                     print_fn(
                         'Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Map Auroc:{:.3f}, Pixel Aupro:{:.3}, Sample CLS AUROC:{:.3}'.format(
                             shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],

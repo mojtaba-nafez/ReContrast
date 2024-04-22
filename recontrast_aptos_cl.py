@@ -195,7 +195,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         loss_list = []
         exposure_iter = iter(exposure_dataloader)
         for img, label in train_dataloader:
-            img = img.to(device)
             try:
                 img_expo , _ = next(exposure_iter)
                 if len(img_expo)<len(img):
@@ -212,8 +211,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     img[i] = anomaly_transforms(img[i])
             anomaly_data[int(len(anomaly_data)/2):] = -1
             anomaly_data = torch.tensor(anomaly_data).to(device)
-            img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)]
-            
+            img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
+            del img_expo
+            img = img.to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)

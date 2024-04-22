@@ -214,7 +214,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             anomaly_data[int(len(anomaly_data)/2):] = -1
             anomaly_data = torch.tensor(anomaly_data).to(device)
             
-            img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
+            # img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
             img_ = torch.cat([img[:int(len(img)/2)], img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)], img[int(len(img)/2)+int(int(len(img)/2)*0.4):]])
             del img_expo
             gc.collect()

@@ -227,8 +227,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         exposure_iter = iter(exposure_dataloader)
         for img, label in train_dataloader:
             img = img.to(device)
-            img_expo , _ = next(exposure_iter)
-
+            try:
+                img_expo , _ = next(exposure_iter)
+                if len(img_expo)<len(img):
+                    exposure_iter = iter(exposure_dataloader)
+                    img_expo , _ = next(exposure_iter)
+            except:
+                exposure_iter = iter(exposure_dataloader)
+                
             anomaly_data = np.ones(len(img))
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(img)/2)+int(int(len(img)/2)*0.4):] = -1

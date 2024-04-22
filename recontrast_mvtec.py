@@ -304,7 +304,7 @@ def train(_class_, shrink_factor=None, total_iters=2000,
                 loss_list.append(loss.item())
 
 
-            if epoch % 10 == 0:
+            if (epoch+1) % 10 == 0:
                 pad_size = [1, 0.8, 0.85, 0.9, 0.95, 0.98]
 
                 for shrink_factor in pad_size:

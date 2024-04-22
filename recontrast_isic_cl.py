@@ -253,9 +253,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
             optimizer.zero_grad()
             optimizer2.zero_grad()
-            if loss is None:
+            try:
+                loss.backward()
+            except:
+                print("loss has not grad!")
                 continue
-            loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
             optimizer.step()
             optimizer2.step()

@@ -182,6 +182,11 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None):
     model.to(device)
     to_binary.to(device)
 
+    anomaly_transforms = transforms.Compose([
+        transforms.ToPILImage(),
+        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+    ])
+
     for epoch in range(total_iters // len(train_dataloader) + 1):
         model.train(encoder_bn_train=True)
         loss_list = []

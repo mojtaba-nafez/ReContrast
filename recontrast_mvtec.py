@@ -364,8 +364,7 @@ if __name__ == '__main__':
     classes = args.classes.split(',')
     print('classes: ', classes)
 
-    item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
-                 'transistor', 'metal_nut', 'screw', 'toothbrush', 'zipper', 'tile', 'wood']
+    item_list =  ['toothbrush', 'zipper', 'transistor', 'tile', 'grid', 'wood', 'pill', 'bottle', 'capsule', 'metal_nut', 'hazelnut', 'screw', 'carpet', 'leather', 'cable']
     print(item_list)
     # item_list = ['toothbrush']
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))

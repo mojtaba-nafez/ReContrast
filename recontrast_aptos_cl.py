@@ -23,6 +23,7 @@ import warnings
 import copy
 import logging
 from cutpaste_transformation import *
+import gc
 
 warnings.filterwarnings("ignore")
 
@@ -213,6 +214,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             anomaly_data = torch.tensor(anomaly_data).to(device)
             img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
             del img_expo
+            gc.collect()
+
             img = img.to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]

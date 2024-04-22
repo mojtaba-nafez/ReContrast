@@ -137,7 +137,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     if augmented_view:
         train_data_transforms = transforms.Compose([
             transforms.Resize((image_size, image_size)),
-            transforms.RandomHorizontalFlip(),    # Random horizontal flip
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
             transforms.RandomGrayscale(p=0.2),    # Random grayscale
             transforms.ToTensor(),
@@ -154,7 +153,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     train_path = '../ISIC2018/'
     test_path = '../ISIC2018/'
 
-    train_data = ISICTrain(transform=data_transform)
+    train_data = ISICTrain(transform=train_data_transforms)
     test_data1 = ISICTest(transform=data_transform, test_id=1)
     test_data2 = ISICTest(transform=data_transform, test_id=2)
 

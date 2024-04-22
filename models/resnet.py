@@ -254,7 +254,7 @@ class ResNet(nn.Module):
         # feature_d = self.layer4(feature_c)
         # print('feature d ', feature_d)
 
-        print('encoder output:', [feature_a.shape, feature_b.shape, feature_c.shape])
+        # print('encoder output:', [feature_a.shape, feature_b.shape, feature_c.shape])
 
         return [feature_a, feature_b, feature_c]
 

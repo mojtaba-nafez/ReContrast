@@ -52,9 +52,9 @@ class ReContrast(nn.Module):
         self.encoder.layer4 = None
 
         self.fc_bc = nn.Sequential(
-            nn.Flatten(),  # Flatten the output to make it suitable for input to a linear layer
-            nn.Linear(512, 2),  # Change the output features from 1 to 2
-            nn.Softmax(dim=1)  # Optional: Apply softmax to convert logits to probabilities
+            nn.Flatten(),
+            nn.Linear(65536, 2),  # Adjusted to match the flattened output
+            nn.Softmax(dim=1)
         )
 
         self.encoder_freeze = encoder_freeze

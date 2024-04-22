@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, resnext50_32x4d
 from models.de_resnet import de_wide_resnet50_2, de_resnet18, de_resnet34, de_resnet50, de_resnext50_32x4d
 from models.recontrast import ReContrast, ReContrast
-from dataset import ISICTrain, ISICTest
+from dataset import ISICTrain, ISICTest, ImageNetExposure
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation, visualize, global_cosine, modify_grad, NT_xent, contrastive_loss, evaluation_noseg_brain
@@ -151,6 +151,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         ])
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
+    imagenet_exposure_dataset = ImageNetExposure(root='/kaggle/input/tiny-imagenet-dataset/tiny-imagenet-200', count=10000, transform=data_transform)
+    exposure_dataloader = torch.utils.data.DataLoader(imagenet_exposure_dataset, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=False)
+
     train_path = '../ISIC2018/'
     test_path = '../ISIC2018/'
 
@@ -221,8 +224,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         model.train(encoder_bn_train=True)
 
         loss_list = []
+        exposure_iter = iter(exposure_dataloader)
         for img, label in train_dataloader:
-            # img : [16, 3, 256, 256]
+            img_expo , _ = next(exposure_iter)
             # img = torch.cat([img, img.clone()])
 
             img = img.to(device)

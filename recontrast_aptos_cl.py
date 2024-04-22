@@ -203,6 +203,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     img_expo , _ = next(exposure_iter)
             except:
                 exposure_iter = iter(exposure_dataloader)
+                img_expo , _ = next(exposure_iter)
                 
             anomaly_data = np.ones(len(img))
             anomaly_data = np.ones(len(img))
@@ -212,14 +213,16 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     img[i] = anomaly_transforms(img[i])
             anomaly_data[int(len(anomaly_data)/2):] = -1
             anomaly_data = torch.tensor(anomaly_data).to(device)
+            
             img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
+            img_ = torch.cat([img[:int(len(img)/2)], img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)], img[int(len(img)/2)+int(int(len(img)/2)*0.4):]])
             del img_expo
             gc.collect()
 
-            img = img.to(device)
+            img_ = img_.to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
-            en, de = model(img)
+            en, de = model(img_)
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
             

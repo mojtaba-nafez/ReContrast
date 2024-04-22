@@ -12,7 +12,7 @@ from models.recontrast import ReContrast, ReContrast
 from dataset import ISICTrain, ISICTest
 import torch.backends.cudnn as cudnn
 import argparse
-from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss, evaluation_noseg_brain
+from utils import evaluation, visualize, global_cosine, modify_grad, NT_xent, contrastive_loss, evaluation_noseg_brain
 from torch.nn import functional as F
 from functools import partial
 from ptflops import get_model_complexity_info
@@ -92,6 +92,39 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
         images, labels = zip(*random_samples)
     labels = torch.tensor(labels)
     show_images(images, labels, dataset_name)
+
+
+def global_cosine_hm_1(a, b, anomaly_data, alpha=1., factor=0.):
+    # a(enc), b(dec): [[16,256,64,64], [16,512,32,32], [16,1024,16,16]]
+    cos_loss = torch.nn.CosineSimilarity()
+    loss = 0
+    weight = [1, 1, 1]
+    for item in range(len(a)):
+        a_ = a[item].detach()
+        b_ = b[item]
+
+        a_ = a_[anomaly_data==1]
+        b_ = b_[anomaly_data==1]
+        if len(a_)<1 or len(b<1):
+            print("a_, b_", a_, b_)
+            print("a, b", a, b)
+            continue
+        
+        with torch.no_grad():
+            point_dist = 1 - cos_loss(a_, b_).unsqueeze(1)
+
+        # mean_dist, std_dist: just are a number
+        mean_dist = point_dist.mean()
+        std_dist = point_dist.reshape(-1).std()
+        
+        # cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)): torch.Size([8])
+        # loss += (torch.mean((1 - cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)))*anomaly_data)) * weight[item]
+        loss += torch.mean(1 - cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1))) * weight[item]
+        thresh = mean_dist + alpha * std_dist
+        partial_func = partial(modify_grad, inds=point_dist < thresh, factor=factor)
+        b_.register_hook(partial_func)
+
+    return loss
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0, augmented_view=False, batch_size=16, model='wide_res50'):
     print_fn(_class_)
@@ -206,8 +239,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
             loss = None
             if sum(anomaly_data[anomaly_data==1])>0:
-                loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
-                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
+                loss1 = global_cosine_hm_1(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
+                    global_cosine_hm_1(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
                 loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
                             (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
                 loss = loss1  + loss2
@@ -279,9 +312,7 @@ if __name__ == '__main__':
     if args.training_shrink_factor:
         args.training_using_pad = True
     
-    item_list = ['screw', 'cable', 'transistor', 'carpet', 'bottle', 'hazelnut', 'leather', 'capsule', 'grid', 'pill' ,'metal_nut', 'toothbrush', 'zipper', 'tile', 'wood']
-    item_list = item_list[args.item_list:]
-    print(item_list)
+   
     # item_list = ['toothbrush']
     
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))

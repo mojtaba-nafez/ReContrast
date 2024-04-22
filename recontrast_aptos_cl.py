@@ -280,10 +280,7 @@ if __name__ == '__main__':
     if args.training_shrink_factor:
         args.training_using_pad = True
     
-    item_list = ['screw', 'cable', 'transistor', 'carpet', 'bottle', 'hazelnut', 'leather', 'capsule', 'grid', 'pill' ,'metal_nut', 'toothbrush', 'zipper', 'tile', 'wood']
-    item_list = item_list[args.item_list:]
-    print(item_list)
-    # item_list = ['toothbrush']
+    
     
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info

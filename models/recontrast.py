@@ -72,6 +72,7 @@ class ReContrast(nn.Module):
         de = [de[0][0], de[1][0], de[2][0], de[3][1], de[4][1], de[5][1]]
 
         if head:
+            en = self.encoder(x, head=true)
             return en_freeze + en, de, en[-1]
 
         return en_freeze + en, de

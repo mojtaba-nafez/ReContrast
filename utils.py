@@ -284,34 +284,34 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 elif reduction == 'mean':
                     pr_list_sp_normal.append(np.mean(anomaly_map))
                 # -------------------cutpaste------------------
-                img_cutpaste = anomaly_transforms(img)
-                if not head_end:
-                    en, de = model(img_cutpaste, head_end=head_end)
-                    cls_output = cls(en[5])
-                else:
-                    en, de, en3 = model(img_cutpaste, head_end=head_end)
-                    cls_output = cls(en3)
-
-                cls_score = cls_output[:, 1]
-                cls_list_sp_anomaly.append(cls_score.cpu().numpy())
-
-                anomaly_map, _ = cal_anomaly_map(en, de, img_cutpaste.shape[-1], amap_mode='a')
-                anomaly_map = gaussian_filter(anomaly_map, sigma=4)
-                gt_list_sp_anomaly.append(1)
-                if reduction == 'max':
-                    pr_list_sp_anomaly.append(np.max(anomaly_map))
-                elif reduction == 'mean':
-                    pr_list_sp_anomaly.append(np.mean(anomaly_map))
+                # img_cutpaste = anomaly_transforms(img)
+                # if not head_end:
+                #     en, de = model(img_cutpaste, head_end=head_end)
+                #     cls_output = cls(en[5])
+                # else:
+                #     en, de, en3 = model(img_cutpaste, head_end=head_end)
+                #     cls_output = cls(en3)
+                #
+                # cls_score = cls_output[:, 1]
+                # cls_list_sp_anomaly.append(cls_score.cpu().numpy())
+                #
+                # anomaly_map, _ = cal_anomaly_map(en, de, img_cutpaste.shape[-1], amap_mode='a')
+                # anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+                # gt_list_sp_anomaly.append(1)
+                # if reduction == 'max':
+                #     pr_list_sp_anomaly.append(np.max(anomaly_map))
+                # elif reduction == 'mean':
+                #     pr_list_sp_anomaly.append(np.mean(anomaly_map))
 
 
             w_map[0] = 1 / (np.sum(pr_list_sp_normal) / len(pr_list_sp_normal))
-            w_map[1] = 1 / (np.sum(pr_list_sp_anomaly) / len(pr_list_sp_anomaly))
+            # w_map[1] = 1 / (np.sum(pr_list_sp_anomaly) / len(pr_list_sp_anomaly))
             w_msp[0] = 1 / (np.sum(cls_list_sp_normal) / len(cls_list_sp_normal))
-            w_msp[1] = 1 / (np.sum(cls_list_sp_anomaly) / len(cls_list_sp_anomaly))
+            # w_msp[1] = 1 / (np.sum(cls_list_sp_anomaly) / len(cls_list_sp_anomaly))
             print(f'weight of max map score (normal): {w_map[0]}')
             print(f'weight of max map score (cutpaste): {w_map[1]}')
             print(f'weight of msp score (normal): {w_msp[0]}')
-            print(f'weight of msp score (normal): {w_msp[1]}')
+            print(f'weight of msp score (cutpaste): {w_msp[1]}')
 
     gt_list_sp = []
     pr_list_sp = []

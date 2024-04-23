@@ -226,6 +226,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
+
+    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
+                                                   drop_last=False)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
@@ -361,7 +364,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                                                       device,
                                                                                                       cls=cls,
                                                                                                       head_end=head_end,
-                                                                                                      train_loader=train_dataloader,
+                                                                                                      train_loader=train_dataloader2,
                                                                                                       anomaly_transforms=anomaly_transforms)
                 print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
                     shrink_factor,
@@ -388,7 +391,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                             device,
                                                             cls=cls,
                                                             head_end=head_end,
-                                                            train_loader=train_dataloader,
+                                                            train_loader=train_dataloader2,
                                                             anomaly_transforms=anomaly_transforms)
                 print_fn(
                     'Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}, MIXED Auroc:{:.3f}'.format(

@@ -361,7 +361,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 en, de, en3 = model(img_, head_end=head_end)
                 cls_output = cls(en3)
 
-            # TILL HERE
 
             cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
             alpha_final = 1
@@ -379,14 +378,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             '''
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
-            if not head_end:
-                optimizer_cls.zero_grad()
+            optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
-            if not head_end:
-                optimizer_cls.step()
+            optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())

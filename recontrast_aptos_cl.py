@@ -333,14 +333,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             '''
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
-            if not head_end:
-                optimizer_cls.zero_grad()
+            # if not head_end:
+            optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
-            if not head_end:
-                optimizer_cls.step()
+            # if not head_end:
+            optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())

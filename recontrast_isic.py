@@ -218,7 +218,7 @@ def train(_class_, count=-1):
 
 
 
-            if (it + 1) % 250 == 0:
+            if (it + 1) % 50 == 0:
                 data_type = "main"
                 auroc_px_list[str(data_type)], auroc_sp_list[str(data_type)], auroc_aupro_px_list[
                     str(data_type)], auroc_cls_auc_list[str(data_type)] = evaluation_noseg(

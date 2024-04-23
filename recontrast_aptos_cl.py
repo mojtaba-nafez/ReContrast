@@ -233,7 +233,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (epoch+1) % 5 == 0:
+            if (epoch) % 5 == 0:
 
                 shrink_factor = "main" 
                 # auroc, f1, acc = evaluation_noseg(model, test_dataloader1, device)

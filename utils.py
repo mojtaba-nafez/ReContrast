@@ -264,8 +264,8 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             cls_list_sp_normal = []
             cls_list_sp_anomaly = []
             for img, label in train_loader:
+                img = img.to(device)
                 for i in range(len(img)):
-                    img[i] = img[i].to(device)
                     # -------------------normal--------------------------
                     if not head_end:
                         en, de = model(img[i], head_end=head_end)

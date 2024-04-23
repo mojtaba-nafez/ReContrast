@@ -419,7 +419,7 @@ class ISICTest(torch.utils.data.Dataset):
 
         return img, has_anomaly, img_path
 class ISICTrain(torch.utils.data.Dataset):
-    def __init__(self, transform):
+    def __init__(self, transform, count=-1):
         self.transform = transform
         self.image_paths = glob.glob('/kaggle/input/isic-task3-dataset/dataset/train/NORMAL/*')
 

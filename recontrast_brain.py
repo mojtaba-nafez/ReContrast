@@ -110,7 +110,7 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
+def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1, augmented_view = True):
     print_fn(_class_)
     setup_seed(111)
 

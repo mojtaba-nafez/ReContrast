@@ -331,7 +331,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 en, de, en3 = model(img, head_end=head_end)
                 cls_output = cls(en3)
 
-            cls_score = F.softmax(cls_output[:, 1], dim=1)
+            cls_score = F.softmax(cls_output, dim=1)
             cls_list_sp.append(cls_score.cpu().numpy()[0])
 
             anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')

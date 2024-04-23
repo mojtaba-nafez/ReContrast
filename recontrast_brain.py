@@ -232,6 +232,9 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
 
             img_ = img_.to(device)
 
+            anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]
+            anomaly_one = torch.tensor(anomaly_one).to(device)
+
             en1, de1, out = model(img_, head=True)
             out = to_binary(out)
             head_loss = criterion(out, anomaly_one.to(torch.int64))

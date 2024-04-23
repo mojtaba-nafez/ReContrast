@@ -344,6 +344,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 cls_output = cls(en[5])
             else:
                 en, de, en3 = model(img, head_end=head_end)
+                print('!', en3.shape)
                 cls_output = cls(en3)
 
             cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))

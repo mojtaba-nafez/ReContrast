@@ -283,9 +283,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp_normal.append(np.max(anomaly_map))
                 elif reduction == 'mean':
                     pr_list_sp_normal.append(np.mean(anomaly_map))
-                print('---')
-                print(cls_list_sp_normal[-1])
-                print(pr_list_sp_normal[-1])
+
                 # -------------------cutpaste------------------
                 # img_cutpaste = anomaly_transforms(img)
                 # if not head_end:
@@ -310,7 +308,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             w_map[0] = 1 / (np.sum(pr_list_sp_normal) / len(pr_list_sp_normal))
             # w_map[1] = 1 / (np.sum(pr_list_sp_anomaly) / len(pr_list_sp_anomaly))
             print('cls list: ', cls_list_sp_normal)
-            w_msp[0] = 1 / (np.sum(cls_list_sp_normal) / len(cls_list_sp_normal))
+            w_msp[0] = 1 / (np.sum(cls_list_sp_normal[0]) / len(cls_list_sp_normal[0]))
             # w_msp[1] = 1 / (np.sum(cls_list_sp_anomaly) / len(cls_list_sp_anomaly))
             print(f'weight of max map score (normal): {w_map[0]}')
             print(f'weight of max map score (cutpaste): {w_map[1]}')

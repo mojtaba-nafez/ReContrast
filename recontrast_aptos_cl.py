@@ -197,7 +197,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         print('epoch ', epoch)
 
         loss_list = []
-        for img, label in tqdm(train_dataloader):
+        for img, label in train_dataloader:
             # img : [16, 3, 256, 256]
             # img = torch.cat([img, img.clone()])
 
@@ -273,7 +273,7 @@ if __name__ == '__main__':
                         help='GPU id to use.')
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
-    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
     parser.add_argument('--training_shrink_factor', action='store_true')
     parser.add_argument('--training_using_pad', action='store_true')

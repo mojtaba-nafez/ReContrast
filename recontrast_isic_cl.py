@@ -219,8 +219,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     setup_seed(111)
 
     total_iters = total_iters
-    image_size = 256
-    crop_size = 256
+    image_size = image_size
+    crop_size = image_size
 
     if augmented_view:
         train_data_transforms = transforms.Compose([

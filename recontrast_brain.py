@@ -217,6 +217,7 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
             except:
                 exposure_iter = iter(exposure_dataloader)
                 img_expo, _ = next(exposure_iter)
+            img_expo.to(device)
 
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(img) / 2) + int(int(len(img) / 2) * 0.4):] = -1
@@ -227,9 +228,10 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
             anomaly_data = torch.tensor(anomaly_data).to(device)
 
             # img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
+
             img_ = torch.cat(
                 [img[:int(len(img) / 2)], img_expo[int(len(img) / 2):int(len(img) / 2) + int(int(len(img) / 2) * 0.4)],
-                 img[int(len(img) / 2) + int(int(len(img) / 2) * 0.4):]]).to(device)
+                 img[int(len(img) / 2) + int(int(len(img) / 2) * 0.4):]])
 
             img_ = img_.to(device)
 

@@ -273,7 +273,7 @@ if __name__ == '__main__':
                         help='GPU id to use.')
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
-    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
     parser.add_argument('--training_shrink_factor', action='store_true')
     parser.add_argument('--training_using_pad', action='store_true')

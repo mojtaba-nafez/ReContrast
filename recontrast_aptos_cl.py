@@ -184,14 +184,14 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
 
 
 class BinaryClassifier(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels=1024):
         super(BinaryClassifier, self).__init__()
         # input shape: [Batch size, 256, 16, 16]
         self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
         # output shape: [Batch size, 256, 1, 1]
         self.flatten = nn.Flatten()
         # output shape: [Batch size, 256]
-        self.fc = nn.Linear(256, 2)
+        self.fc = nn.Linear(in_channels, 2)
 
     def forward(self, x):
         x = self.adaptive_pool(x)
@@ -258,17 +258,19 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     # visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     # visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
+    in_channels = 1024
     if model == 'wide_res50':
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
         encoder, bn = resnet18(pretrained=True)
         decoder = de_resnet18(pretrained=False, output_conv=2)
+        in_channels = 256
     else:
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     if not head_end:
-        cls = BinaryClassifier()
+        cls = BinaryClassifier(in_channels=in_channels)
     else:
         cls = BinaryClassifier2()
     encoder = encoder.to(device)
@@ -378,11 +380,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             '''
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
+
             optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
+
             optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
@@ -515,22 +518,22 @@ if __name__ == '__main__':
             [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)],
              auroc_sp_cls_best[str(pad)]])
 
-    for pad in pad_size:
-        print(f'-------- shrink factor = {pad} --------')
-        mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
-        mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
-        mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
-        mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
-        print_fn(result_list[str(pad)])
-        print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(
-            mean_auroc_px, mean_auroc_sp,
-            mean_aupro_px, mean_auc_sp_cls))
-
-        best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
-        best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
-        best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
-        best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
-        print_fn(result_list_best[str(pad)])
-        print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(
-            best_auroc_px, best_auroc_sp,
-            best_aupro_px, best_auc_sp_cls))
+    # for pad in pad_size:
+    #     print(f'-------- shrink factor = {pad} --------')
+    #     mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
+    #     mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
+    #     mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+    #     mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
+    #     print_fn(result_list[str(pad)])
+    #     print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(
+    #         mean_auroc_px, mean_auroc_sp,
+    #         mean_aupro_px, mean_auc_sp_cls))
+    #
+    #     best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
+    #     best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
+    #     best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
+    #     best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
+    #     print_fn(result_list_best[str(pad)])
+    #     print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(
+    #         best_auroc_px, best_auroc_sp,
+    #         best_aupro_px, best_auc_sp_cls))

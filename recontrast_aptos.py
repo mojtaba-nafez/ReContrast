@@ -170,7 +170,7 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1, aug
 
     if unode1_checkpoint is not None:  # encoder
         print('Applying U-node as encoder 1...')
-        encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
+        encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=True)
         # decoder = de_resnet18(pretrained=False, progress=True, unode_path=unode1_checkpoint, output_conv=2)
         # encoder_freeze = copy.deepcopy(encoder)
 

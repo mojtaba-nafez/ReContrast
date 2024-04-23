@@ -115,8 +115,8 @@ def train(_class_, count=-1, unode1_checkpoint=None, unode2_checkpoint=None, aug
 
     total_iters = 2000
     batch_size = 8
-    image_size = 32
-    crop_size = 32
+    image_size = 256
+    crop_size = 256
 
     if augmented_view:
         train_data_transforms = transforms.Compose([

@@ -118,12 +118,28 @@ def train(_class_, count=-1):
     image_size = 256
     crop_size = 256
 
+    if augmented_view:
+        train_data_transforms = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.RandomHorizontalFlip(),  # Random horizontal flip
+            transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
+            transforms.RandomGrayscale(p=0.2),  # Random grayscale
+            transforms.ToTensor(),
+            transforms.CenterCrop(crop_size),
+        ])
+    else:
+        train_data_transforms = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+            transforms.CenterCrop(crop_size),
+        ])
+
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
     train_path = '../ISIC2018/'
     test_path = '../ISIC2018/'
 
-    train_data = ISICTrain(transform=data_transform, count=count)
+    train_data = ISICTrain(transform=train_data_transforms, count=count)
     test_data1 = ISICTest(transform=data_transform, test_id=1)
     test_data2 = ISICTest(transform=data_transform, test_id=2)
 

@@ -171,13 +171,20 @@ class BinaryClassifier(nn.Module):
 
 
 class BinaryClassifier2(nn.Module):
-
-    def __init__(self):
+    def __init__(self, in_channels=2048):
         super(BinaryClassifier2, self).__init__()
-        self.fc = nn.Linear(1000, 2)
+        # input shape: [Batch size, 256, 16, 16]
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # output shape: [Batch size, 256, 1, 1]
+        self.flatten = nn.Flatten()
+        # output shape: [Batch size, 256]
+        self.fc = nn.Linear(in_channels, 2)
 
     def forward(self, x):
-        return self.fc(x)
+        x = self.adaptive_pool(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        return x
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
@@ -236,7 +243,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     if not head_end:
         cls = BinaryClassifier(in_channels=in_channels)
     else:
-        cls = BinaryClassifier2()
+        cls = BinaryClassifier2(2 * in_channels)
     cls = cls.to(device)
     encoder = encoder.to(device)
     bn = bn.to(device)
@@ -327,14 +334,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
 
-            if not head_end:
-                optimizer_cls.zero_grad()
+            optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
-            if not head_end:
-                optimizer_cls.step()
+            optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())

@@ -109,7 +109,7 @@ def setup_seed(seed):
 
 
 
-def train(_class_, count=-1):
+def train(_class_, count=-1, unode1_checkpoint=None, unode2_checkpoint=None):
     print_fn(_class_)
     setup_seed(111)
 

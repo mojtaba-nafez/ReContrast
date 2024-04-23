@@ -23,6 +23,7 @@ import warnings
 import copy
 import logging
 from cutpaste_transformation import *
+from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 
@@ -196,7 +197,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         print('epoch ', epoch)
 
         loss_list = []
-        for img, label in train_dataloader:
+        for img, label in tqdm(train_dataloader):
             # img : [16, 3, 256, 256]
             # img = torch.cat([img, img.clone()])
 

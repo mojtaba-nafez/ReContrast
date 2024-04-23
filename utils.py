@@ -265,28 +265,27 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             cls_list_sp_anomaly = []
             for img, label in train_loader:
                 img = img.to(device)
-                for i in range(len(img)):
-                    # -------------------normal--------------------------
-                    if not head_end:
-                        en, de = model(img[i], head_end=head_end)
-                        cls_output = cls(en[5])
-                    else:
-                        en, de, en3 = model(img[i], head_end=head_end)
-                        cls_output = cls(en3)
+                # -------------------normal--------------------------
+                if not head_end:
+                    en, de = model(img, head_end=head_end)
+                    cls_output = cls(en[5])
+                else:
+                    en, de, en3 = model(img, head_end=head_end)
+                    cls_output = cls(en3)
 
-                    cls_score = cls_output[:, 1]
-                    cls_list_sp_normal.append(cls_score.cpu().numpy())
+                cls_score = cls_output[:, 1]
+                cls_list_sp_normal.append(cls_score.cpu().numpy())
 
-                    anomaly_map, _ = cal_anomaly_map(en, de, img[i].shape[-1], amap_mode='a')
-                    anomaly_map = gaussian_filter(anomaly_map, sigma=4)
-                    gt_list_sp_normal.append(0)
-                    if reduction == 'max':
-                        pr_list_sp_normal.append(np.max(anomaly_map))
-                    elif reduction == 'mean':
-                        pr_list_sp_normal.append(np.mean(anomaly_map))
-                    print('---')
-                    print(cls_list_sp_normal[-1])
-                    print(pr_list_sp_normal[-1])
+                anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+                anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+                gt_list_sp_normal.append(0)
+                if reduction == 'max':
+                    pr_list_sp_normal.append(np.max(anomaly_map))
+                elif reduction == 'mean':
+                    pr_list_sp_normal.append(np.mean(anomaly_map))
+                print('---')
+                print(cls_list_sp_normal[-1])
+                print(pr_list_sp_normal[-1])
                 # -------------------cutpaste------------------
                 # img_cutpaste = anomaly_transforms(img)
                 # if not head_end:

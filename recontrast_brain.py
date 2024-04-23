@@ -75,7 +75,7 @@ class BinaryClassifier2(nn.Module):
 
     def __init__(self):
         super(BinaryClassifier2, self).__init__()
-        self.fc = nn.Linear(1000, 2)
+        self.fc = nn.Linear(512, 2)
 
     def forward(self, x):
         return self.fc(x)

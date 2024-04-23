@@ -263,7 +263,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             pr_list_sp_anomaly = []
             cls_list_sp_normal = []
             cls_list_sp_anomaly = []
-            for img, _, label, _ in train_loader:
+            for img, label in train_loader:
                 img = img.to(device)
                 # -------------------normal--------------------------
                 if not head_end:
@@ -339,7 +339,8 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 pr_list_sp.append(np.mean(anomaly_map))
 
             #  mixed score
-            mixed_list_sp.append(w_map[0] * pr_list_sp[-1] + w_msp[0] * cls_list_sp[-1])
+            mix_score = w_map[0] * pr_list_sp[-1] + w_msp[0] * cls_list_sp[-1]
+            mixed_list_sp.append(mix_score / 2)
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)

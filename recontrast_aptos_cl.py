@@ -4,7 +4,7 @@ from torchvision.datasets import ImageFolder
 import numpy as np
 import random
 import os
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, resnext50_32x4d
 from models.de_resnet import de_wide_resnet50_2, de_resnet18, de_resnet34, de_resnet50, de_resnext50_32x4d
 from models.recontrast import ReContrast, ReContrast
@@ -89,6 +89,29 @@ class AptosTrain(torch.utils.data.Dataset):
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
         return img, 0
+
+
+class ImageNetExposure(Dataset):
+    def __init__(self, root, count, transform=None):
+        self.transform = transform
+        image_files = glob.glob(os.path.join(root, 'train', "*", "images", "*.JPEG"))
+        if count==-1:
+            final_length = len(image_files)
+        else:
+            random.shuffle(image_files)
+            final_length = min(len(image_files), count)
+        self.image_files = image_files[:final_length]
+        self.image_files.sort(key=lambda y: y.lower())
+
+    def __getitem__(self, index):
+        image_file = self.image_files[index]
+        image = Image.open(image_file)
+        image = image.convert('RGB')
+        if self.transform is not None:
+            image = self.transform(image)
+        return image, 1
+    def __len__(self):
+        return len(self.image_files)
 
 
 def get_logger(name, save_path=None, level='INFO'):
@@ -213,6 +236,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         ])
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
+    imagenet_exposure_dataset = ImageNetExposure(root='/kaggle/input/tiny-imagenet-dataset/tiny-imagenet-200',
+                                                 count=10000, transform=data_transform)
+    exposure_dataloader = torch.utils.data.DataLoader(imagenet_exposure_dataset, batch_size=batch_size)
+
     train_path = '../APTOS/'
     test_path = '../APTOS/'
 
@@ -224,8 +251,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')
     visualize_random_samples_from_clean_dataset(test_data2, f'test data aptos2')
 
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
-                                                   drop_last=False)
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
@@ -294,28 +320,48 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         model.train(encoder_bn_train=True)
 
         loss_list = []
+        exposure_iter = iter(exposure_dataloader)
         for img, label in train_dataloader:
             # img : [16, 3, 256, 256]
             # img = torch.cat([img, img.clone()])
+            try:
+                img_expo, _ = next(exposure_iter)
+                if len(img_expo) < len(img):
+                    exposure_iter = iter(exposure_dataloader)
+                    img_expo, _ = next(exposure_iter)
+            except:
+                exposure_iter = iter(exposure_dataloader)
+                img_expo, _ = next(exposure_iter)
 
-            img = img.to(device)
+            # img = img.to(device)
             anomaly_data = np.ones(len(img))
-            anomaly_data[int(len(anomaly_data) / 2):] = -1
+            anomaly_data[int(len(img)/2)+int(int(len(img)/2)*0.4):] = -1
+
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
+            anomaly_data[int(len(anomaly_data) / 2):] = -1
             anomaly_data = torch.tensor(anomaly_data).to(device)
             # we also need one where instead on -1s we have 1s
             anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]
             anomaly_one = torch.tensor(anomaly_one).to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
+
+            img_ = torch.cat(
+                [img[:int(len(img) / 2)], img_expo[int(len(img) / 2):int(len(img) / 2) + int(int(len(img) / 2) * 0.4)],
+                 img[int(len(img) / 2) + int(int(len(img) / 2) * 0.4):]])
+
+            img_ = img_.to(device)
+
             if not head_end:
-                en, de = model(img, head_end=head_end)
+                en, de = model(img_, head_end=head_end)
                 cls_output = cls(en[5])
             else:
-                en, de, en3 = model(img, head_end=head_end)
+                en, de, en3 = model(img_, head_end=head_end)
                 cls_output = cls(en3)
+
+            # TILL HERE
 
             cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
             alpha_final = 1

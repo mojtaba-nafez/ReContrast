@@ -332,14 +332,20 @@ def evaluation_mask(model, dataloader, device, _class_=None, calc_pro=True):
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
 
 
-def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max'):
+def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max', cls=None):
     model.eval()
     gt_list_sp = []
     pr_list_sp = []
+    cls_list_sp = []
+    cls.eval()
     with torch.no_grad():
         for img, label, _ in dataloader:
             img = img.to(device)
-            en, de = model(img)
+            en, de , out= model(img, head=True)
+            cls_output = cls(out)
+
+            cls_score = cls_output[:, 1]
+            cls_list_sp.append(cls_score.cpu().numpy())
 
             anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
             anomaly_map = gaussian_filter(anomaly_map, sigma=4)
@@ -353,7 +359,9 @@ def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max'):
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
-    return auroc_sp, f1, acc
+        auroc_sp_msp = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
+
+    return auroc_sp, f1, acc, auroc_sp_msp
 
 
 def visualize(model, dataloader, device, _class_='None', save_name='save'):

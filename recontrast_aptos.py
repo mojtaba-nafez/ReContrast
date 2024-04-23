@@ -113,21 +113,21 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None):
+def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
     print_fn(_class_)
     setup_seed(111)
 
     total_iters = 2000
     batch_size = 16
-    image_size = 224
-    crop_size = 224
+    image_size = 256
+    crop_size = 256
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
     train_path = '../APTOS/'
     test_path = '../APTOS/'
 
-    train_data = AptosTrain(transform=data_transform)
+    train_data = AptosTrain(transform=data_transform,  count=count)
     test_data1 = AptosTest(transform=data_transform, test_id=1)
     test_data2 = AptosTest(transform=data_transform, test_id=2)
 
@@ -226,24 +226,58 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None):
 
 
             if (it + 1) % 500 == 0:
-                auroc1, f1_1, acc1 = evaluation_noseg(model, test_dataloader1, device)
-                print_fn('Test DataLoader 1 - AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc1, f1_1, acc1))
+                data_type = "main"
+                auroc_px_list[str(data_type)], auroc_sp_list[str(data_type)], auroc_aupro_px_list[
+                    str(data_type)], auroc_cls_auc_list[str(data_type)] = evaluation_noseg(
+                    model, test_dataloader1, device, cls=to_binary)
+                #  auroc, f1, acc
+                # auroc_px_list[str(data_type)], auroc_sp_list[str(data_type)], auroc_aupro_px_list[str(data_type)] = evaluation_brain(model, test_dataloader1, device, max_ratio=max_ratio)
+                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
+                    data_type,
+                    auroc_px_list[
+                        str(data_type)],
+                    auroc_sp_list[
+                        str(data_type)],
+                    auroc_aupro_px_list[
+                        str(data_type)],
+                    auroc_cls_auc_list[str(data_type)]))
+                if auroc_sp_list[str(data_type)] >= auroc_sp_list_best[str(data_type)]:
+                    auroc_px_list_best[str(data_type)], auroc_sp_list_best[str(data_type)], \
+                        auroc_aupro_px_list_best[str(data_type)], auroc_cls_auc_list_best[str(data_type)] = \
+                        auroc_px_list[str(data_type)], auroc_sp_list[
+                            str(data_type)], auroc_aupro_px_list[str(data_type)], auroc_cls_auc_list[
+                            str(data_type)]
 
-                # Evaluate on the second test dataloader
-                auroc2, f1_2, acc2 = evaluation_noseg(model, test_dataloader2, device)
-                print_fn('Test DataLoader 2 - AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc2, f1_2, acc2))
-
-                # Set the model back to training mode
-                model.train(encoder_bn_train=True)
-                if auroc1 >= auroc_sp_best:
-                    auroc_sp_best = auroc1
+                data_type = "shifted"
+                auroc_px_list[str(data_type)], auroc_sp_list[str(data_type)], auroc_aupro_px_list[
+                    str(data_type)], auroc_cls_auc_list[str(data_type)] = evaluation_noseg(model,
+                                                                                           test_dataloader2,
+                                                                                           device,
+                                                                                           cls=to_binary)
+                # auroc_px_list[str(data_type)], auroc_sp_list[str(data_type)], auroc_aupro_px_list[str(data_type)] = evaluation_brain(model, test_dataloader2, device, max_ratio=max_ratio)
+                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
+                    data_type,
+                    auroc_px_list[
+                        str(data_type)],
+                    auroc_sp_list[
+                        str(data_type)],
+                    auroc_aupro_px_list[
+                        str(data_type)],
+                    auroc_cls_auc_list[str(data_type)]))
+                if auroc_sp_list[str(data_type)] >= auroc_sp_list_best[str(data_type)]:
+                    auroc_px_list_best[str(data_type)], auroc_sp_list_best[str(data_type)], \
+                        auroc_aupro_px_list_best[str(data_type)], auroc_cls_auc_list_best[str(data_type)] = \
+                        auroc_px_list[str(data_type)], auroc_sp_list[
+                            str(data_type)], auroc_aupro_px_list[str(data_type)], auroc_cls_auc_list[
+                            str(data_type)]
             it += 1
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
     visualize_noseg(model, test_dataloader1, device, _class_=_class_)
-    return auroc, auroc_sp_best
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, \
+        auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best
 
 
 if __name__ == '__main__':
@@ -258,6 +292,7 @@ if __name__ == '__main__':
                         help='GPU id to use.')
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
+    parser.add_argument('--data_count', type=int, default=5000)
     args = parser.parse_args()
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
@@ -269,6 +304,38 @@ if __name__ == '__main__':
     en1_path = args.encoder1_path if args.encoder1_path != '' else None
     en2_path = args.encoder2_path if args.encoder2_path != '' else None
 
-    item_list = ['APTOS']
-    for item in item_list:
-        train(item, unode1_checkpoint=en1_path, unode2_checkpoint=en2_path)
+    result_list = {"main": [], "shifted": []}
+    result_list_best = {"main": [], "shifted": []}
+    data_types = ["main", "shifted"]
+    item = 'brain'
+
+    print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
+    auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
+        item,
+    )
+    for type in data_types:
+        result_list[str(type)].append(
+            [item, auroc_px[str(type)], auroc_sp[str(type)], aupro_px[str(type)], auroc_sp_cls[str(type)]])
+        result_list_best[str(type)].append(
+            [item, auroc_px_best[str(type)], auroc_sp_best[str(type)], aupro_px_best[str(type)],
+             auroc_sp_cls_best[str(type)]])
+
+    for type in data_types:
+        print(f'-------- shrink factor = {type} --------')
+        mean_auroc_px = np.mean([result[1] for result in result_list[str(type)]])
+        mean_auroc_sp = np.mean([result[2] for result in result_list[str(type)]])
+        mean_aupro_px = np.mean([result[3] for result in result_list[str(type)]])
+        mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(type)]])
+
+        print_fn(result_list[str(type)])
+        print_fn('Sample Auroc:{:.4f}, F1:{:.4f}, Acc:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
+                                                                    mean_aupro_px, mean_auc_sp_cls))
+
+        best_auroc_px = np.mean([result[1] for result in result_list_best[str(type)]])
+        best_auroc_sp = np.mean([result[2] for result in result_list_best[str(type)]])
+        best_aupro_px = np.mean([result[3] for result in result_list_best[str(type)]])
+        best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(type)]])
+
+        print_fn(result_list_best[str(type)])
+        print_fn('Sample Auroc:{:.4f}, F1:{:.4f}, Acc:{:.4}'.format(best_auroc_px, best_auroc_sp,
+                                                                    best_aupro_px, best_auc_sp_cls))

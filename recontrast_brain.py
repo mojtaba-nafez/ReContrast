@@ -7,34 +7,27 @@ import random
 import os
 from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, wide_resnet101_2
-from models.de_resnet import de_wide_resnet50_2
+from models.de_resnet import de_wide_resnet50_2, de_resnet18
 from models.recontrast import ReContrast, ReContrast
-from dataset import ISICTrain, ISICTest
+from dataset import BrainTest, BrainTrain
 import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation_noseg, visualize_noseg
 from utils import global_cosine, global_cosine_hm
-from cutpaste_transformation import *
-import torch.nn as nn
 
 from torch.nn import functional as F
 from functools import partial
-
+from cutpaste_transformation import *
 import warnings
 import copy
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+import torch.nn as nn
+
 
 warnings.filterwarnings("ignore")
-class BinaryClassifier2(nn.Module):
 
-    def __init__(self):
-        super(BinaryClassifier2, self).__init__()
-        self.fc = nn.Linear(1000, 2)
-
-    def forward(self, x):
-        return self.fc(x)
 def show_images(images, labels, dataset_name):
     num_images = len(images)
     rows = int(np.ceil(num_images / 5))  # Use np.ceil to ensure enough rows
@@ -77,6 +70,15 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
 
     # Show the 20 random samples
     show_images(images, labels, dataset_name)
+
+class BinaryClassifier2(nn.Module):
+
+    def __init__(self):
+        super(BinaryClassifier2, self).__init__()
+        self.fc = nn.Linear(1000, 2)
+
+    def forward(self, x):
+        return self.fc(x)
 def get_logger(name, save_path=None, level='INFO'):
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level))
@@ -108,8 +110,7 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-
-def train(_class_, count=-1):
+def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
     print_fn(_class_)
     setup_seed(111)
 
@@ -120,29 +121,46 @@ def train(_class_, count=-1):
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    train_path = '../ISIC2018/'
-    test_path = '../ISIC2018/'
+    train_path = '../APTOS/'
+    test_path = '../APTOS/'
 
-    train_data = ISICTrain(transform=data_transform, count=count)
-    test_data1 = ISICTest(transform=data_transform, test_id=1)
-    test_data2 = ISICTest(transform=data_transform, test_id=2)
+    train_data = BrainTrain(transform=data_transform, count=count)
+    test_data1 = BrainTest(transform=data_transform, test_id=1)
+    test_data2 = BrainTest(transform=data_transform, test_id=2)
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset isic')
-    visualize_random_samples_from_clean_dataset(test_data1, f'test data isic1')
-    visualize_random_samples_from_clean_dataset(test_data2, f'test data isic2')
+
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset brain')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data brain1')
+    visualize_random_samples_from_clean_dataset(test_data2, f'test data brain2')
+
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
-    encoder, bn = wide_resnet50_2(pretrained=True)
-    decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    encoder, bn = resnet18(pretrained=True)
+    decoder = de_resnet18(pretrained=False, output_conv=2)
+
+    encoder_freeze = copy.deepcopy(encoder)
+    # encoder_freeze = encoder_freeze.to(device)
+
+    if unode1_checkpoint is not None:  # encoder
+        print('Applying U-node as encoder 1...')
+        encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
+        # decoder = de_resnet18(pretrained=False, progress=True, unode_path=unode1_checkpoint, output_conv=2)
+        # encoder_freeze = copy.deepcopy(encoder)
 
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
-    encoder_freeze = copy.deepcopy(encoder)
+    # encoder_freeze = copy.deepcopy(encoder)
+
+    if unode2_checkpoint is not None:  # encoder_freeze
+        print('Applying U-node as encoder 2...')
+        encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode2_checkpoint, fc=False)
+
+    encoder_freeze = encoder_freeze.to(device)
 
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
     to_binary = BinaryClassifier2()
@@ -153,11 +171,8 @@ def train(_class_, count=-1):
     optimizer2 = torch.optim.AdamW(list(encoder.parameters()),
                                    lr=1e-5, betas=(0.9, 0.999), weight_decay=1e-5)
     print_fn('train image number:{}'.format(len(train_data)))
-    print_fn('test image number:{}'.format(len(test_data1)))
-    print_fn('test image number:{}'.format(len(test_data2)))
-
-    auroc_sp_best = 0
-    it = 0
+    print_fn('test1 image number:{}'.format(len(test_data1)))
+    print_fn('test2 image number:{}'.format(len(test_data2)))
 
     model.to(device)
     to_binary.to(device)
@@ -167,6 +182,21 @@ def train(_class_, count=-1):
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
 
+    auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
+    it = 0
+
+    auroc_px_list = {"main": 0, "shifted": 0}
+    auroc_px_list_best = {"main": 0, "shifted": 0}
+
+    auroc_sp_list = {"main": 0, "shifted": 0}
+    auroc_sp_list_best = {"main": 0, "shifted": 0}
+
+    auroc_aupro_px_list = {"main": 0, "shifted": 0}
+    auroc_aupro_px_list_best = {"main": 0, "shifted": 0}
+
+    auroc_cls_auc_list = {"main": 0, "shifted": 0}
+    auroc_cls_auc_list_best = {"main": 0, "shifted": 0}
+    it = 0
     for epoch in range(total_iters // len(train_dataloader) + 1):
         model.train(encoder_bn_train=True)
         loss_list = []
@@ -232,9 +262,9 @@ def train(_class_, count=-1):
                 data_type = "shifted"
                 auroc_px_list[str(data_type)], auroc_sp_list[str(data_type)], auroc_aupro_px_list[
                     str(data_type)], auroc_cls_auc_list[str(data_type)] = evaluation_noseg(model,
-                                                                                           test_dataloader2,
-                                                                                           device,
-                                                                                           cls=to_binary)
+                                                                                                         test_dataloader2,
+                                                                                                         device,
+                                                                                                         cls=to_binary)
                 # auroc_px_list[str(data_type)], auroc_sp_list[str(data_type)], auroc_aupro_px_list[str(data_type)] = evaluation_brain(model, test_dataloader2, device, max_ratio=max_ratio)
                 print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
                     data_type,
@@ -254,8 +284,9 @@ def train(_class_, count=-1):
             it += 1
             if it == total_iters:
                 break
+        print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
-    visualize_noseg(model, test_dataloader1, device, _class_=_class_, save_name=args.save_name)
+    # visualize_noseg(model, test_dataloader1, device, _class_=_class_)
     return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, \
         auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best
 
@@ -267,12 +298,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--save_dir', type=str, default='./saved_results')
     parser.add_argument('--save_name', type=str,
-                        default='recontrast_isic_256224_b32_it2k_lr2e31e5_wd1e5_hm1d01_s111')
+                        default='recontrast_aptos_b32_it1k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
+
     parser.add_argument('--data_count', type=int, default=5000)
 
+    parser.add_argument('--encoder1_path', type=str, default='')
+    parser.add_argument('--encoder2_path', type=str, default='')
+
     args = parser.parse_args()
+
+    en1_path = args.encoder1_path if args.encoder1_path != '' else None
+    en2_path = args.encoder2_path if args.encoder2_path != '' else None
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info
@@ -288,7 +326,7 @@ if __name__ == '__main__':
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
     auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
         item,
-    )
+        )
     for type in data_types:
         result_list[str(type)].append(
             [item, auroc_px[str(type)], auroc_sp[str(type)], aupro_px[str(type)], auroc_sp_cls[str(type)]])

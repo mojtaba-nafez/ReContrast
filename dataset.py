@@ -360,9 +360,18 @@ class AptosTest(torch.utils.data.Dataset):
 
         return img, has_anomaly, img_path
 class AptosTrain(torch.utils.data.Dataset):
-    def __init__(self, transform):
+    def __init__(self, transform, count=-1):
         self.transform = transform
         self.image_paths = glob.glob('/kaggle/working/APTOS/train/NORMAL/*')
+
+        if count != -1:
+            if count < len(self.image_paths):
+                self.image_paths = self.image_paths[:count]
+            else:
+                t = len(self.image_paths)
+                for i in range(count - t):
+                    self.image_paths.append(random.choice(self.image_paths[:t]))
+        self.image_paths.sort(key=lambda y: y.lower())
 
     def __len__(self):
         return len(self.image_paths)
@@ -414,6 +423,15 @@ class ISICTrain(torch.utils.data.Dataset):
         self.transform = transform
         self.image_paths = glob.glob('/kaggle/input/isic-task3-dataset/dataset/train/NORMAL/*')
 
+        if count != -1:
+            if count < len(self.image_paths):
+                self.image_paths = self.image_paths[:count]
+            else:
+                t = len(self.image_paths)
+                for i in range(count - t):
+                    self.image_paths.append(random.choice(self.image_paths[:t]))
+        self.image_paths.sort(key=lambda y: y.lower())
+
     def __len__(self):
         return len(self.image_paths)
 
@@ -457,9 +475,18 @@ class BrainTest(torch.utils.data.Dataset):
 
         return img, has_anomaly, img_path
 class BrainTrain(torch.utils.data.Dataset):
-    def __init__(self, transform):
+    def __init__(self, transform, count=-1):
         self.transform = transform
         self.image_paths = glob.glob('./Br35H/dataset/train/normal/*')
+
+        if count != -1:
+            if count < len(self.image_paths):
+                self.image_paths = self.image_paths[:count]
+            else:
+                t = len(self.image_paths)
+                for i in range(count - t):
+                    self.image_paths.append(random.choice(self.image_paths[:t]))
+        self.image_paths.sort(key=lambda y: y.lower())
 
     def __len__(self):
         return len(self.image_paths)

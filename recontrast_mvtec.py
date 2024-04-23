@@ -74,8 +74,6 @@ def show_images(images, labels, dataset_name):
         ax.axis("off")
 
     plt.savefig(f'{dataset_name}_visualization.png')
-
-
 def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_data=True):
     print(f"Start visualization of clean dataset: {dataset_name}")
     # Choose 20 random indices from the dataset

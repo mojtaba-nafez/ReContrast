@@ -114,7 +114,7 @@ def train(_class_, count=-1, unode1_checkpoint=None, unode2_checkpoint=None, aug
     setup_seed(111)
 
     total_iters = 2000
-    batch_size = 8
+    batch_size = 16
     image_size = 256
     crop_size = 256
 
@@ -274,7 +274,7 @@ def train(_class_, count=-1, unode1_checkpoint=None, unode2_checkpoint=None, aug
 
 
 
-            if (it + 1) % 500 == 0:
+            if (it + 1) % 500 == 0 or it == 50:
                 data_type = "main"
                 auroc_px_list[str(data_type)], auroc_sp_list[str(data_type)], auroc_aupro_px_list[
                     str(data_type)], auroc_cls_auc_list[str(data_type)] = evaluation_noseg(

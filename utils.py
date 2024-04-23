@@ -304,7 +304,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 # elif reduction == 'mean':
                 #     pr_list_sp_anomaly.append(np.mean(anomaly_map))
 
-
+            print(pr_list_sp_normal)
             w_map[0] = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
             # w_map[1] = 1 / (np.sum(pr_list_sp_anomaly) / len(pr_list_sp_anomaly))
             print('sum', np.sum(cls_list_sp_normal))

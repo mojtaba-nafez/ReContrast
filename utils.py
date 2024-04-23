@@ -245,12 +245,47 @@ def evaluation_brain(model, dataloader, device, _class_=None, calc_pro=True, max
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
 
 
-def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max', cls=None, head_end=False):
+def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max', cls=None, head_end=False, train_loader=None):
     model.eval()
+    cls.eval()
+    # calculating w1 and w2
+    w1 = 1
+    w2 = 1
+    if train_loader is not None:
+        with torch.no_grad():
+            gt_list_sp_train = []
+            pr_list_sp_train = []
+            pr_list_sp_train_cutpasted = []
+            cls_list_sp_train = []
+            cls_list_sp_train_cutpasted = []
+            for img, _, label, _ in dataloader:
+                img = img.to(device)
+                if not head_end:
+                    en, de = model(img, head_end=head_end)
+                    cls_output = cls(en[5])
+                else:
+                    en, de, en3 = model(img, head_end=head_end)
+                    cls_output = cls(en3)
+
+                cls_score = cls_output[:, 1]
+                cls_list_sp_train.append(cls_score.cpu().numpy())
+                # TILL HERE
+
+                anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+                anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+                gt_list_sp_train.append(label.item())
+                if reduction == 'max':
+                    pr_list_sp_train.append(np.max(anomaly_map))
+                elif reduction == 'mean':
+                    pr_list_sp_train.append(np.mean(anomaly_map))
+
+            w1 = 1 / (np.sum(pr_list_sp_train) / len(pr_list_sp_train))
+            w2 = 1 / (np.sum(cls_list_sp_train) / len(cls_list_sp_train))
+            print(f'weight of map score: {w1}, weight of msp score: {w2}')
+
     gt_list_sp = []
     pr_list_sp = []
     cls_list_sp = []
-    cls.eval()
     with torch.no_grad():
         for img, _, label, _ in dataloader:
             img = img.to(device)
@@ -474,7 +509,7 @@ def evaluation_mask(model, dataloader, device, _class_=None, calc_pro=True):
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
 
 
-def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max'):
+def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max', return_score=False):
     model.eval()
     gt_list_sp = []
     pr_list_sp = []
@@ -495,6 +530,8 @@ def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max'):
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+    if return_score:
+        return auroc_sp, f1, acc, pr_list_sp
     return auroc_sp, f1, acc
 
 

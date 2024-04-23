@@ -344,6 +344,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
+
+
+
             if (it + 1) % evaluation_epochs == 0:
 
                 shrink_factor = "main"

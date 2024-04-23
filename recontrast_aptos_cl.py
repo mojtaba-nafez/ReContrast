@@ -122,19 +122,19 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     train_data = AptosTrain(transform=train_data_transforms)
     test_data1 = AptosTest(transform=data_transform, test_id=1)
-    test_data2 = AptosTest(transform=data_transform, test_id=2)
+    # test_data2 = AptosTest(transform=data_transform, test_id=2)
 
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
     visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')
-    visualize_random_samples_from_clean_dataset(test_data2, f'test data aptos2')
+    # visualize_random_samples_from_clean_dataset(test_data2, f'test data aptos2')
 
 
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
-    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
+    # test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
 
     # visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
@@ -237,10 +237,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
                 
                 shrink_factor = "shifted"
-                auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation_noseg_brain(model, test_dataloader2, device)
-                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, acc:{:.3}'.format(shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]))
-                if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
-                    auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
+                # auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)] = evaluation_noseg_brain(model, test_dataloader2, device)
+                # print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, acc:{:.3}'.format(shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]))
+                # if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
+                #     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)]
                 
                 model.train(encoder_bn_train=True)
                 
@@ -291,7 +291,7 @@ if __name__ == '__main__':
 
     result_list = {"main":[], "shifted":[]}
     result_list_best = {"main":[], "shifted":[]}
-    pad_size = ["main", "shifted"]
+    pad_size = ["main"]
     item = 'brain'
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
     auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_using_pad=args.training_using_pad, max_ratio=args.max_ratio, augmented_view=args.augmented_view, batch_size=args.batch_size, model=args.model, different_view=args.different_view)

@@ -566,29 +566,33 @@ class AptosTest(torch.utils.data.Dataset):
     def __init__(self, transform, test_id=1):
 
         self.transform = transform
-        self.test_id = test_id
 
-        test_normal_path = glob.glob('/kaggle/working/APTOS/test/NORMAL/*')
-        test_anomaly_path = glob.glob('/kaggle/working/APTOS/test/ABNORMAL/*')
+        df = pd.read_csv('/kaggle/input/ddrdataset/DR_grading.csv')
 
-        self.test_path = test_normal_path + test_anomaly_path
-        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+        # Extract labels and paths
+        label = df["diagnosis"].to_numpy()
+        path = df["id_code"].to_numpy()
 
-        if self.test_id == 2:
-            df = pd.read_csv('/kaggle/input/ddrdataset/DR_grading.csv')
-            label = df["diagnosis"].to_numpy()
-            path = df["id_code"].to_numpy()
+        # Filter paths by label
+        normal_path = path[label == 0]
+        anomaly_path = path[label != 0]
 
-            normal_path = path[label == 0]
-            anomaly_path = path[label != 0]
+        # Split the normal path into 70% train and 30% test
+        normal_path_train, normal_path_test = train_test_split(normal_path, test_size=0.30, random_state=42)
 
-            shifted_test_path = list(normal_path) + list(anomaly_path)
-            shifted_test_label = [0] * len(normal_path) + [1] * len(anomaly_path)
+        # Prepend the full path to the filenames
+        train_path = ["/kaggle/input/ddrdataset/DR_grading/DR_grading/" + s for s in normal_path_train]
+        train_label = [0] * len(train_path)
 
-            shifted_test_path = ["/kaggle/input/ddrdataset/DR_grading/DR_grading/" + s for s in shifted_test_path]
+        # Handling test paths and labels
+        test_label = [0] * len(normal_path_test) + [1] * len(anomaly_path)
 
-            self.test_path = shifted_test_path
-            self.test_label = shifted_test_label
+        # Ensure correct concatenation
+        test_path = np.concatenate([normal_path_test, anomaly_path])
+        test_path = ["/kaggle/input/ddrdataset/DR_grading/DR_grading/" + s for s in test_path]
+
+        self.test_path = test_path
+        self.test_label = test_label
 
     def __len__(self):
         return len(self.test_path)
@@ -610,7 +614,33 @@ class AptosTest(torch.utils.data.Dataset):
 class AptosTrain(torch.utils.data.Dataset):
     def __init__(self, transform):
         self.transform = transform
-        self.image_paths = glob.glob('/kaggle/working/APTOS/train/NORMAL/*')
+        # self.image_paths = glob.glob('/kaggle/working/APTOS/train/NORMAL/*')
+
+        df = pd.read_csv('/kaggle/input/ddrdataset/DR_grading.csv')
+
+        # Extract labels and paths
+        label = df["diagnosis"].to_numpy()
+        path = df["id_code"].to_numpy()
+
+        # Filter paths by label
+        normal_path = path[label == 0]
+        anomaly_path = path[label != 0]
+
+        # Split the normal path into 70% train and 30% test
+        normal_path_train, normal_path_test = train_test_split(normal_path, test_size=0.30, random_state=42)
+
+        # Prepend the full path to the filenames
+        train_path = ["/kaggle/input/ddrdataset/DR_grading/DR_grading/" + s for s in normal_path_train]
+        train_label = [0] * len(train_path)
+
+        # Handling test paths and labels
+        test_label = [0] * len(normal_path_test) + [1] * len(anomaly_path)
+
+        # Ensure correct concatenation
+        test_path = np.concatenate([normal_path_test, anomaly_path])
+        test_path = ["/kaggle/input/ddrdataset/DR_grading/DR_grading/" + s for s in test_path]
+
+        self.image_paths = train_path
 
     def __len__(self):
         return len(self.image_paths)

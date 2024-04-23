@@ -186,14 +186,14 @@ def global_cosine_hm_1(a, b, anomaly_data, alpha=1., factor=0.):
 
 
 class BinaryClassifier(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels=1024):
         super(BinaryClassifier, self).__init__()
         # input shape: [Batch size, 256, 16, 16]
         self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
         # output shape: [Batch size, 256, 1, 1]
         self.flatten = nn.Flatten()
         # output shape: [Batch size, 256]
-        self.fc = nn.Linear(256, 2)
+        self.fc = nn.Linear(in_channels, 2)
 
     def forward(self, x):
         x = self.adaptive_pool(x)
@@ -203,13 +203,20 @@ class BinaryClassifier(nn.Module):
 
 
 class BinaryClassifier2(nn.Module):
-
-    def __init__(self):
+    def __init__(self, in_channels=2048):
         super(BinaryClassifier2, self).__init__()
-        self.fc = nn.Linear(1000, 2)
+        # input shape: [Batch size, 256, 16, 16]
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # output shape: [Batch size, 256, 1, 1]
+        self.flatten = nn.Flatten()
+        # output shape: [Batch size, 256]
+        self.fc = nn.Linear(in_channels, 2)
 
     def forward(self, x):
-        return self.fc(x)
+        x = self.adaptive_pool(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        return x
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,

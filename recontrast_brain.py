@@ -207,6 +207,7 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
         exposure_iter = iter(exposure_dataloader)
 
         for img, label, _ in train_dataloader:
+            img = img.to(device)
 
             try:
                 img_expo, _ = next(exposure_iter)

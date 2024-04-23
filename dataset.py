@@ -12,6 +12,7 @@ from torchvision.datasets.folder import default_loader
 import os
 import random
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 

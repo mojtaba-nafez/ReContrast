@@ -273,7 +273,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     en, de, en3 = model(img, head_end=head_end)
                     cls_output = cls(en3)
 
-                cls_score = cls_output[:, 0]
+                cls_score = cls_output[:, 1]
                 cls_list_sp_normal.append(cls_score.cpu().numpy())
 
                 anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
@@ -283,6 +283,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp_normal.append(np.max(anomaly_map))
                 elif reduction == 'mean':
                     pr_list_sp_normal.append(np.mean(anomaly_map))
+                print('---')
+                print(cls_list_sp_normal[-1])
+                print(pr_list_sp_normal[-1])
                 # -------------------cutpaste------------------
                 # img_cutpaste = anomaly_transforms(img)
                 # if not head_end:

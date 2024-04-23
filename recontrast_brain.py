@@ -367,7 +367,7 @@ if __name__ == '__main__':
 
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
     auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
-        item,
+        item, unode1_checkpoint=en1_path, unode2_checkpoint=en2_path
         )
     for type in data_types:
         result_list[str(type)].append(

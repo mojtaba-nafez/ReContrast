@@ -156,14 +156,28 @@ def train(_class_, count=-1):
                                                  count=10000, transform=data_transform)
     exposure_dataloader = torch.utils.data.DataLoader(imagenet_exposure_dataset, batch_size=batch_size, shuffle=True)
 
+    encoder, bn = resnet18(pretrained=True)
+    decoder = de_resnet18(pretrained=False, output_conv=2)
 
-    encoder, bn = wide_resnet50_2(pretrained=True)
-    decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    encoder_freeze = copy.deepcopy(encoder)
+    # encoder_freeze = encoder_freeze.to(device)
+
+    if unode1_checkpoint is not None:  # encoder
+        print('Applying U-node as encoder 1...')
+        encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
+        # decoder = de_resnet18(pretrained=False, progress=True, unode_path=unode1_checkpoint, output_conv=2)
+        # encoder_freeze = copy.deepcopy(encoder)
 
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
-    encoder_freeze = copy.deepcopy(encoder)
+    # encoder_freeze = copy.deepcopy(encoder)
+
+    if unode2_checkpoint is not None:  # encoder_freeze
+        print('Applying U-node as encoder 2...')
+        encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode2_checkpoint, fc=False)
+
+    encoder_freeze = encoder_freeze.to(device)
 
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
     to_binary = BinaryClassifier2()
@@ -324,6 +338,9 @@ if __name__ == '__main__':
                         default='recontrast_isic_256224_b32_it2k_lr2e31e5_wd1e5_hm1d01_s111')
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
+
+    parser.add_argument('--encoder1_path', type=str, default='')
+    parser.add_argument('--encoder2_path', type=str, default='')
     parser.add_argument('--data_count', type=int, default=5000)
 
     args = parser.parse_args()
@@ -333,6 +350,8 @@ if __name__ == '__main__':
 
     device = 'cuda:' + args.gpu if torch.cuda.is_available() else 'cpu'
     print_fn(device)
+    en1_path = args.encoder1_path if args.encoder1_path != '' else None
+    en2_path = args.encoder2_path if args.encoder2_path != '' else None
 
     result_list = {"main": [], "shifted": []}
     result_list_best = {"main": [], "shifted": []}
@@ -341,7 +360,7 @@ if __name__ == '__main__':
 
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
     auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
-        item,
+        item,unode1_checkpoint=en1_path, unode2_checkpoint=en2_path
     )
     for type in data_types:
         result_list[str(type)].append(

@@ -156,8 +156,20 @@ def train(_class_, count=-1):
     print_fn('test image number:{}'.format(len(test_data1)))
     print_fn('test image number:{}'.format(len(test_data2)))
 
-    auroc_sp_best = 0
+    auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
+
+    auroc_px_list = {"main": 0, "shifted": 0}
+    auroc_px_list_best = {"main": 0, "shifted": 0}
+
+    auroc_sp_list = {"main": 0, "shifted": 0}
+    auroc_sp_list_best = {"main": 0, "shifted": 0}
+
+    auroc_aupro_px_list = {"main": 0, "shifted": 0}
+    auroc_aupro_px_list_best = {"main": 0, "shifted": 0}
+
+    auroc_cls_auc_list = {"main": 0, "shifted": 0}
+    auroc_cls_auc_list_best = {"main": 0, "shifted": 0}
 
     model.to(device)
     to_binary.to(device)

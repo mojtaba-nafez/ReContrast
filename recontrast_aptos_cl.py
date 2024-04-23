@@ -472,22 +472,22 @@ if __name__ == '__main__':
             [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)],
              auroc_sp_cls_best[str(pad)]])
 
-    for pad in pad_size:
-        print(f'-------- shrink factor = {pad} --------')
-        mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
-        mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
-        mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
-        mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
-        print_fn(result_list[str(pad)])
-        print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(
-            mean_auroc_px, mean_auroc_sp,
-            mean_aupro_px, mean_auc_sp_cls))
-
-        best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
-        best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
-        best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
-        best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
-        print_fn(result_list_best[str(pad)])
-        print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(
-            best_auroc_px, best_auroc_sp,
-            best_aupro_px, best_auc_sp_cls))
+    # for pad in pad_size:
+    #     print(f'-------- shrink factor = {pad} --------')
+    #     mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
+    #     mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
+    #     mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+    #     mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
+    #     print_fn(result_list[str(pad)])
+    #     print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(
+    #         mean_auroc_px, mean_auroc_sp,
+    #         mean_aupro_px, mean_auc_sp_cls))
+    #
+    #     best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
+    #     best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
+    #     best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
+    #     best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
+    #     print_fn(result_list_best[str(pad)])
+    #     print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(
+    #         best_auroc_px, best_auroc_sp,
+    #         best_aupro_px, best_auc_sp_cls))

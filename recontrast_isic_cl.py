@@ -419,7 +419,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
                     str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)], auroc_mix_auc_list[
                     str(shrink_factor)] = evaluation_noseg_brain(model,
-                                                                 test_dataloader1,
+                                                                 test_dataloader2,
                                                                  device,
                                                                  cls=cls,
                                                                  head_end=head_end,

@@ -234,8 +234,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
 
-    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=4,
-                                                   drop_last=False)
+    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
@@ -366,15 +365,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 shrink_factor = "main"
                 # auroc, f1, acc = evaluation_noseg(model, test_dataloader1, device)
                 auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                    str(shrink_factor)], auroc_cls_auc_list[
-                    str(shrink_factor)], auroc_mixed_auc_list[shrink_factor] = evaluation_noseg_brain(model,
-                                                                                                      test_dataloader1,
-                                                                                                      device,
-                                                                                                      cls=cls,
-                                                                                                      head_end=head_end,
-                                                                                                      train_loader=train_dataloader2,
-                                                                                                      anomaly_transforms=anomaly_transforms)
-                auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
                     str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)], auroc_mix_auc_list[
                     str(shrink_factor)] = evaluation_noseg_brain(model,
                                                                  test_dataloader1,
@@ -406,7 +396,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
                     str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)], auroc_mix_auc_list[
                     str(shrink_factor)] = evaluation_noseg_brain(model,
-                                                                 test_dataloader1,
+                                                                 test_dataloader2,
                                                                  device,
                                                                  cls=cls,
                                                                  head_end=head_end,
@@ -426,11 +416,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
-                    auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)], \
-                    auroc_mixed_auc_list_best[shrink_factor] = \
+                    auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)] = \
                         auroc_px_list[str(shrink_factor)], auroc_sp_list[
                             str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[
-                            str(shrink_factor)], auroc_mixed_auc_list[shrink_factor]
+                            str(shrink_factor)]
 
                 model.train(encoder_bn_train=True)
                 cls.train()

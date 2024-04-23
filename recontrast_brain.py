@@ -217,7 +217,8 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
             except:
                 exposure_iter = iter(exposure_dataloader)
                 img_expo, _ = next(exposure_iter)
-            img_expo.to(device)
+
+            img_expo = img_expo.to(device)
 
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(img) / 2) + int(int(len(img) / 2) * 0.4):] = -1

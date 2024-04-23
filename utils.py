@@ -274,7 +274,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     cls_output = cls(en3)
 
                 cls_score = cls_output[:, 1]
-                cls_list_sp_normal.append(cls_score.cpu().numpy())
+                cls_list_sp_normal.append(cls_score.cpu().numpy()[0])
 
                 anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
                 anomaly_map = gaussian_filter(anomaly_map, sigma=4)
@@ -330,7 +330,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 cls_output = cls(en3)
 
             cls_score = cls_output[:, 1]
-            cls_list_sp.append(cls_score.cpu().numpy())
+            cls_list_sp.append(cls_score.cpu().numpy()[0])
 
             anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
             anomaly_map = gaussian_filter(anomaly_map, sigma=4)

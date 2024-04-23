@@ -366,15 +366,17 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                                                       head_end=head_end,
                                                                                                       train_loader=train_dataloader2,
                                                                                                       anomaly_transforms=anomaly_transforms)
-                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
-                    shrink_factor,
-                    auroc_px_list[
-                        str(shrink_factor)],
-                    auroc_sp_list[
-                        str(shrink_factor)],
-                    auroc_aupro_px_list[
-                        str(shrink_factor)],
-                    auroc_cls_auc_list[str(shrink_factor)]))
+                print_fn(
+                    'Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}, MIXED Auroc:{:.3f}'.format(
+                        shrink_factor,
+                        auroc_px_list[
+                            str(shrink_factor)],
+                        auroc_sp_list[
+                            str(shrink_factor)],
+                        auroc_aupro_px_list[
+                            str(shrink_factor)],
+                        auroc_cls_auc_list[str(shrink_factor)],
+                        auroc_mixed_auc_list[shrink_factor]))
 
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \

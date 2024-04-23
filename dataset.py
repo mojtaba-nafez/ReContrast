@@ -622,3 +622,24 @@ class MedicalDataset(torch.utils.data.Dataset):
         img = self.transform(img)
 
         return img, label, img_path
+class ImageNetExposure(Dataset):
+    def __init__(self, root, count, transform=None):
+        self.transform = transform
+        image_files = glob.glob(os.path.join(root, 'train', "*", "images", "*.JPEG"))
+        if count==-1:
+            final_length = len(image_files)
+        else:
+            random.shuffle(image_files)
+            final_length = min(len(image_files), count)
+        self.image_files = image_files[:final_length]
+        self.image_files.sort(key=lambda y: y.lower())
+
+    def __getitem__(self, index):
+        image_file = self.image_files[index]
+        image = Image.open(image_file)
+        image = image.convert('RGB')
+        if self.transform is not None:
+            image = self.transform(image)
+        return image, 1
+    def __len__(self):
+        return len(self.image_files)

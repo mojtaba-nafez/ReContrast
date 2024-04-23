@@ -7,7 +7,7 @@ import random
 import os
 from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, wide_resnet101_2
-from models.de_resnet import de_wide_resnet50_2
+from models.de_resnet import de_wide_resnet50_2, de_resnet18
 from models.recontrast import ReContrast, ReContrast
 from dataset import ISICTrain, ISICTest, ImageNetExposure
 import torch.backends.cudnn as cudnn

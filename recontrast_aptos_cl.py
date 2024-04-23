@@ -189,7 +189,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         transforms.ToPILImage(),
         CutPasteUnion(transform = transforms.Compose([transforms.ToTensor(),])),
     ])
-    for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
+    total_epoch = int(np.ceil(total_iters / len(train_dataloader)))
+    for epoch in range(total_epoch):
         print('total epochs: ', int(np.ceil(total_iters / len(train_dataloader))))
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=True)
@@ -201,13 +202,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # img : [16, 3, 256, 256]
             # img = torch.cat([img, img.clone()])
             print(it)
-            img = img.to(device)
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(anomaly_data)/2):] = -1
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
                     img[i] = anomaly_transforms(img[i])
             anomaly_data = torch.tensor(anomaly_data).to(device)
+            img = img.to(device)
+
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)
@@ -234,7 +236,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (epoch) % 5 == 0:
+            if epoch == total_epoch - 1:
 
                 shrink_factor = "main" 
                 # auroc, f1, acc = evaluation_noseg(model, test_dataloader1, device)

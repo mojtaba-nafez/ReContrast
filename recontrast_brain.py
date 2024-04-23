@@ -229,7 +229,7 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None, count=-1):
             # img[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)] = img_expo[int(len(img)/2):int(len(img)/2)+int(int(len(img)/2)*0.4)].clone()
             img_ = torch.cat(
                 [img[:int(len(img) / 2)], img_expo[int(len(img) / 2):int(len(img) / 2) + int(int(len(img) / 2) * 0.4)],
-                 img[int(len(img) / 2) + int(int(len(img) / 2) * 0.4):]])
+                 img[int(len(img) / 2) + int(int(len(img) / 2) * 0.4):]]).to(device)
 
             img_ = img_.to(device)
 

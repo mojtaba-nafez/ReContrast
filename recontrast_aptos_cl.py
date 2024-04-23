@@ -273,7 +273,7 @@ if __name__ == '__main__':
                         help='GPU id to use.')
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
-    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
     parser.add_argument('--training_shrink_factor', action='store_true')
     parser.add_argument('--training_using_pad', action='store_true')
@@ -301,7 +301,8 @@ if __name__ == '__main__':
     pad_size = ["main"]
     item = 'brain'
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-    auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_using_pad=args.training_using_pad, max_ratio=args.max_ratio, augmented_view=args.augmented_view, batch_size=args.batch_size, model=args.model, different_view=args.different_view)
+    auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item, shrink_factor=args.shrink_factor, total_iters=args.total_iters, evaluation_epochs=args.evaluation_epochs, training_using_pad=args.training_using_pad, max_ratio=args.max_ratio,
+        augmented_view=args.augmented_view, batch_size=args.batch_size, model=args.model, different_view=args.different_view)
     for pad in pad_size:
         result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
         result_list_best[str(pad)].append([item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])

@@ -265,11 +265,10 @@ class ResNet(nn.Module):
         # print('feature_c:', feature_c.shape)
         # print('self.layer4:', self.layer4)
         feature_d = self.layer4(feature_c)
-        out = self.avgpool(feature_d)
-        out = torch.flatten(out, 1)
-        out = self.fc(out)
+        print('f4.shape', feature_d.shape)
+        exit(1)
         # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
-        return [feature_a, feature_b, feature_c, out]
+        return [feature_a, feature_b, feature_c, feature_d]
 
 
 def _resnet(

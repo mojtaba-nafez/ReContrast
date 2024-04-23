@@ -124,6 +124,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     test_data1 = AptosTest(transform=data_transform, test_id=1)
     # test_data2 = AptosTest(transform=data_transform, test_id=2)
 
+    print('len train set: ', len(train_data))
+    print('len test set: ', len(test_data1))
+
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
     visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')
@@ -186,6 +189,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         CutPasteUnion(transform = transforms.Compose([transforms.ToTensor(),])),
     ])
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
+        print('epochs: ', int(np.ceil(total_iters / len(train_dataloader))))
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=True)
 

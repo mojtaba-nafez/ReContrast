@@ -263,6 +263,7 @@ class ResNet(nn.Module):
         if eval_unode:
             feature_d = self.layer4(feature_c)
             feature_d = self.avgpool(feature_d)
+            feature_d = self.avgpool(feature_d)
             return self.shift_cls_layer(feature_d)
         
         return [feature_a, feature_b, feature_c]

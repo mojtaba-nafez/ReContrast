@@ -186,7 +186,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
           unode1_checkpoint=None, unode2_checkpoint=None):
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
-        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ]))])
     print_fn(_class_)
     setup_seed(111)
 
@@ -255,84 +255,84 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     encoder_freeze = encoder_freeze.to(device)
 
-#     if update_decoder:
-#         print('updating decoder...')
-#         anomaly_transforms = transforms.Compose([
-#             transforms.ToPILImage(),
-#             CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
-#         ])
+    #     if update_decoder:
+    #         print('updating decoder...')
+    #         anomaly_transforms = transforms.Compose([
+    #             transforms.ToPILImage(),
+    #             CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+    #         ])
 
-#         new_model = NewModel(encoder, bn, decoder)
-#         criteron = nn.CrossEntropyLoss()
-#         optimizer = torch.optim.AdamW(list(new_model.parameters()),
-#                                       lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
-#         encoder.eval()
-#         bn.eval()
-#         decoder.train()
-#         for epoch in range(21):
-#             loss_list = []
-#             for img, label in train_dataloader:
-#                 img = img.to(device)
+    #         new_model = NewModel(encoder, bn, decoder)
+    #         criteron = nn.CrossEntropyLoss()
+    #         optimizer = torch.optim.AdamW(list(new_model.parameters()),
+    #                                       lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
+    #         encoder.eval()
+    #         bn.eval()
+    #         decoder.train()
+    #         for epoch in range(21):
+    #             loss_list = []
+    #             for img, label in train_dataloader:
+    #                 img = img.to(device)
 
-#                 anomaly_data = np.ones(len(img)) * 0
-#                 numbers = list(range(len(img)))
-#                 random.shuffle(numbers)
-#                 anomaly_data[numbers[:int(len(numbers) / 2)]] = 1
+    #                 anomaly_data = np.ones(len(img)) * 0
+    #                 numbers = list(range(len(img)))
+    #                 random.shuffle(numbers)
+    #                 anomaly_data[numbers[:int(len(numbers) / 2)]] = 1
 
-#                 for i in range(len(anomaly_data)):
-#                     if anomaly_data[i] == 1:
-#                         img[i] = anomaly_transforms(img[i])
-#                 anomaly_data = torch.tensor(anomaly_data).to(device)
+    #                 for i in range(len(anomaly_data)):
+    #                     if anomaly_data[i] == 1:
+    #                         img[i] = anomaly_transforms(img[i])
+    #                 anomaly_data = torch.tensor(anomaly_data).to(device)
 
-#                 logits = new_model(img)
-#                 anomaly_data = anomaly_data.to(torch.long)
-#                 loss = criteron(logits, anomaly_data)
-#                 optimizer.zero_grad()
-#                 loss.backward()
-#                 optimizer.step()
-#                 loss_list.append(loss.item())
-#             print('loss:', np.mean(loss_list))
+    #                 logits = new_model(img)
+    #                 anomaly_data = anomaly_data.to(torch.long)
+    #                 loss = criteron(logits, anomaly_data)
+    #                 optimizer.zero_grad()
+    #                 loss.backward()
+    #                 optimizer.step()
+    #                 loss_list.append(loss.item())
+    #             print('loss:', np.mean(loss_list))
 
-#             if epoch % 10 == 0:
-#                 decoder.eval()
-#                 correct = 0
-#                 total = 0
-#                 for img, _, label, _ in test_dataloader:
-#                     img = img.to(device)
-#                     label = label.to(device)
-#                     with torch.no_grad():
-#                         output = new_model(img)
-#                         total += len(img)
-#                         if len(img) > 1:
-#                             _, pred = torch.max(output, dim=1)
-#                         else:
-#                             pred = 0 if output[0] > output[1] else 1
-#                         correct += (pred == label).sum().item()
+    #             if epoch % 10 == 0:
+    #                 decoder.eval()
+    #                 correct = 0
+    #                 total = 0
+    #                 for img, _, label, _ in test_dataloader:
+    #                     img = img.to(device)
+    #                     label = label.to(device)
+    #                     with torch.no_grad():
+    #                         output = new_model(img)
+    #                         total += len(img)
+    #                         if len(img) > 1:
+    #                             _, pred = torch.max(output, dim=1)
+    #                         else:
+    #                             pred = 0 if output[0] > output[1] else 1
+    #                         correct += (pred == label).sum().item()
 
-#                 accuracy = 100 * correct / total
-#                 print(f'Accuracy on test data: {accuracy:.2f}%')
+    #                 accuracy = 100 * correct / total
+    #                 print(f'Accuracy on test data: {accuracy:.2f}%')
 
-#                 correct = 0
-#                 total = 0
-#                 for img, label in train_dataloader:
-#                     img = img.to(device)
-#                     label = label.to(device)
-#                     with torch.no_grad():
-#                         output = new_model(img)
-#                         total += len(img)
-#                         _, pred = torch.max(output, dim=1)
-#                         correct += (pred == label).sum().item()
+    #                 correct = 0
+    #                 total = 0
+    #                 for img, label in train_dataloader:
+    #                     img = img.to(device)
+    #                     label = label.to(device)
+    #                     with torch.no_grad():
+    #                         output = new_model(img)
+    #                         total += len(img)
+    #                         _, pred = torch.max(output, dim=1)
+    #                         correct += (pred == label).sum().item()
 
-#                 accuracy = 100 * correct / total
-#                 print(f'Accuracy on train data: {accuracy:.2f}%')
+    #                 accuracy = 100 * correct / total
+    #                 print(f'Accuracy on train data: {accuracy:.2f}%')
 
-#                 decoder.train()
+    #                 decoder.train()
 
 
-#         torch.save(decoder.state_dict(), 'decoder_trained.pth')
-#         print('saved decoder...')
+    #         torch.save(decoder.state_dict(), 'decoder_trained.pth')
+    #         print('saved decoder...')
 
-#     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
+    #     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
 
     in_channels = 1024
     if model == 'wide_res50':

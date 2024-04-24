@@ -59,15 +59,14 @@ class ReContrast(nn.Module):
             self.encoder.fc = None
 
         self.encoder_freeze = encoder_freeze
-        self.encoder_freeze.layer4 = None
-        self.encoder_freeze.fc = None
+        # self.encoder_freeze.layer4 = None
+        # self.encoder_freeze.fc = None
 
         self.bottleneck = bottleneck
         self.decoder = decoder
         self.cl_transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((image_size, image_size)),
-            transforms.RandomHorizontalFlip(),    # Random horizontal flip
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
             transforms.RandomGrayscale(p=0.2),    # Random grayscale
             transforms.ToTensor(),
@@ -75,7 +74,11 @@ class ReContrast(nn.Module):
         self.device = device
 
 
-    def forward(self, x, head_end=False):
+    def forward(self, x, head_end=False, eval_unode=False):
+
+        if eval_unode:
+            return self.encoder_freeze(x, eval_unode=eval_unode)
+
         # en = [[1, 256, 64, 64], [1, 512, 32, 32], [1, 1024, 16, 16]]
         # en = self.encoder(torch.stack([self.cl_transform(x_) for x_ in x]).to(self.device))
         en4 = self.encoder(x, head_end=head_end)

@@ -288,8 +288,12 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp_normal.append(np.mean(anomaly_map))
 
                 unode_cls = model(img, eval_unode=True)
-                unode_cls_score = unode_cls[:, 0]
-                cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
+                
+                unode_cls = F.softmax(unode_cls, dim=1)[:, 0]
+                cls_list_unode_normal.append(unode_cls.cpu().numpy()[0])
+                
+                # unode_cls_score = unode_cls[:, 0]
+                # cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
 
                 # -------------------cutpaste------------------
                 # img_cutpaste = anomaly_transforms(img)
@@ -361,8 +365,12 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             # mixed_list_sp.append(mix_score / 2)
             
             unode_cls = model(img, eval_unode=True)
-            unode_cls_score = unode_cls[:, 0]
-            unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
+            
+            unode_cls = F.softmax(unode_cls, dim=1)[:, 0]
+            unode_cls_list_sp.append(unode_cls.cpu().numpy()[0])
+            
+            # unode_cls_score = unode_cls[:, 0]
+            # unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
 
 
             #  mixed score

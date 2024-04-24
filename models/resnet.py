@@ -289,20 +289,6 @@ class ResNet(nn.Module):
         return [feature_a, feature_b, feature_c, feature_d]
 
 
- = nn.AdaptiveAvgPool2d((1, 1))
-        if not unode:
-            self.fc = nn.Linear(512 * block.expansion, num_classes)
-        else:
-            self.linear = nn.Linear(512 * 1, 2)
-            self.simclr_layer = nn.Sequential(
-                    nn.Linear(512, 512),
-                    nn.ReLU(),
-                    nn.Linear(512, 128)
-                )
-            self.shift_cls_layer = nn.Linear(512 * 1, 2)
-            self.joint_distribution_layer = nn.Linear(512 * 1, 8)
-
-
 def _resnet(
         arch: str,
         block: Type[Union[BasicBlock, Bottleneck]],

@@ -259,11 +259,15 @@ class ResNet(nn.Module):
         feature_a = self.layer1(x)
         feature_b = self.layer2(feature_a)
         feature_c = self.layer3(feature_b)
-        # feature_d = self.layer4(feature_c)
 
+        if eval_unode:
+            feature_d = self.layer4(feature_c)
+            feature_d = self.avgpool(feature_d)
+            return self.shift_cls_layer(feature_d)
+        
         return [feature_a, feature_b, feature_c]
 
-    def forward(self, x: Tensor, head_end=False) -> Tensor:
+    def forward(self, x: Tensor, head_end=False, eval_unode=False) -> Tensor:            
         if not head_end:
             return self._forward_impl(x)
         x = self.norm(x)
@@ -278,8 +282,25 @@ class ResNet(nn.Module):
         # print('feature_c:', feature_c.shape)
         # print('self.layer4:', self.layer4)
         feature_d = self.layer4(feature_c)
+        if eval_unode:
+            feature_d = self.avgpool(feature_d)
+            return self.shift_cls_layer(feature_d)
         # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
         return [feature_a, feature_b, feature_c, feature_d]
+
+
+ = nn.AdaptiveAvgPool2d((1, 1))
+        if not unode:
+            self.fc = nn.Linear(512 * block.expansion, num_classes)
+        else:
+            self.linear = nn.Linear(512 * 1, 2)
+            self.simclr_layer = nn.Sequential(
+                    nn.Linear(512, 512),
+                    nn.ReLU(),
+                    nn.Linear(512, 128)
+                )
+            self.shift_cls_layer = nn.Linear(512 * 1, 2)
+            self.joint_distribution_layer = nn.Linear(512 * 1, 8)
 
 
 def _resnet(

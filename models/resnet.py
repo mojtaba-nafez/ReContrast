@@ -191,7 +191,8 @@ class ResNet(nn.Module):
         if not unode:
             self.fc = nn.Linear(512 * block.expansion, num_classes)
         else:
-            ...
+
+            self.shift_cls_layer = nn.Linear(512 * 1, 2)
 
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
@@ -283,16 +284,17 @@ def _resnet(
         **kwargs: Any
 ) -> ResNet:
     unode = True if unode_path is not None else False
+    dic = torch.load(unode_path)
+    print('loaded keys:', dic.keys())
     model = ResNet(block, layers, unode, **kwargs)
     if pretrained:
-        if unode_path is not None:
+        if unode:
             dic = torch.load(unode_path)
             # print('loaded keys:', dic.keys())
             # print('model:', model)
             key_list = list(dic.keys())
-            model_dic = {key: dic[key] for key in key_list[10:]}
             # print(model_dic.keys())
-            model.load_state_dict(model_dic)
+            model.load_state_dict(dic)
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],
                                                   progress=progress)

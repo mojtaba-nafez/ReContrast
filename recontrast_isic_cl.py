@@ -291,7 +291,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             exit(1)
         # dic = torch.load(unode_path)
         # print(dic.keys())
-        encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode_path)
+        encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path)
         encoder_freeze = encoder_freeze.to(device)
 
     print('here')

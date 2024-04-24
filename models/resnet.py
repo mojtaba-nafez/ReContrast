@@ -280,9 +280,9 @@ def _resnet(
         pretrained: bool,
         progress: bool,
         unode_path=None,
-        unode=False,
         **kwargs: Any
 ) -> ResNet:
+    unode = True if unode_path is not None else False
     model = ResNet(block, layers, unode, **kwargs)
     if pretrained:
         if unode_path is not None:
@@ -496,14 +496,14 @@ class BN_layer(nn.Module):
         return output.contiguous()
 
 
-def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, fc=True, **kwargs: Any):
+def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, **kwargs: Any):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path, fc=fc,
+    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path,
                       **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')

@@ -362,11 +362,11 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             
             unode_cls = model(img, eval_unode=True)
             unode_cls_score = unode_cls[:, 0]
-            cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
+            unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
 
 
             #  mixed score
-            mix_score = w_map[0] * pr_list_sp[-1] +  w_unode * cls_list_unode_normal[-1]
+            mix_score = w_map[0] * pr_list_sp[-1] +  w_unode * unode_cls_list_sp[-1]
             mixed_list_sp.append(mix_score / 2)
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
@@ -375,7 +375,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
 
         # auroc_sp_msp = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
-        auroc_sp_msp = round(roc_auc_score(gt_list_sp, cls_list_unode_normal), 4)
+        auroc_sp_msp = round(roc_auc_score(gt_list_sp, unode_cls_list_sp), 4)
 
         auroc_mixed = round(roc_auc_score(gt_list_sp, mixed_list_sp), 4)
 

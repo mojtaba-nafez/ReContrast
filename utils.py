@@ -378,7 +378,8 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         auroc_sp_msp = round(roc_auc_score(gt_list_sp, unode_cls_list_sp), 4)
 
         auroc_mixed = round(roc_auc_score(gt_list_sp, mixed_list_sp), 4)
-
+        print("np.mean(unode_cls_list_sp), max, min", np.mean(unode_cls_list_sp), np.max(unode_cls_list_sp), np.min(unode_cls_list_sp))
+        print("np.mean(pr_list_sp), max, min", np.mean(pr_list_sp), np.max(pr_list_sp), np.min(pr_list_sp))
     return auroc_sp, f1, acc, auroc_sp_msp, auroc_mixed
 
 

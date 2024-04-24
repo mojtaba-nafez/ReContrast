@@ -287,6 +287,7 @@ def _resnet(
     dic = torch.load(unode_path)
     print('loaded keys:', dic.keys())
     model = ResNet(block, layers, unode, **kwargs)
+    print(model)
     if pretrained:
         if unode:
             dic = torch.load(unode_path)

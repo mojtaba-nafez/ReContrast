@@ -362,7 +362,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             
             unode_cls = model(img, eval_unode=True)
             unode_cls_score = unode_cls[:, 0]
-            cls_list_unode_normal.append(unode_cls_list_sp.cpu().numpy()[0])
+            cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
 
 
             #  mixed score

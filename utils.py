@@ -288,7 +288,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp_normal.append(np.mean(anomaly_map))
 
                 unode_cls = model(img, eval_unode=True)
-                print(unode_cls)
                 unode_cls_score = unode_cls[:, 0]
                 cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
 

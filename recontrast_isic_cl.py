@@ -294,6 +294,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode_path)
         encoder_freeze = encoder_freeze.to(device)
 
+    print('here')
+
 
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
                        image_size=image_size, crop_size=crop_size, device=device, head_end=head_end)

@@ -502,6 +502,7 @@ if __name__ == '__main__':
     result_list_best = {"main": [], "shifted": []}
     pad_size = ["main", "shifted"]
     item = 'isic'
+    print(args)
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
     auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
         item,

@@ -284,10 +284,11 @@ def _resnet(
         **kwargs: Any
 ) -> ResNet:
     unode = True if unode_path is not None else False
-    dic = torch.load(unode_path)
-    print('loaded keys:', dic.keys())
     model = ResNet(block, layers, unode, **kwargs)
-    print(model)
+    if unode:
+        dic = torch.load(unode_path)
+        print('loaded keys:', dic.keys())
+        print(model)
     if pretrained:
         if unode:
             dic = torch.load(unode_path)

@@ -150,7 +150,7 @@ class ResNet(nn.Module):
             self,
             block: Type[Union[BasicBlock, Bottleneck]],
             layers: List[int],
-            fc=True,
+            unode=False,
 
             num_classes: int = 1000,
             zero_init_residual: bool = False,
@@ -188,8 +188,10 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        if fc:
+        if not unode:
             self.fc = nn.Linear(512 * block.expansion, num_classes)
+        else:
+            ...
 
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
@@ -278,10 +280,10 @@ def _resnet(
         pretrained: bool,
         progress: bool,
         unode_path=None,
-        fc=True,
+        unode=False,
         **kwargs: Any
 ) -> ResNet:
-    model = ResNet(block, layers, fc, **kwargs)
+    model = ResNet(block, layers, unode, **kwargs)
     if pretrained:
         if unode_path is not None:
             dic = torch.load(unode_path)
@@ -289,7 +291,7 @@ def _resnet(
             # print('model:', model)
             key_list = list(dic.keys())
             model_dic = {key: dic[key] for key in key_list[10:]}
-            print(model_dic.keys())
+            # print(model_dic.keys())
             model.load_state_dict(model_dic)
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],

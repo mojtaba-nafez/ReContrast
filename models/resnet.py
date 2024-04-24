@@ -285,7 +285,7 @@ class ResNet(nn.Module):
         feature_d = self.layer4(feature_c)
         if eval_unode:
             feature_d = self.avgpool(feature_d)
-            return self.shift_cls_layer(feature_d.squeeze())
+            return self.shift_cls_layer(feature_d.squeeze(2).squeeze(2))
         # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
         return [feature_a, feature_b, feature_c, feature_d]
 

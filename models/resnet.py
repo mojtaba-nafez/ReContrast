@@ -265,7 +265,7 @@ class ResNet(nn.Module):
             feature_d = self.avgpool(feature_d)
             feature_d = self.avgpool(feature_d)
             print("feature_d.shape", feature_d.shape)
-            return self.shift_cls_layer(feature_d..squeeze())
+            return self.shift_cls_layer(feature_d.squeeze())
         
         return [feature_a, feature_b, feature_c]
 

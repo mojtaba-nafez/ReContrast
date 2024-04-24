@@ -7,7 +7,7 @@ import random
 import os
 from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, wide_resnet101_2
-from models.de_resnet import de_wide_resnet50_2
+from models.de_resnet import de_wide_resnet50_2, de_resnet18
 from models.recontrast import ReContrast, ReContrast
 from dataset import MedicalDataset
 import torch.backends.cudnn as cudnn
@@ -77,8 +77,8 @@ def train(_class_):
                                                    drop_last=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
-    encoder, bn = wide_resnet50_2(pretrained=True)
-    decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    encoder, bn = resnet18(pretrained=True)
+    decoder = d(pretrained=False, output_conv=2)
 
     encoder = encoder.to(device)
     bn = bn.to(device)

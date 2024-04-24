@@ -149,7 +149,9 @@ class ResNet(nn.Module):
     def __init__(
             self,
             block: Type[Union[BasicBlock, Bottleneck]],
-            layers: List[int],  #[2, 2, 2, 2]
+            layers: List[int],
+            fc=True,
+
             num_classes: int = 1000,
             zero_init_residual: bool = False,
             groups: int = 1,
@@ -171,8 +173,8 @@ class ResNet(nn.Module):
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
-        self.groups = groups
-        self.base_width = width_per_group
+        self.groups = groups  # 1
+        self.base_width = width_per_group  # 64
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = norm_layer(self.inplanes)
@@ -186,8 +188,9 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
-        # print('layer 4:', self.layer4)
+        if fc:
+            self.fc = nn.Linear(512 * block.expansion, num_classes)
+
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
         self.norm = lambda x: (x - mu) / std
@@ -236,7 +239,6 @@ class ResNet(nn.Module):
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]
-        # print('en input: ', x.shape)
         x = self.norm(x)
         x = self.conv1(x)
         x = self.bn1(x)
@@ -247,7 +249,7 @@ class ResNet(nn.Module):
         feature_b = self.layer2(feature_a)
         feature_c = self.layer3(feature_b)
         # feature_d = self.layer4(feature_c)
-        # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
+
         return [feature_a, feature_b, feature_c]
 
     def forward(self, x: Tensor, head_end=False) -> Tensor:
@@ -275,16 +277,24 @@ def _resnet(
         layers: List[int],
         pretrained: bool,
         progress: bool,
+        unode_path=None,
+        fc=True,
         **kwargs: Any
 ) -> ResNet:
-    model = ResNet(block, layers, **kwargs)
+    model = ResNet(block, layers, fc, **kwargs)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress)
-        # for k,v in list(state_dict.items()):
-        #    if 'layer4' in k or 'fc' in k:
-        #        state_dict.pop(k)
-        model.load_state_dict(state_dict)
+        if unode_path is not None:
+            dic = torch.load(unode_path)
+            # print('loaded keys:', dic.keys())
+            # print('model:', model)
+            model.load_state_dict(dic)
+        else:
+            state_dict = load_state_dict_from_url(model_urls[arch],
+                                                  progress=progress)
+            # for k,v in list(state_dict.items()):
+            #    if 'layer4' in k or 'fc' in k:
+            #        state_dict.pop(k)
+            model.load_state_dict(state_dict)
     return model
 
 
@@ -468,10 +478,12 @@ class BN_layer(nn.Module):
     def forward(self, x):
         # See note [TorchScript super()]
         # x = self.cbam(x)
+        # print('bn input shape:', [y.shape for y in x])
         l1 = self.relu(self.bn2(self.conv2(self.relu(self.bn1(self.conv1(x[0]))))))
         l2 = self.relu(self.bn3(self.conv3(x[1])))
         feature = torch.cat([l1, l2, x[2]], 1)
         output = self.bn_layer(feature)
+        # print('bn output shape:', output.shape)
         # x = self.avgpool(feature_d)
         # x = torch.flatten(x, 1)
         # x = self.fc(x)
@@ -479,14 +491,14 @@ class BN_layer(nn.Module):
         return output.contiguous()
 
 
-def resnet18(pretrained: bool = False, progress: bool = True, **kwargs: Any):
+def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, fc=True, **kwargs: Any):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress,
+    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path, fc=fc,
                       **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')

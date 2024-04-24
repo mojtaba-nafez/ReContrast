@@ -1,4 +1,6 @@
 import torch
+import torch.nn as nn
+from cutpaste_transformation import CutPasteUnion
 from dataset import get_data_transforms, get_strong_transforms
 from torchvision.datasets import ImageFolder
 import numpy as np
@@ -112,6 +114,39 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     show_images(images, labels, dataset_name)
 
 
+
+class NewModel(nn.Module):
+
+    def __init__(self, encoder, bn, decoder):
+        super(NewModel, self).__init__()
+        self.encoder = encoder
+        self.bn = bn
+        self.decoder = decoder
+        self.classifier = nn.Linear(256, 2).to('cuda')
+
+        self.encoder.eval()
+        self.bn.eval()
+        self.decoder.train()
+
+    def forward(self, img):
+        with torch.no_grad():
+            en = self.encoder(img)
+            en2 = [torch.cat([a, b], dim=0) for a, b in zip(en, en)]
+
+            bottle = self.bn(en2)
+
+        de = self.decoder(bottle)
+
+        de = [a.chunk(dim=0, chunks=2) for a in de]
+
+        ## USING de[2][0]
+        logits = de[2][0].mean(dim=(-2, -1), keepdim=True).squeeze()
+        out = self.classifier(logits)
+
+        return out
+
+
+
 class BinaryClassifier(nn.Module):
     def __init__(self, in_channels=1024):
         super(BinaryClassifier, self).__init__()
@@ -147,7 +182,11 @@ class BinaryClassifier2(nn.Module):
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
-          augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-3, head_end=False):
+          augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-3, head_end=False, update_decoder=False,
+          unode1_checkpoint=None, unode2_checkpoint=None):
+    anomaly_transforms = transforms.Compose([
+        transforms.ToPILImage(),
+        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     print_fn(_class_)
     setup_seed(111)
 
@@ -180,6 +219,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
         train_data = ImageFolder(root=train_path, transform=train_data_transforms)
 
+    train_data = ImageFolder(root=train_path, transform=data_transform)
+
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
                              shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
@@ -188,6 +229,110 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
+
+    encoder, bn = resnet18(pretrained=True)
+    decoder = de_resnet18(pretrained=False, output_conv=2)
+
+
+
+    encoder_freeze = copy.deepcopy(encoder)
+    # encoder_freeze = encoder_freeze.to(device)
+
+    if unode1_checkpoint is not None:  # encoder
+        print('Applying U-node as encoder 1...')
+        encoder, bn = resnet18(pretrained=True, progress=True, unode_path=unode1_checkpoint, fc=False)
+        # decoder = de_resnet18(pretrained=False, progress=True, unode_path=unode1_checkpoint, output_conv=2)
+        # encoder_freeze = copy.deepcopy(encoder)
+
+    encoder = encoder.to(device)
+    bn = bn.to(device)
+    decoder = decoder.to(device)
+    # encoder_freeze = copy.deepcopy(encoder)
+
+    if unode2_checkpoint is not None:  # encoder_freeze
+        print('Applying U-node as encoder 2...')
+        encoder_freeze, _ = resnet18(pretrained=True, progress=True, unode_path=unode2_checkpoint, fc=False)
+
+    encoder_freeze = encoder_freeze.to(device)
+
+#     if update_decoder:
+#         print('updating decoder...')
+#         anomaly_transforms = transforms.Compose([
+#             transforms.ToPILImage(),
+#             CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+#         ])
+
+#         new_model = NewModel(encoder, bn, decoder)
+#         criteron = nn.CrossEntropyLoss()
+#         optimizer = torch.optim.AdamW(list(new_model.parameters()),
+#                                       lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
+#         encoder.eval()
+#         bn.eval()
+#         decoder.train()
+#         for epoch in range(21):
+#             loss_list = []
+#             for img, label in train_dataloader:
+#                 img = img.to(device)
+
+#                 anomaly_data = np.ones(len(img)) * 0
+#                 numbers = list(range(len(img)))
+#                 random.shuffle(numbers)
+#                 anomaly_data[numbers[:int(len(numbers) / 2)]] = 1
+
+#                 for i in range(len(anomaly_data)):
+#                     if anomaly_data[i] == 1:
+#                         img[i] = anomaly_transforms(img[i])
+#                 anomaly_data = torch.tensor(anomaly_data).to(device)
+
+#                 logits = new_model(img)
+#                 anomaly_data = anomaly_data.to(torch.long)
+#                 loss = criteron(logits, anomaly_data)
+#                 optimizer.zero_grad()
+#                 loss.backward()
+#                 optimizer.step()
+#                 loss_list.append(loss.item())
+#             print('loss:', np.mean(loss_list))
+
+#             if epoch % 10 == 0:
+#                 decoder.eval()
+#                 correct = 0
+#                 total = 0
+#                 for img, _, label, _ in test_dataloader:
+#                     img = img.to(device)
+#                     label = label.to(device)
+#                     with torch.no_grad():
+#                         output = new_model(img)
+#                         total += len(img)
+#                         if len(img) > 1:
+#                             _, pred = torch.max(output, dim=1)
+#                         else:
+#                             pred = 0 if output[0] > output[1] else 1
+#                         correct += (pred == label).sum().item()
+
+#                 accuracy = 100 * correct / total
+#                 print(f'Accuracy on test data: {accuracy:.2f}%')
+
+#                 correct = 0
+#                 total = 0
+#                 for img, label in train_dataloader:
+#                     img = img.to(device)
+#                     label = label.to(device)
+#                     with torch.no_grad():
+#                         output = new_model(img)
+#                         total += len(img)
+#                         _, pred = torch.max(output, dim=1)
+#                         correct += (pred == label).sum().item()
+
+#                 accuracy = 100 * correct / total
+#                 print(f'Accuracy on train data: {accuracy:.2f}%')
+
+#                 decoder.train()
+
+
+#         torch.save(decoder.state_dict(), 'decoder_trained.pth')
+#         print('saved decoder...')
+
+#     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
 
     in_channels = 1024
     if model == 'wide_res50':
@@ -211,9 +356,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     cls = cls.to(device)
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
                        image_size=image_size, crop_size=crop_size, device=device, head_end=head_end)
-    # for m in encoder.modules():
-    #     if isinstance(m, torch.nn.BatchNorm2d):
-    #         m.eps = 1e-8
+
 
     criterion = nn.CrossEntropyLoss()
     optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=lr_cls, betas=(0.9, 0.999), weight_decay=1e-5)
@@ -226,11 +369,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     print_fn('test image number:{}'.format(len(test_data)))
     macs, params = get_model_complexity_info(model, (3, crop_size, crop_size),
                                              as_strings=True, print_per_layer_stat=False)
-    print_fn('Computation:{}'.format(macs))
-    print_fn('Parameters:{}'.format(params))
+    print_fn('Computation:{}'.format(macs))  # NONE vs 10.11 GMac
+    print_fn('Parameters:{}'.format(params))  # NONe vs 21.65 M
 
     auroc_px_best, auroc_sp_best, aupro_px_best = 0, 0, 0
     it = 0
+    print('len train dat aloader: ', len(train_dataloader))
+
 
     auroc_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
     auroc_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
@@ -240,6 +385,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     auroc_aupro_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
     auroc_aupro_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+
 
     auroc_cls_auc_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
     auroc_cls_auc_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
@@ -258,6 +404,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # img = torch.cat([img, img.clone()])
 
             img = img.to(device)
+
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(anomaly_data) / 2):] = -1
             for i in range(len(anomaly_data)):
@@ -281,6 +428,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
 
+
             loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
                     global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
             loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
@@ -293,23 +441,23 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             '''
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
-            if not head_end:
-                optimizer_cls.zero_grad()
+            optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
-            if not head_end:
-                optimizer_cls.step()
+            optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
+
             if (it + 1) % evaluation_epochs == 0:
                 pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
 
                 for shrink_factor in pad_size:
                     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
                                              phase="test", shrink_factor=shrink_factor)
+
                     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
                     auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
@@ -338,6 +486,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
+
     return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best
 
 
@@ -353,6 +502,7 @@ if __name__ == '__main__':
                         help='GPU id to use.')
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
+
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--evaluation_epochs', type=int, default=250)
     parser.add_argument('--training_shrink_factor', action='store_true')
@@ -362,6 +512,10 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='wide_res50')
     parser.add_argument('--item_list', type=str, default='0,15')
     parser.add_argument('--lr_cls', type=float, default=0.001)
+    parser.add_argument('--encoder1_path', type=str, default='')
+    parser.add_argument('--encoder2_path', type=str, default='')
+    parser.add_argument('--update_decoder', type=str, default='0')
+      
     parser.add_argument('--head_end', action='store_true',
                         help='put the cls head at the end of the encoder (instead of the 3rd layer)')
 
@@ -386,6 +540,7 @@ if __name__ == '__main__':
 
     device = 'cuda:' + args.gpu if torch.cuda.is_available() else 'cpu'
     print_fn(device)
+
 
     result_list = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
     result_list_best = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
@@ -417,6 +572,7 @@ if __name__ == '__main__':
         mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
         mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
         mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+
         mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
         print_fn(result_list[str(pad)])
         print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(
@@ -426,6 +582,7 @@ if __name__ == '__main__':
         best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
         best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
         best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
+
         best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
         print_fn(result_list_best[str(pad)])
         print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(

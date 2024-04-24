@@ -175,7 +175,7 @@ class ResNet(nn.Module):
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
 
-        self.inplanes = 512 * block.expansion if inplanes is None else inplanes
+        self.inplanes = 512 * block.expansion if inplanes is None else inplanes  # 512 * 1
         self.dilation = 1
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
@@ -184,8 +184,8 @@ class ResNet(nn.Module):
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
-        self.groups = groups
-        self.base_width = width_per_group
+        self.groups = groups  # 1
+        self.base_width = width_per_group  # 64
         # self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
         #                       bias=False)
         # self.bn1 = norm_layer(self.inplanes)
@@ -282,6 +282,8 @@ class ResNet(nn.Module):
         # x = self.relu(x)
         # x = self.maxpool(x)
 
+        # print('decoder input shape', [y.shape for y in x])
+
         f3 = self.layer1(x)  # 512*8*8->256*16*16
         f2 = self.layer2(f3)  # 256*16*16->128*32*32
         f1 = self.layer3(f2)  # 128*32*32->64*64*64
@@ -302,6 +304,8 @@ class ResNet(nn.Module):
                     out.append(self.unc2[i](f2.detach()))
                     out.append(self.unc3[i](f3.detach()))
 
+            # print('decoder output shape:', [y.shape for y in out])
+
             return out
 
         return [f1, f2, f3]
@@ -316,27 +320,32 @@ def _resnet(
         layers: List[int],
         pretrained: bool,
         progress: bool,
+        decoder_path=None,
         **kwargs: Any
 ) -> ResNet:
     model = ResNet(block, layers, **kwargs)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress)
-        # for k,v in list(state_dict.items()):
-        #    if 'layer4' in k or 'fc' in k:
-        #        state_dict.pop(k)
-        model.load_state_dict(state_dict)
+        if decoder_path is not None:
+            dic = torch.load(decoder_path)
+            model.load_state_dict(dic, strict=False)
+        else:
+            state_dict = load_state_dict_from_url(model_urls[arch],
+                                                  progress=progress)
+            # for k,v in list(state_dict.items()):
+            #    if 'layer4' in k or 'fc' in k:
+            #        state_dict.pop(k)
+            model.load_state_dict(state_dict)
     return model
 
 
-def de_resnet18(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
+def de_resnet18(pretrained: bool = False, progress: bool = True, decoder_path=None, **kwargs: Any) -> ResNet:
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress,
+    return _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, decoder_path=decoder_path,
                    **kwargs)
 
 

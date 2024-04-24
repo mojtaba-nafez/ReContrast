@@ -226,8 +226,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     setup_seed(111)
 
     total_iters = total_iters
-    image_size = 256
-    crop_size = 256
+    image_size = image_size
+    crop_size = image_size
 
     if augmented_view:
         train_data_transforms = transforms.Compose([
@@ -257,25 +257,28 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(test_data2, f'test data isic2')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
     # visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     # visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
 
+    in_channels = 1024
     if model == 'wide_res50':
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
         encoder, bn = resnet18(pretrained=True)
         decoder = de_resnet18(pretrained=False, output_conv=2)
+        in_channels = 256
     else:
         encoder, bn = wide_resnet50_2(pretrained=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     if not head_end:
-        cls = BinaryClassifier()
+        cls = BinaryClassifier(in_channels)
     else:
-        cls = BinaryClassifier2()
+        cls = BinaryClassifier2(2 * in_channels)
     cls = cls.to(device)
     encoder = encoder.to(device)
     bn = bn.to(device)
@@ -313,6 +316,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     auroc_cls_auc_list = {"main": 0, "shifted": 0}
     auroc_cls_auc_list_best = {"main": 0, "shifted": 0}
+
+    auroc_mix_auc_list = {"main": 0, "shifted": 0}
+    auroc_mix_auc_list_best = {"main": 0, "shifted": 0}
 
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
@@ -382,20 +388,25 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 shrink_factor = "main"
                 # auroc, f1, acc = evaluation_noseg(model, test_dataloader1, device)
                 auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                    str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)] = evaluation_noseg_brain(model,
-                                                                                                         test_dataloader1,
-                                                                                                         device,
-                                                                                                         cls=cls,
-                                                                                                         head_end=head_end)
-                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
-                    shrink_factor,
-                    auroc_px_list[
-                        str(shrink_factor)],
-                    auroc_sp_list[
-                        str(shrink_factor)],
-                    auroc_aupro_px_list[
-                        str(shrink_factor)],
-                    auroc_cls_auc_list[str(shrink_factor)]))
+                    str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)], auroc_mix_auc_list[
+                    str(shrink_factor)] = evaluation_noseg_brain(model,
+                                                                 test_dataloader1,
+                                                                 device,
+                                                                 cls=cls,
+                                                                 head_end=head_end,
+                                                                 train_loader=train_dataloader2,
+                                                                 anomaly_transforms=anomaly_transforms)
+                print_fn(
+                    'Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}, mix:{:.3f}'.format(
+                        shrink_factor,
+                        auroc_px_list[
+                            str(shrink_factor)],
+                        auroc_sp_list[
+                            str(shrink_factor)],
+                        auroc_aupro_px_list[
+                            str(shrink_factor)],
+                        auroc_cls_auc_list[str(shrink_factor)],
+                        auroc_mix_auc_list[shrink_factor]))
 
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
@@ -406,20 +417,25 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
                 shrink_factor = "shifted"
                 auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                    str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)] = evaluation_noseg_brain(model,
-                                                                                                         test_dataloader2,
-                                                                                                         device,
-                                                                                                         cls=cls,
-                                                                                                         head_end=head_end)
-                print_fn('Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}'.format(
-                    shrink_factor,
-                    auroc_px_list[
-                        str(shrink_factor)],
-                    auroc_sp_list[
-                        str(shrink_factor)],
-                    auroc_aupro_px_list[
-                        str(shrink_factor)],
-                    auroc_cls_auc_list[str(shrink_factor)]))
+                    str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)], auroc_mix_auc_list[
+                    str(shrink_factor)] = evaluation_noseg_brain(model,
+                                                                 test_dataloader2,
+                                                                 device,
+                                                                 cls=cls,
+                                                                 head_end=head_end,
+                                                                 train_loader=train_dataloader2,
+                                                                 anomaly_transforms=anomaly_transforms)
+                print_fn(
+                    'Shrink Factor:{}, Sample Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, CLS Auroc:{:.3f}, mix:{:.3f}'.format(
+                        shrink_factor,
+                        auroc_px_list[
+                            str(shrink_factor)],
+                        auroc_sp_list[
+                            str(shrink_factor)],
+                        auroc_aupro_px_list[
+                            str(shrink_factor)],
+                        auroc_cls_auc_list[str(shrink_factor)],
+                        auroc_mix_auc_list[shrink_factor]))
 
                 if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                     auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \

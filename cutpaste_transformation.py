@@ -20,7 +20,7 @@ class CutPaste(object):
         self.transform_ = transforms.Compose([
             transforms.ColorJitter(brightness=0.8, contrast=0.8, saturation=0.8, hue=0.2),
             transforms.RandomGrayscale(p=0.1),
-            transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 5)),
+            transforms.GaussianBlur(kernel_size=(2, 2), sigma=(0.1, 5)),
             transforms.RandomHorizontalFlip(),
         ])
     def __call__(self, img):

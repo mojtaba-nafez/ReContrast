@@ -1,13 +1,11 @@
 import random
 import math
 from torchvision import transforms
-
 import torch 
 
 def cut_paste_collate_fn(batch):
     # cutPaste return 2 tuples of tuples we convert them into a list of tuples
     img_types = list(zip(*batch))
-
 #     print(list(zip(*batch)))
     return [torch.stack(imgs) for imgs in img_types]
     
@@ -25,12 +23,11 @@ class CutPaste(object):
             transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
             transforms.RandomHorizontalFlip(),
         ])
-
     def __call__(self, img):
         if self.transform:
             img = self.transform(img)
         return img
-
+    
 class CutPasteNormal(CutPaste):
     """Randomly copy one patche from the image and paste it somewere else.
     Args:
@@ -43,7 +40,6 @@ class CutPasteNormal(CutPaste):
         self.aspect_ratio = aspect_ratio
 
     def __call__(self, img):
-
         #TODO: we might want to use the pytorch implementation to calculate the patches from https://pytorch.org/vision/stable/_modules/torchvision/transforms/transforms.html#RandomErasing
         h = img.size[0]
         w = img.size[1]
@@ -85,13 +81,11 @@ class CutPasteScar(CutPaste):
         height (list): height to sample from. List of [min, max]
         rotation (list): rotation to sample from. List of [min, max]
     """
-
-    def __init__(self, width=[25,45], height=[20,30], rotation=[-45,45], **kwags):
+    def __init__(self, width=[5,25], height=[12,25], rotation=[-45,45], **kwags):
         super(CutPasteScar, self).__init__(**kwags)
         self.width = width
         self.height = height
         self.rotation = rotation
-
     
     def __call__(self, img):
         h = img.size[0]
@@ -111,7 +105,6 @@ class CutPasteScar(CutPaste):
 
         # rotate
         rot_deg = random.uniform(*self.rotation)
-
         patch = patch.convert("RGBA").rotate(rot_deg,expand=True)
         
         #paste
@@ -120,7 +113,6 @@ class CutPasteScar(CutPaste):
 
         mask = patch.split()[-1]
         patch = patch.convert("RGB")
-
         
         augmented = img.copy()
         augmented.paste(patch, (to_location_w, to_location_h), mask=mask)
@@ -131,20 +123,14 @@ class CutPasteUnion(object):
     def __init__(self, **kwags):
         self.normal = CutPasteNormal(**kwags)
         self.scar = CutPasteScar(**kwags)
-
+    
     def __call__(self, img):
-        r = random.uniform(0, 1)
-        if r < 0.5:
-            return self.normal(img)
-        else:
-            return self.scar(img)
-
+        return self.scar(img)
 
 class CutPaste3Way(object):
     def __init__(self, **kwags):
         self.normal = CutPasteNormal(**kwags)
         self.scar = CutPasteScar(**kwags)
-
     
     def __call__(self, img):
         org, cutpaste_normal = self.normal(img)

@@ -24,6 +24,40 @@ import matplotlib
 import pickle
 
 
+def normalize(x, dim=1, eps=1e-8):
+    return x / (x.norm(dim=dim, keepdim=True) + eps)
+
+
+def NT_xent(sim_matrix, temperature=0.5, chunk=2, eps=1e-8):
+    device = sim_matrix.device
+    B = int(sim_matrix.size(0) // chunk)  # B = B' / chunk
+    eye = torch.eye(B * chunk).to(device)  # (B', B')
+    sim_matrix = torch.exp(sim_matrix / temperature) * (1 - eye)  # remove diagonal
+    denom = torch.sum(sim_matrix, dim=1, keepdim=True)
+    sim_matrix = -torch.log(sim_matrix / (denom + eps) + eps)  # loss matrix
+    if chunk == 2:
+        # loss = torch.sum(sim_matrix[:B, B:].diag() + sim_matrix[B:, :B].diag()) / (2 * B)
+        loss = torch.sum(
+            sim_matrix[:int(B / 2), B:int(3 * B / 2)].diag() + sim_matrix[B:int(3 * B / 2), :int(B / 2)].diag()) / (B)
+    elif chunk == 3:
+        loss = torch.sum(sim_matrix[0:B, B:2 * B].diag() + sim_matrix[B:2 * B, 0:B].diag() +
+                         sim_matrix[0:B, 2 * B:].diag() + sim_matrix[2 * B:, 0:B].diag() +
+                         sim_matrix[B:2 * B, 2 * B:].diag() + sim_matrix[2 * B:, B:2 * B].diag()
+                         ) / float(sim_matrix.size(0))
+    return loss
+
+
+def contrastive_loss(a, b, anomaly_data, layer_num=2):
+    # a(enc), b(dec): [[16,256,64,64], [16,512,32,32], [16,1024,16,16]]
+    a_ = torch.mean(a[layer_num].view(a[layer_num].size(0), a[layer_num].size(1), -1), dim=2)
+    b_ = torch.mean(b[layer_num].view(b[layer_num].size(0), b[layer_num].size(1), -1), dim=2)
+    # a.shape, b.shape torch.Size([16, 1024]) torch.Size([16, 1024])
+    data = torch.cat([a_, b_])
+    data = normalize(data)  # normalize
+    sim_matrix = torch.mm(data, data.t())
+    return NT_xent(sim_matrix)
+
+
 def modify_grad(x, inds, factor=0.):
     inds = inds.expand_as(x)
     x[inds] *= factor
@@ -44,20 +78,31 @@ def global_cosine(a, b, stop_grad=True):
     return loss
 
 
-def global_cosine_hm(a, b, alpha=1., factor=0.):
+def global_cosine_hm(a, b, anomaly_data, alpha=1., factor=0.):
+    # a(enc), b(dec): [[16,256,64,64], [16,512,32,32], [16,1024,16,16]]
     cos_loss = torch.nn.CosineSimilarity()
     loss = 0
     weight = [1, 1, 1]
     for item in range(len(a)):
         a_ = a[item].detach()
         b_ = b[item]
+
+        a_ = a_[anomaly_data == 1]
+        b_ = b_[anomaly_data == 1]
+
         with torch.no_grad():
+            # tmp = [i for i, e in enumerate(anomaly_data) if e == 1]
+            # point_dist.shape: torch.Size([8, 1, 64, 64])
+            # point_dist = 1 - cos_loss(a_[tmp], b_[tmp]).unsqueeze(1)
             point_dist = 1 - cos_loss(a_, b_).unsqueeze(1)
+
+        # mean_dist, std_dist: just are a number
         mean_dist = point_dist.mean()
         std_dist = point_dist.reshape(-1).std()
 
-        loss += torch.mean(1 - cos_loss(a_.view(a_.shape[0], -1),
-                                        b_.view(b_.shape[0], -1))) * weight[item]
+        # cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)): torch.Size([8])
+        # loss += (torch.mean((1 - cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)))*anomaly_data)) * weight[item]
+        loss += torch.mean(1 - cos_loss(a_.view(a_.shape[0], -1), b_.view(b_.shape[0], -1))) * weight[item]
         thresh = mean_dist + alpha * std_dist
         partial_func = partial(modify_grad, inds=point_dist < thresh, factor=factor)
         b_.register_hook(partial_func)
@@ -149,7 +194,7 @@ def specificity_score(y_true, y_score):
     return TN / N
 
 
-def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
+def evaluation_brain(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0):
     """
 
     :param model:
@@ -194,13 +239,186 @@ def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio
 
             gt_list_px.extend(gt.cpu().numpy().astype(int).ravel())
             pr_list_px.extend(anomaly_map.ravel())
-            gt_list_sp.append(np.max(gt.cpu().numpy().astype(int)))
+            gt_list_sp.append(label)
             pr_list_sp.append(sp_score)
 
         auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
 
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
+
+
+def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max', cls=None, head_end=False,
+                           train_loader=None, anomaly_transforms=None):
+    model.eval()
+    cls.eval()
+    # calculating w1 and w2
+    w_map = [0, 0]  # index[0] --> normal, index[1] --> cutpaste
+    w_msp = [0, 0]
+    if train_loader is not None:
+        with torch.no_grad():
+            gt_list_sp_normal = []
+            gt_list_sp_anomaly = []
+            pr_list_sp_normal = []
+            pr_list_sp_anomaly = []
+            cls_list_sp_normal = []
+            cls_list_sp_anomaly = []
+            for img, label in train_loader:
+                img = img.to(device)
+                # -------------------normal--------------------------
+                if not head_end:
+                    en, de = model(img, head_end=head_end)
+                    cls_output = cls(en[5])
+                else:
+                    en, de, en3 = model(img, head_end=head_end)
+                    cls_output = cls(en3)
+
+                cls_score = cls_output[:, 1]
+                cls_list_sp_normal.append(cls_score.cpu().numpy()[0])
+
+                anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+                anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+                gt_list_sp_normal.append(0)
+                if reduction == 'max':
+                    pr_list_sp_normal.append(np.max(anomaly_map))
+                elif reduction == 'mean':
+                    pr_list_sp_normal.append(np.mean(anomaly_map))
+
+                # -------------------cutpaste------------------
+                # img_cutpaste = anomaly_transforms(img)
+                # if not head_end:
+                #     en, de = model(img_cutpaste, head_end=head_end)
+                #     cls_output = cls(en[5])
+                # else:
+                #     en, de, en3 = model(img_cutpaste, head_end=head_end)
+                #     cls_output = cls(en3)
+                #
+                # cls_score = cls_output[:, 1]
+                # cls_list_sp_anomaly.append(cls_score.cpu().numpy())
+                #
+                # anomaly_map, _ = cal_anomaly_map(en, de, img_cutpaste.shape[-1], amap_mode='a')
+                # anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+                # gt_list_sp_anomaly.append(1)
+                # if reduction == 'max':
+                #     pr_list_sp_anomaly.append(np.max(anomaly_map))
+                # elif reduction == 'mean':
+                #     pr_list_sp_anomaly.append(np.mean(anomaly_map))
+
+            # print(pr_list_sp_normal)
+            w_map[0] = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
+            # w_map[1] = 1 / (np.sum(pr_list_sp_anomaly) / len(pr_list_sp_anomaly))
+            # print('sum', np.sum(cls_list_sp_normal))
+            # print('len', len(cls_list_sp_normal))
+            # print('div',  ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal))))
+            w_msp[0] = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))
+            # w_msp[1] = 1 / (np.sum(cls_list_sp_anomaly) / len(cls_list_sp_anomaly))
+            print(f'weight of max map score (normal): {w_map[0]}')
+            print(f'weight of max map score (cutpaste): {w_map[1]}')
+            print(f'weight of msp score (normal): {w_msp[0]}')
+            print(f'weight of msp score (cutpaste): {w_msp[1]}')
+
+    gt_list_sp = []
+    pr_list_sp = []
+    cls_list_sp = []
+    mixed_list_sp = []
+    with torch.no_grad():
+        for img, _, label, _ in dataloader:
+            img = img.to(device)
+            if not head_end:
+                en, de = model(img, head_end=head_end)
+                cls_output = cls(en[5])
+            else:
+                en, de, en3 = model(img, head_end=head_end)
+                cls_output = cls(en3)
+
+            cls_score = F.softmax(cls_output, dim=1)[:, 1]
+            cls_list_sp.append(cls_score.cpu().numpy()[0])
+
+            anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+            anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+            gt_list_sp.append(label.item())
+            if reduction == 'max':
+                pr_list_sp.append(np.max(anomaly_map))
+            elif reduction == 'mean':
+                pr_list_sp.append(np.mean(anomaly_map))
+
+            #  mixed score
+            mix_score = w_map[0] * pr_list_sp[-1] + w_msp[0] * cls_list_sp[-1]
+            mixed_list_sp.append(mix_score / 2)
+
+        thresh = return_best_thr(gt_list_sp, pr_list_sp)
+        acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
+        f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
+        auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+
+        auroc_sp_msp = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
+
+        auroc_mixed = round(roc_auc_score(gt_list_sp, mixed_list_sp), 4)
+
+    return auroc_sp, f1, acc, auroc_sp_msp, auroc_mixed
+
+
+def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0, cls=None, head_end=False):
+    """
+
+    :param model:
+    :param dataloader:
+    :param device:
+    :param _class_:
+    :param calc_pro:
+    :param max_ratio: if 0, use the max value of anomaly map as the image anomaly score.
+     if 0.1, use the mean of max 10% anomaly map value, etc.
+    :return:
+    """
+    model.eval()
+    gt_list_px = []
+    pr_list_px = []
+    gt_list_sp = []
+    pr_list_sp = []
+    aupro_list = []
+    cls_list_sp = []
+    cls.eval()
+    with torch.no_grad():
+        for img, gt, label, _ in dataloader:
+            img = img.to(device)
+
+            if not head_end:
+                en, de = model(img, head_end=head_end)
+                cls_output = cls(en[5])
+            else:
+                en, de, en3 = model(img, head_end=head_end)
+                cls_output = cls(en3)
+
+            cls_score = cls_output[:, 1]
+            cls_list_sp.append(cls_score.cpu().numpy())
+            anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+            anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+            # gt[gt > 0.5] = 1
+            # gt[gt <= 0.5] = 0
+            gt = gt.bool()
+
+            if calc_pro:
+                if label.item() != 0:
+                    aupro_list.append(compute_pro(gt.squeeze(0).cpu().numpy().astype(int),
+                                                  anomaly_map[np.newaxis, :, :]))
+
+            if max_ratio <= 0:
+                sp_score = anomaly_map.max()
+            else:
+                anomaly_map = anomaly_map.ravel()
+                sp_score = np.sort(anomaly_map)[-int(anomaly_map.shape[0] * max_ratio):]
+                sp_score = sp_score.mean()
+
+            gt_list_px.extend(gt.cpu().numpy().astype(int).ravel())
+            pr_list_px.extend(anomaly_map.ravel())
+            gt_list_sp.append(np.max(gt.cpu().numpy().astype(int)))
+            pr_list_sp.append(sp_score)
+
+        auroc_px = round(roc_auc_score(gt_list_px, pr_list_px), 4)
+        auroc_sp_map = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+        auroc_sp_msp = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
+
+    return auroc_px, auroc_sp_map, round(np.mean(aupro_list), 4), auroc_sp_msp
 
 
 def evaluation_batch(model, dataloader, device, _class_=None, reg_calib=False, max_ratio=0):
@@ -332,7 +550,7 @@ def evaluation_mask(model, dataloader, device, _class_=None, calc_pro=True):
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
 
 
-def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max'):
+def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max', return_score=False):
     model.eval()
     gt_list_sp = []
     pr_list_sp = []
@@ -353,6 +571,8 @@ def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max'):
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+    if return_score:
+        return auroc_sp, f1, acc, pr_list_sp
     return auroc_sp, f1, acc
 
 

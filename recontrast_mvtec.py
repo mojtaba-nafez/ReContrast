@@ -10,19 +10,21 @@ from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, resnext50_32x4d
 from models.de_resnet import de_wide_resnet50_2, de_resnet18, de_resnet34, de_resnet50, de_resnext50_32x4d
 from models.recontrast import ReContrast, ReContrast
-from dataset import MVTecDataset
+from dataset import MVTecDataset, Train_MVTecDataset
 import torch.backends.cudnn as cudnn
 import argparse
-from utils import evaluation, visualize, global_cosine, global_cosine_hm
+from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss
 from torch.nn import functional as F
 from functools import partial
 from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
+import torch.nn as nn
 
 import warnings
 import copy
 import logging
+from cutpaste_transformation import *
 
 warnings.filterwarnings("ignore")
 
@@ -112,6 +114,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name, train_dat
     show_images(images, labels, dataset_name)
 
 
+
 class NewModel(nn.Module):
 
     def __init__(self, encoder, bn, decoder):
@@ -143,27 +146,81 @@ class NewModel(nn.Module):
         return out
 
 
-def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
+
+class BinaryClassifier(nn.Module):
+    def __init__(self, in_channels=1024):
+        super(BinaryClassifier, self).__init__()
+        # input shape: [Batch size, 256, 16, 16]
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # output shape: [Batch size, 256, 1, 1]
+        self.flatten = nn.Flatten()
+        # output shape: [Batch size, 256]
+        self.fc = nn.Linear(in_channels, 2)
+
+    def forward(self, x):
+        x = self.adaptive_pool(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        return x
+
+
+class BinaryClassifier2(nn.Module):
+    def __init__(self, in_channels=2048):
+        super(BinaryClassifier2, self).__init__()
+        # input shape: [Batch size, 256, 16, 16]
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # output shape: [Batch size, 256, 1, 1]
+        self.flatten = nn.Flatten()
+        # output shape: [Batch size, 256]
+        self.fc = nn.Linear(in_channels, 2)
+
+    def forward(self, x):
+        x = self.adaptive_pool(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        return x
+
+
+def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
+          augmented_view=False, batch_size=16, model='wide_res50', lr_cls=1e-3, head_end=False, update_decoder=False,
           unode1_checkpoint=None, unode2_checkpoint=None):
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
-    ])
-
     print_fn(_class_)
     setup_seed(111)
 
     total_iters = total_iters
-    batch_size = 16
     image_size = 256
     crop_size = 256
 
+    if augmented_view:
+        train_data_transforms = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.RandomHorizontalFlip(),  # Random horizontal flip
+            transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
+            transforms.RandomGrayscale(p=0.2),  # Random grayscale
+            transforms.ToTensor(),
+            transforms.CenterCrop(crop_size),
+        ])
+    else:
+        train_data_transforms = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+            transforms.CenterCrop(crop_size),
+        ])
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
     test_path = '/kaggle/input/mvtec-ad/' + _class_
+    if training_using_pad:
+        train_path = '/kaggle/input/mvtec-ad/'
+        train_data = Train_MVTecDataset(root=train_path, category=_class_, transform=train_data_transforms)
+    else:
+        train_path = '/kaggle/input/mvtec-ad/' + _class_ + '/train'
+        train_data = ImageFolder(root=train_path, transform=train_data_transforms)
 
     train_data = ImageFolder(root=train_path, transform=data_transform)
+
     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test",
                              shrink_factor=shrink_factor)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
@@ -198,87 +255,111 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
 
     encoder_freeze = encoder_freeze.to(device)
 
-    if update_decoder:
-        print('updating decoder...')
-        anomaly_transforms = transforms.Compose([
-            transforms.ToPILImage(),
-            CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
-        ])
+#     if update_decoder:
+#         print('updating decoder...')
+#         anomaly_transforms = transforms.Compose([
+#             transforms.ToPILImage(),
+#             CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+#         ])
 
-        new_model = NewModel(encoder, bn, decoder)
-        criteron = nn.CrossEntropyLoss()
-        optimizer = torch.optim.AdamW(list(new_model.parameters()),
-                                      lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
-        encoder.eval()
-        bn.eval()
-        decoder.train()
-        for epoch in range(21):
-            loss_list = []
-            for img, label in train_dataloader:
-                img = img.to(device)
+#         new_model = NewModel(encoder, bn, decoder)
+#         criteron = nn.CrossEntropyLoss()
+#         optimizer = torch.optim.AdamW(list(new_model.parameters()),
+#                                       lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
+#         encoder.eval()
+#         bn.eval()
+#         decoder.train()
+#         for epoch in range(21):
+#             loss_list = []
+#             for img, label in train_dataloader:
+#                 img = img.to(device)
 
-                anomaly_data = np.ones(len(img)) * 0
-                numbers = list(range(len(img)))
-                random.shuffle(numbers)
-                anomaly_data[numbers[:int(len(numbers) / 2)]] = 1
+#                 anomaly_data = np.ones(len(img)) * 0
+#                 numbers = list(range(len(img)))
+#                 random.shuffle(numbers)
+#                 anomaly_data[numbers[:int(len(numbers) / 2)]] = 1
 
-                for i in range(len(anomaly_data)):
-                    if anomaly_data[i] == 1:
-                        img[i] = anomaly_transforms(img[i])
-                anomaly_data = torch.tensor(anomaly_data).to(device)
+#                 for i in range(len(anomaly_data)):
+#                     if anomaly_data[i] == 1:
+#                         img[i] = anomaly_transforms(img[i])
+#                 anomaly_data = torch.tensor(anomaly_data).to(device)
 
-                logits = new_model(img)
-                anomaly_data = anomaly_data.to(torch.long)
-                loss = criteron(logits, anomaly_data)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                loss_list.append(loss.item())
-            print('loss:', np.mean(loss_list))
+#                 logits = new_model(img)
+#                 anomaly_data = anomaly_data.to(torch.long)
+#                 loss = criteron(logits, anomaly_data)
+#                 optimizer.zero_grad()
+#                 loss.backward()
+#                 optimizer.step()
+#                 loss_list.append(loss.item())
+#             print('loss:', np.mean(loss_list))
 
-            if epoch % 10 == 0:
-                decoder.eval()
-                correct = 0
-                total = 0
-                for img, _, label, _ in test_dataloader:
-                    img = img.to(device)
-                    label = label.to(device)
-                    with torch.no_grad():
-                        output = new_model(img)
-                        total += len(img)
-                        if len(img) > 1:
-                            _, pred = torch.max(output, dim=1)
-                        else:
-                            pred = 0 if output[0] > output[1] else 1
-                        correct += (pred == label).sum().item()
+#             if epoch % 10 == 0:
+#                 decoder.eval()
+#                 correct = 0
+#                 total = 0
+#                 for img, _, label, _ in test_dataloader:
+#                     img = img.to(device)
+#                     label = label.to(device)
+#                     with torch.no_grad():
+#                         output = new_model(img)
+#                         total += len(img)
+#                         if len(img) > 1:
+#                             _, pred = torch.max(output, dim=1)
+#                         else:
+#                             pred = 0 if output[0] > output[1] else 1
+#                         correct += (pred == label).sum().item()
 
-                accuracy = 100 * correct / total
-                print(f'Accuracy on test data: {accuracy:.2f}%')
+#                 accuracy = 100 * correct / total
+#                 print(f'Accuracy on test data: {accuracy:.2f}%')
 
-                correct = 0
-                total = 0
-                for img, label in train_dataloader:
-                    img = img.to(device)
-                    label = label.to(device)
-                    with torch.no_grad():
-                        output = new_model(img)
-                        total += len(img)
-                        _, pred = torch.max(output, dim=1)
-                        correct += (pred == label).sum().item()
+#                 correct = 0
+#                 total = 0
+#                 for img, label in train_dataloader:
+#                     img = img.to(device)
+#                     label = label.to(device)
+#                     with torch.no_grad():
+#                         output = new_model(img)
+#                         total += len(img)
+#                         _, pred = torch.max(output, dim=1)
+#                         correct += (pred == label).sum().item()
 
-                accuracy = 100 * correct / total
-                print(f'Accuracy on train data: {accuracy:.2f}%')
+#                 accuracy = 100 * correct / total
+#                 print(f'Accuracy on train data: {accuracy:.2f}%')
 
-                decoder.train()
+#                 decoder.train()
 
 
-        torch.save(decoder.state_dict(), 'decoder_trained.pth')
-        print('saved decoder...')
+#         torch.save(decoder.state_dict(), 'decoder_trained.pth')
+#         print('saved decoder...')
 
-    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
-    # for m in encoder.modules():
-    #     if isinstance(m, torch.nn.BatchNorm2d):
-    #         m.eps = 1e-8
+#     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder)
+
+    in_channels = 1024
+    if model == 'wide_res50':
+        encoder, bn = wide_resnet50_2(pretrained=True)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    elif model == 'res18':
+        encoder, bn = resnet18(pretrained=True)
+        decoder = de_resnet18(pretrained=False, output_conv=2)
+        in_channels = 256
+    else:
+        encoder, bn = wide_resnet50_2(pretrained=True)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    if not head_end:
+        cls = BinaryClassifier(in_channels=in_channels)
+    else:
+        cls = BinaryClassifier2(in_channels=2 * in_channels)
+    encoder = encoder.to(device)
+    bn = bn.to(device)
+    decoder = decoder.to(device)
+    encoder_freeze = copy.deepcopy(encoder)
+    cls = cls.to(device)
+    model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
+                       image_size=image_size, crop_size=crop_size, device=device, head_end=head_end)
+
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=lr_cls, betas=(0.9, 0.999), weight_decay=1e-5)
 
     optimizer = torch.optim.AdamW(list(decoder.parameters()) + list(bn.parameters()),
                                   lr=2e-3, betas=(0.9, 0.999), weight_decay=1e-5)
@@ -295,6 +376,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
     it = 0
     print('len train dat aloader: ', len(train_dataloader))
 
+
     auroc_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
     auroc_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
@@ -304,74 +386,108 @@ def train(_class_, shrink_factor=None, total_iters=2000, update_decoder=False,
     auroc_aupro_px_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
     auroc_aupro_px_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
-    # IMPORTANT: total_iters should be >= 250 so that return values get computed
 
+    auroc_cls_auc_list = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
+    auroc_cls_auc_list_best = {"0.8": 0, "0.85": 0, "0.9": 0, "0.95": 0, "0.98": 0, "1.0": 0}
 
+    anomaly_transforms = transforms.Compose([
+        transforms.ToPILImage(),
+        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+    ])
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
 
         loss_list = []
         for img, label in train_dataloader:
+            # img : [16, 3, 256, 256]
+            # img = torch.cat([img, img.clone()])
+
             img = img.to(device)
 
+            anomaly_data = np.ones(len(img))
+            anomaly_data[int(len(anomaly_data) / 2):] = -1
+            for i in range(len(anomaly_data)):
+                if anomaly_data[i] == -1:
+                    img[i] = anomaly_transforms(img[i])
+            anomaly_data = torch.tensor(anomaly_data).to(device)
+            # we also need one where instead on -1s we have 1s
+            anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]
+            anomaly_one = torch.tensor(anomaly_one).to(device)
+            # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
+            # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
+            if not head_end:
+                en, de = model(img, head_end=head_end)
+                cls_output = cls(en[5])
+            else:
+                en, de, en3 = model(img, head_end=head_end)
+                cls_output = cls(en3)
 
-            en, de = model(img)
+            cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
 
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            loss = global_cosine_hm(en[:3], de[:3], alpha=alpha, factor=0.) / 2 + \
-                   global_cosine_hm(en[3:], de[3:], alpha=alpha, factor=0.) / 2
 
+
+            loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
+                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
+            loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
+                    (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
+            loss = loss1 + loss2 + cls_loss
+            '''
+            loss2 = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=0) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=1) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2)
+            loss3 = contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=0) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=1) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2)
+            loss = loss1 + (loss2/6) + (loss3/6)
+            '''
+            # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
+            #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
+            optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
+            optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
 
-            # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
-            #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
-
-            if (it + 1) % (total_iters / 2) == 0:
-                pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
+            if (it + 1) % evaluation_epochs == 0:
+                pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
 
                 for shrink_factor in pad_size:
                     test_data = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform,
                                              phase="test", shrink_factor=shrink_factor)
-                    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False,
-                                                                  num_workers=1)
+
+                    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
 
                     auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
-                        str(shrink_factor)] = evaluation(model, test_dataloader, device)
+                        str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)] = evaluation(model, test_dataloader,
+                                                                                                 device,
+                                                                                                 max_ratio=max_ratio,
+                                                                                                 cls=cls,
+                                                                                                 head_end=head_end)
                     print_fn(
-                        'Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(
+                        'Shrink Factor:{:.3f}, Pixel Auroc:{:.3f}, Sample Map Auroc:{:.3f}, Pixel Aupro:{:.3}, Sample CLS AUROC:{:.3}'.format(
                             shrink_factor, auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)],
-                            auroc_aupro_px_list[str(shrink_factor)]))
+                            auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)]))
 
                     if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
                         auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
-                        auroc_aupro_px_list_best[str(shrink_factor)] = auroc_px_list[str(shrink_factor)], \
-                                                                       auroc_sp_list[
-                                                                           str(shrink_factor)], auroc_aupro_px_list[
-                                                                           str(shrink_factor)]
+                        auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)] = \
+                            auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                                str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[
+                                str(shrink_factor)]
 
-
-                # auroc_px, auroc_sp, aupro_px = evaluation(model, test_dataloader, device)
-                # model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'], update_decoder=update_decoder)
-
-                # print_fn(
-                #     'Pixel Auroc:{:.3f}, Sample Auroc:{:.3f}, Pixel Aupro:{:.3}'.format(auroc_px, auroc_sp, aupro_px))
-                # if auroc_sp >= auroc_sp_best:
-                #     auroc_px_best, auroc_sp_best, aupro_px_best = auroc_px, auroc_sp, aupro_px
+                model.train(encoder_bn_train=_class_ not in ['toothbrush', 'leather', 'grid', 'tile', 'wood', 'screw'])
+                cls.train()
             it += 1
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
-    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best
+
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best
 
 
 if __name__ == '__main__':
@@ -386,100 +502,89 @@ if __name__ == '__main__':
                         help='GPU id to use.')
     parser.add_argument('--shrink_factor', type=float, default=None)
     parser.add_argument('--total_iters', type=int, default=2000)
-    parser.add_argument('--evaluation_epochs', type=int, default=250)
 
-    # ADDING U NODE
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--evaluation_epochs', type=int, default=250)
+    parser.add_argument('--training_shrink_factor', action='store_true')
+    parser.add_argument('--training_using_pad', action='store_true')
+    parser.add_argument('--max_ratio', type=float, default=0)
+    parser.add_argument('--augmented_view', action='store_true')
+    parser.add_argument('--model', type=str, default='wide_res50')
+    parser.add_argument('--item_list', type=str, default='0,15')
+    parser.add_argument('--lr_cls', type=float, default=0.001)
     parser.add_argument('--encoder1_path', type=str, default='')
     parser.add_argument('--encoder2_path', type=str, default='')
-    parser.add_argument('--classes', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14', help='classes of mvtec')
     parser.add_argument('--update_decoder', type=str, default='0')
-    # parser.add_argument('--use_new_decoder', type=str, default='')
+      
+    parser.add_argument('--head_end', action='store_true',
+                        help='put the cls head at the end of the encoder (instead of the 3rd layer)')
+
     args = parser.parse_args()
 
-    classes = args.classes.split(',')
-    print('classes: ', classes)
+    if args.training_shrink_factor:
+        args.training_using_pad = True
 
-    item_list = ['carpet', 'bottle', 'hazelnut', 'leather', 'cable', 'capsule', 'grid', 'pill',
-                 'transistor', 'metal_nut', 'screw', 'toothbrush', 'zipper', 'tile', 'wood']
+    item_list = ['screw', 'cable', 'transistor', 'carpet', 'bottle', 'hazelnut', 'leather', 'capsule', 'grid', 'pill',
+                 'metal_nut', 'toothbrush', 'zipper', 'tile', 'wood']
+
+    items = args.item_list.split(',')
+    st = int(items[0])
+    ed = int(items[1])
+    item_list = item_list[st: ed]
     print(item_list)
     # item_list = ['toothbrush']
+    head_end = args.head_end
+
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info
 
     device = 'cuda:' + args.gpu if torch.cuda.is_available() else 'cpu'
     print_fn(device)
 
-    result_list = []
-    result_list_best = []
-
-    update_decoder = False if args.update_decoder == '0' else True
-
-    # decoder_path = args.use_new_decoder if args.use_new_decoder != '' else None
-    #
-    # print('decoder path:', decoder_path)
 
     result_list = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
     result_list_best = {"0.8": [], "0.85": [], "0.9": [], "0.95": [], "0.98": [], "1.0": []}
-    pad_size = [0.8, 0.85, 0.9, 0.95, 0.98, 1.0]
+    pad_size = [1.0, 0.98, 0.95, 0.9, 0.85, 0.8]
 
-    en1_path = args.encoder1_path if args.encoder1_path != '' else None
-    en2_path = args.encoder2_path if args.encoder2_path != '' else None
-
-    print('en1_path: ', en1_path)
-    print('en2_path: ', en2_path)
-
-    # num_classes = int(args.num_classes)
-
-    for i in range(len(classes)):
-        item = item_list[int(classes[i])]
+    for i, item in enumerate(item_list):
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-        auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
-                                                                                          shrink_factor=args.shrink_factor,
-                                                                                          total_iters=args.total_iters,
-                                                                                          unode1_checkpoint=en1_path,
-                                                                                          unode2_checkpoint=en2_path,
-                                                                                          update_decoder=update_decoder
-                                                                                          )
+        auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
+            item,
+            shrink_factor=args.shrink_factor,
+            total_iters=args.total_iters,
+            evaluation_epochs=args.evaluation_epochs,
+            training_using_pad=args.training_using_pad,
+            max_ratio=args.max_ratio,
+            augmented_view=args.augmented_view,
+            batch_size=args.batch_size,
+            model=args.model,
+            lr_cls=args.lr_cls,
+            head_end=head_end)
         for pad in pad_size:
-            result_list[str(pad)].append([item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)]])
+            result_list[str(pad)].append(
+                [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
             result_list_best[str(pad)].append(
-                [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)]])
+                [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)],
+                 auroc_sp_cls_best[str(pad)]])
 
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')
         mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])
         mean_auroc_sp = np.mean([result[2] for result in result_list[str(pad)]])
         mean_aupro_px = np.mean([result[3] for result in result_list[str(pad)]])
+
+        mean_auc_sp_cls = np.mean([result[4] for result in result_list[str(pad)]])
         print_fn(result_list[str(pad)])
-        print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-                                                                                        mean_aupro_px))
+        print_fn('mPixel Auroc:{:.4f}, mSample Map Auroc:{:.4f}, mPixel Aupro:{:.4}, mSample AUC cls:{:.4}'.format(
+            mean_auroc_px, mean_auroc_sp,
+            mean_aupro_px, mean_auc_sp_cls))
 
         best_auroc_px = np.mean([result[1] for result in result_list_best[str(pad)]])
         best_auroc_sp = np.mean([result[2] for result in result_list_best[str(pad)]])
         best_aupro_px = np.mean([result[3] for result in result_list_best[str(pad)]])
-        print_fn(result_list_best[str(pad)])
-        print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
-                                                                                        best_aupro_px))
 
-    # for i, item in enumerate(item_list[0:num_classes]):
-    #     auroc_px, auroc_sp, aupro_px, auroc_px_best, auroc_sp_best, aupro_px_best = train(item,
-    #                                                                                       shrink_factor=args.shrink_factor,
-    #                                                                                       total_iters=args.total_iters,
-    #                                                                                       unode1_checkpoint=en1_path,
-    #                                                                                       unode2_checkpoint=en2_path)
-    #     result_list.append([item, auroc_px, auroc_sp, aupro_px])
-    #     result_list_best.append([item, auroc_px_best, auroc_sp_best, aupro_px_best])
-    #
-    # mean_auroc_px = np.mean([result[1] for result in result_list])
-    # mean_auroc_sp = np.mean([result[2] for result in result_list])
-    # mean_aupro_px = np.mean([result[3] for result in result_list])
-    # print_fn(result_list)
-    # print_fn('mPixel Auroc:{:.4f}, mSample Auroc:{:.4f}, mPixel Aupro:{:.4}'.format(mean_auroc_px, mean_auroc_sp,
-    #                                                                                 mean_aupro_px))
-    #
-    # best_auroc_px = np.mean([result[1] for result in result_list_best])
-    # best_auroc_sp = np.mean([result[2] for result in result_list_best])
-    # best_aupro_px = np.mean([result[3] for result in result_list_best])
-    # print_fn(result_list_best)
-    # print_fn('bPixel Auroc:{:.4f}, bSample Auroc:{:.4f}, bPixel Aupro:{:.4}'.format(best_auroc_px, best_auroc_sp,
-    #                                                                                 best_aupro_px))
+        best_auc_sp_cls = np.mean([result[4] for result in result_list_best[str(pad)]])
+        print_fn(result_list_best[str(pad)])
+        print_fn('bPixel Auroc:{:.4f}, bSample Map Auroc:{:.4f}, bPixel Aupro:{:.4}, bSample Auroc cls:{:.4}'.format(
+            best_auroc_px, best_auroc_sp,
+            best_aupro_px, best_auc_sp_cls))

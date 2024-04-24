@@ -151,6 +151,7 @@ class ResNet(nn.Module):
             block: Type[Union[BasicBlock, Bottleneck]],
             layers: List[int],
             fc=True,
+
             num_classes: int = 1000,
             zero_init_residual: bool = False,
             groups: int = 1,
@@ -238,7 +239,6 @@ class ResNet(nn.Module):
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]
-        # print('encoder input:', x.shape)
         x = self.norm(x)
         x = self.conv1(x)
         x = self.bn1(x)
@@ -250,12 +250,25 @@ class ResNet(nn.Module):
         feature_c = self.layer3(feature_b)
         # feature_d = self.layer4(feature_c)
 
-        # print('encoder output:', [feature_a.shape, feature_b.shape, feature_c.shape])
-
         return [feature_a, feature_b, feature_c]
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self._forward_impl(x)
+    def forward(self, x: Tensor, head_end=False) -> Tensor:
+        if not head_end:
+            return self._forward_impl(x)
+        x = self.norm(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        feature_a = self.layer1(x)
+        feature_b = self.layer2(feature_a)
+        feature_c = self.layer3(feature_b)
+        # print('feature_c:', feature_c.shape)
+        # print('self.layer4:', self.layer4)
+        feature_d = self.layer4(feature_c)
+        # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
+        return [feature_a, feature_b, feature_c, feature_d]
 
 
 def _resnet(

@@ -59,7 +59,7 @@ class IMAGENET30_TEST_DATASET(Dataset):
 
         # Map each class to an index
         self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(sorted(os.listdir(root_dir)))}
-        print(f"self.class_to_idx in ImageNet30_Test_Dataset:\n{self.class_to_idx}")
+        # print(f"self.class_to_idx in ImageNet30_Test_Dataset:\n{self.class_to_idx}")
 
         # Walk through the directory and collect information about the images and their labels
         for i, class_name in enumerate(os.listdir(root_dir)):
@@ -254,6 +254,127 @@ class MVTecSegDataset(torch.utils.data.Dataset):
         return img, gt, label, mask, img_path
 
 
+
+
+def center_paste_2(large_img, small_img, shrink_factor):
+    width , height = small_img.size
+    large_img = large_img.resize((width, height))
+
+    new_width = int(width * shrink_factor)
+    new_height = int(height * shrink_factor)
+
+    small_img = small_img.resize((new_width, new_height))
+    small_width, small_height = small_img.size
+
+    left = (width - small_width) // 2
+    top = (height - small_height) // 2
+
+    result_img = large_img.copy()
+    result_img.paste(small_img, (left, top))
+    return result_img
+
+
+class IMAGENET30_TEST_DATASET_2(Dataset):
+    def __init__(self, root_dir="/kaggle/input/imagenet30-dataset/one_class_test/one_class_test/", transform=None):
+        """
+        Args:
+            root_dir (string): Directory with all the classes.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.root_dir = root_dir
+        self.transform = transform
+        self.img_path_list = []
+        self.targets = []
+
+        # Map each class to an index
+        self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(sorted(os.listdir(root_dir)))}
+        # print(f"self.class_to_idx in ImageNet30_Test_Dataset:\n{self.class_to_idx}")
+
+        # Walk through the directory and collect information about the images and their labels
+        for i, class_name in enumerate(os.listdir(root_dir)):
+            class_path = os.path.join(root_dir, class_name)
+            for instance_folder in os.listdir(class_path):
+                instance_path = os.path.join(class_path, instance_folder)
+                if instance_path != "/kaggle/input/imagenet30-dataset/one_class_test/one_class_test/airliner/._1.JPEG":
+                    for img_name in os.listdir(instance_path):
+                        if img_name.endswith('.JPEG'):
+                            img_path = os.path.join(instance_path, img_name)
+                            # image = Image.open(img_path).convert('RGB')
+                            self.img_path_list.append(img_path)
+                            self.targets.append(self.class_to_idx[class_name])
+
+    def __len__(self):
+        return len(self.img_path_list)
+
+    def __getitem__(self, idx):
+        img_path = self.img_path_list[idx]
+        label = self.targets[idx]
+        img = Image.open(img_path)
+        return img
+
+class Train_MVTecDataset(Dataset):
+    def __init__(self, root, category, transform=None, shrink_factor=1, train=True, count=-1):
+        self.transform = transform
+        self.image_files = []
+        self.shrink_factor = shrink_factor
+        print("category MVTecDataset:", category)
+        if train:
+            good_images = glob.glob(os.path.join(root, category, "train", "good", "*.png"))
+            if count != -1:
+                if count < len(good_images):
+                    good_images = good_images[:count]
+                else:
+                    t = len(good_images)
+                    for i in range(count - t):
+                        good_images.append(random.choice(good_images[:t]))
+            good_images.sort(key=lambda y: y.lower())
+            augmented_images = []
+            for img in good_images:
+                augmented_images.append((img, True))  # Mark this image for augmentation
+            good_images = [(img, False) for img in good_images]  # Original images not for augmentation
+            self.image_files = good_images + augmented_images
+        else:
+            image_files = glob(os.path.join(root, category, "test", "*", "*.png"))
+            normal_image_files = glob(os.path.join(root, category, "test", "good", "*.png"))
+            anomaly_image_files = list(set(image_files) - set(normal_image_files))
+            self.image_files = image_files
+            self.image_files = [(img, False) for img in image_files]
+        self.train = train
+        self.imagenet_30 = IMAGENET30_TEST_DATASET_2()
+
+
+    def __getitem__(self, index):
+        image_file , augment= self.image_files[index]
+        image = Image.open(image_file)
+        image = image.convert('RGB')
+        
+        # if self.train and augment:
+        if augment:
+            random_index = int(random.random() * len(self.imagenet_30))
+            imagenet30_img = self.imagenet_30[random_index]
+            imagenet30_img = imagenet30_img.convert('RGB')
+            factors = [0.98, 0.95, 0.93, 0.91, 0.88, 0.82, 0.90, 0.97, 0.85, 0.80]
+            image  = center_paste_2(imagenet30_img, image, random.choice(factors))
+        '''
+        if not self.train:
+            imagenet_30 = IMAGENET30_TEST_DATASET()
+            random_index = int(random.random() * len(imagenet_30))
+            imagenet30_img = imagenet_30[random_index]
+            imagenet30_img = imagenet30_img.convert('RGB')
+            image = center_paste(imagenet30_img, image, self.shrink_factor)
+        '''
+        if self.transform is not None:
+            image = self.transform(image)
+        if os.path.dirname(image_file).endswith("good"):
+            target = 0
+        else:
+            target = 1
+        return image, target
+
+    def __len__(self):
+        return len(self.image_files)
+
 class LOCODataset(torch.utils.data.Dataset):
     def __init__(self, root, transform, gt_transform, phase):
         if phase == 'train':
@@ -357,3 +478,28 @@ class MedicalDataset(torch.utils.data.Dataset):
         img = self.transform(img)
 
         return img, label, img_path
+
+
+class Train_Visa(torch.utils.data.Dataset):
+    def __init__(self, root, transform=None):
+
+        self.transform = transform
+        self.img_paths = glob.glob(root)
+        self.labels = [0]*len(self.img_paths)
+        print(len(self.img_paths))
+        self.imagenet_30 = IMAGENET30_TEST_DATASET()
+
+    def __len__(self):
+        return len(self.img_paths)
+
+    def __getitem__(self, idx):
+        img_path, label = self.img_paths[idx], self.labels[idx]
+        image = Image.open(img_path).convert('RGB')
+        random_index = int(random.random() * len(self.imagenet_30))
+        imagenet30_img, _ = self.imagenet_30[random_index]
+        imagenet30_img = imagenet30_img.convert('RGB')
+        factors = [0.98, 0.95, 0.93, 0.91, 0.88, 0.82, 0.90, 0.97, 0.85, 0.80]
+        image  = center_paste_2(imagenet30_img, image, random.choice(factors))
+            
+        image = self.transform(image)
+        return image, label

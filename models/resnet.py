@@ -287,7 +287,10 @@ def _resnet(
             dic = torch.load(unode_path)
             # print('loaded keys:', dic.keys())
             # print('model:', model)
-            model.load_state_dict(dic)
+            key_list = list(dic.keys())
+            model_dic = {key: dic[key] for key in key_list[10:]}
+            print(model_dic.keys())
+            model.load_state_dict(model_dic)
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],
                                                   progress=progress)

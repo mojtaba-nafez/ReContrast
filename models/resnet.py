@@ -265,7 +265,7 @@ class ResNet(nn.Module):
             feature_d = self.avgpool(feature_d)
             feature_d = self.avgpool(feature_d)
             print("feature_d.shape", feature_d.shape)
-            return self.shift_cls_layer(feature_d)
+            return self.shift_cls_layer(feature_d..squeeze())
         
         return [feature_a, feature_b, feature_c]
 
@@ -304,8 +304,8 @@ def _resnet(
     model = ResNet(block, layers, unode, **kwargs)
     if unode:
         dic = torch.load(unode_path)
-        print('loaded keys:', dic.keys())
-        print(model)
+        # print('loaded keys:', dic.keys())
+        # print(model)
     if pretrained:
         if unode:
             dic = torch.load(unode_path)

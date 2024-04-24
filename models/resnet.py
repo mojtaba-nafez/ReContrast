@@ -191,8 +191,15 @@ class ResNet(nn.Module):
         if not unode:
             self.fc = nn.Linear(512 * block.expansion, num_classes)
         else:
-
+            self.linear = nn.Linear(512 * 1, 2)
+            self.simclr_layer = nn.Sequential(
+                    nn.Linear(512, 512),
+                    nn.ReLU(),
+                    nn.Linear(512, 128)
+                )
             self.shift_cls_layer = nn.Linear(512 * 1, 2)
+            self.joint_distribution_layer = nn.Linear(512 * 1, 8)
+
 
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()

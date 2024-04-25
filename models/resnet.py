@@ -303,7 +303,7 @@ def _resnet(
     model = ResNet(block, layers, unode, **kwargs)
     if unode:
         dic = torch.load(unode_path)
-        print('loaded keys:', dic.keys())
+        # print('loaded keys:', dic.keys())
         # print(model)
     if pretrained:
         if unode:
@@ -313,6 +313,7 @@ def _resnet(
             key_list = list(dic.keys())
             # print(model_dic.keys())
             model.load_state_dict(dic)
+            print("Unode is loaded!")
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],
                                                   progress=progress)

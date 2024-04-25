@@ -337,7 +337,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         transforms.ToPILImage(),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
-    model.save_models()
 
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.

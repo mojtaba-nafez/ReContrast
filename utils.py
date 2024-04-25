@@ -322,7 +322,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     cls_list_sp = []
     mixed_list_sp = []
     with torch.no_grad():
-        for img, _, label, _ in dataloader:
+        for img, label, _ in dataloader:
             img = img.to(device)
             if not head_end:
                 en, de = model(img, head_end=head_end)

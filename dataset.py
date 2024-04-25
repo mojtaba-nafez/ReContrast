@@ -11,6 +11,7 @@ from PIL import ImageFilter, Image, ImageOps
 from torchvision.datasets.folder import default_loader
 import os
 import random
+import pydicom
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -503,3 +504,82 @@ class Train_Visa(torch.utils.data.Dataset):
             
         image = self.transform(image)
         return image, label
+class RSNATRAIN(torch.utils.data.Dataset):
+    def __init__(self, transform):
+        self.transform = transform
+        self.image_paths = glob.glob('/kaggle/working/train/normal/*')
+
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        dicom = pydicom.dcmread(self.image_paths[idx])
+        image = dicom.pixel_array
+
+        # Convert to a PIL Image
+        image = Image.fromarray(image).convert('RGB')
+
+        # Apply the transform if it's provided
+        if self.transform is not None:
+            image = self.transform(image)
+
+        return image, 0, self.image_paths[idx]
+
+class RSNATEST(torch.utils.data.Dataset):
+    def __init__(self, transform, test_id=1):
+
+        self.transform = transform
+        self.test_id = test_id
+
+        test_normal_path = glob.glob('/kaggle/working/test/normal/*')
+        test_anomaly_path = glob.glob('/kaggle/working/test/anomaly/*')
+
+        self.test_path = test_normal_path + test_anomaly_path
+        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+        if self.test_id == 2:
+            shifted_test_normal_path = glob.glob('/kaggle/working/4. Operations Department/Test/1/*')
+            shifted_test_anomaly_path = (glob.glob('/kaggle/working/4. Operations Department/Test/0/*') + glob.glob(
+                '/kaggle/working/4. Operations Department/Test/2/*') +
+                glob.glob('/kaggle/working/4. Operations Department/Test/3/*'))
+
+            self.test_path = shifted_test_normal_path + shifted_test_anomaly_path
+            self.test_label = [0] * len(shifted_test_normal_path) + [1] * len(shifted_test_anomaly_path)
+
+
+        if self.test_id == 3:
+            test_normal_path = glob.glob('/kaggle/working/chest_xray/test/NORMAL/*')
+            test_anomaly_path = glob.glob('/kaggle/working/chest_xray/test/PNEUMONIA/*')
+
+            self.test_path = test_normal_path + test_anomaly_path
+            self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
+
+    def __len__(self):
+        return len(self.test_path)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        if self.test_id == 1:
+            dicom = pydicom.dcmread(self.test_path[idx])
+            image = dicom.pixel_array
+
+            # Convert to a PIL Image
+            image = Image.fromarray(image).convert('RGB')
+
+            # Apply the transform if it's provided
+            if self.transform is not None:
+                image = self.transform(image)
+
+            return image, self.test_label[idx], self.test_path[idx]
+
+
+        img_path = self.test_path[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.transform(img)
+
+        has_anomaly = 0 if self.test_label[idx] == 0 else 1
+
+        return img, has_anomaly, img_path

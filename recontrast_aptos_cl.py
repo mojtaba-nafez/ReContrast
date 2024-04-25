@@ -196,7 +196,7 @@ class BinaryClassifier2(nn.Module):
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
-          image_size=256):
+          image_size=256, unode_path=None):
     print_fn(_class_)
     setup_seed(111)
 
@@ -256,11 +256,19 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         cls = BinaryClassifier(in_channels)
     else:
         cls = BinaryClassifier2(2 * in_channels)
+    cls = cls.to(device)
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
-    encoder_freeze = copy.deepcopy(encoder)
-    cls = cls.to(device)
+    if unode_path is None:
+        encoder_freeze = copy.deepcopy(encoder)
+    else:
+        if model != 'res18':
+            print('Only res18 implemented!')
+            exit(1)
+        encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path)
+        encoder_freeze = encoder_freeze.to(device)
+
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
                        image_size=image_size, crop_size=crop_size, device=device, head_end=head_end)
     # for m in encoder.modules():
@@ -459,6 +467,7 @@ if __name__ == '__main__':
     parser.add_argument('--head_end', action='store_true',
                         help='put the cls head at the end of the encoder (instead of the 3rd layer)')
     parser.add_argument('--image_size', type=int, default=256)
+    parser.add_argument('--unode_path', type=str, default=None)
 
     args = parser.parse_args()
     image_size = args.image_size
@@ -491,7 +500,8 @@ if __name__ == '__main__':
         model=args.model,
         different_view=args.different_view,
         head_end=head_end,
-        image_size=image_size)
+        image_size=image_size,
+        unode_path=args.unode_path)
     # for pad in pad_size:
     #     result_list[str(pad)].append(
     #         [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])

@@ -466,6 +466,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
+    model.save_models()
     return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, \
            auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best
 

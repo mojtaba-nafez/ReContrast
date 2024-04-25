@@ -154,7 +154,7 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
         random_indices = [i for i in range(len(dataset))]
     random_samples = [dataset[i] for i in random_indices]
     try:
-        images, _, labels, _ = zip(*random_samples)
+        images, labels, _ = zip(*random_samples)
     except:
         images, labels = zip(*random_samples)
     labels = torch.tensor(labels)
@@ -312,7 +312,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         model.train(encoder_bn_train=True)
 
         loss_list = []
-        for img, label in train_dataloader:
+        for img, label, _ in train_dataloader:
             # img : [16, 3, 256, 256]
             # img = torch.cat([img, img.clone()])
 

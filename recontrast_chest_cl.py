@@ -18,6 +18,7 @@ from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
 import torch.nn as nn
+from dataset import RSNATRAIN, RSNATEST
 
 import warnings
 import copy
@@ -223,13 +224,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     train_path = '../APTOS/'
     test_path = '../APTOS/'
 
-    train_data = AptosTrain(transform=train_data_transforms)
-    test_data1 = AptosTest(transform=data_transform, test_id=1)
-    test_data2 = AptosTest(transform=data_transform, test_id=2)
+    train_data = RSNATRAIN(transform=train_data_transforms)
+    test_data1 = RSNATEST(transform=data_transform, test_id=1)
+    test_data2 = RSNATEST(transform=data_transform, test_id=3)
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
-    visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')
-    visualize_random_samples_from_clean_dataset(test_data2, f'test data aptos2')
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset rsna')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data rsna')
+    visualize_random_samples_from_clean_dataset(test_data2, f'test data cxrp')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)

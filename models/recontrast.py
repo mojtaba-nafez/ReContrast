@@ -73,6 +73,10 @@ class ReContrast(nn.Module):
         ])
         self.device = device
 
+    def save_models(self):
+        torch.save(self.decoder.state_dict(), './decoder.pt')
+        torch.save(self.encoder.state_dict(), './encoder.pt')
+        torch.save(self.encoder_freeze.state_dict(), './encoder_freeze.pt')
 
     def forward(self, x, head_end=False, eval_unode=False):
 

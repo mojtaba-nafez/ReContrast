@@ -38,7 +38,8 @@ class AptosTest(torch.utils.data.Dataset):
 
         test_normal_path = glob.glob('/kaggle/working/APTOS/test/NORMAL/*')
         test_anomaly_path = glob.glob('/kaggle/working/APTOS/test/ABNORMAL/*')
-
+        print("len test normal", len(test_normal_path))
+        print("len test anomaly", len(test_anomaly_path))
         self.test_path = test_normal_path + test_anomaly_path
         self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
 

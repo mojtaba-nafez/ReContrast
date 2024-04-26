@@ -284,7 +284,8 @@ class ResNet(nn.Module):
     def forward(self, x: Tensor, head_end=False, eval_unode=False) -> Tensor:            
         if not head_end:
             return self._forward_impl(x, eval_unode)
-        x = self.norm(x)
+        x = self.normalize(x)
+        # x = self.norm(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

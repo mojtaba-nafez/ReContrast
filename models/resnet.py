@@ -534,14 +534,14 @@ class BN_layer(nn.Module):
         return output.contiguous()
 
 
-def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, head_end=False,**kwargs: Any):
+def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, head_end=False, is_unode_model=False,**kwargs: Any):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path, head_end=head_end,
+    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path, head_end=head_end, is_unode_model=is_unode_model,
                       **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')

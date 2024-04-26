@@ -313,7 +313,7 @@ def _resnet(
         pretrained: bool,
         progress: bool,
         unode_path=None,
-        head_end=False
+        head_end=False,
         **kwargs: Any
 ) -> ResNet:
     unode = True if unode_path is not None else False

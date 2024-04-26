@@ -197,7 +197,7 @@ class BinaryClassifier2(nn.Module):
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
-          image_size=256, unode_path=None):
+          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None):
     print_fn(_class_)
     setup_seed(111)
 
@@ -269,6 +269,20 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             exit(1)
         encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path)
         encoder_freeze = encoder_freeze.to(device)
+    
+    if trainable_encoder_path is not None:
+        if model != 'res18':
+            print('Only res18 implemented!')
+            exit(1)
+        encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path)
+        encoder = encoder.to(device)
+    
+    if decoder_path is not None:
+        if model != 'res18':
+            print('Only res18 implemented!')
+            exit(1)
+        decoder = de_resnet18(pretrained=False, output_conv=2, decoder_path=decoder_path)    
+
     encoder_freeze.eval()
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
                        image_size=image_size, crop_size=crop_size, device=device, head_end=head_end)
@@ -469,6 +483,8 @@ if __name__ == '__main__':
                         help='put the cls head at the end of the encoder (instead of the 3rd layer)')
     parser.add_argument('--image_size', type=int, default=256)
     parser.add_argument('--unode_path', type=str, default=None)
+    parser.add_argument('--trainable_encoder_path', type=str, default=None)
+    parser.add_argument('--decoder_path', type=str, default=None)
 
     args = parser.parse_args()
     image_size = args.image_size
@@ -502,7 +518,9 @@ if __name__ == '__main__':
         different_view=args.different_view,
         head_end=head_end,
         image_size=image_size,
-        unode_path=args.unode_path)
+        unode_path=args.unode_path,
+        trainable_encoder_path=args.trainable_encoder_path,
+        decoder_path=args.decoder_path)
     # for pad in pad_size:
     #     result_list[str(pad)].append(
     #         [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])

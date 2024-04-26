@@ -296,17 +296,17 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             exit(1)
         encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end)
 
-    encoder = encoder.to(device)
-    bn = bn.to(device)
-    decoder = decoder.to(device)
-    encoder_freeze = encoder_freeze.to(device)
-    cls = cls.to(device)
-
     if decoder_path is not None:
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
         decoder = de_resnet18(pretrained=False, output_conv=2, decoder_path=decoder_path)    
+
+    encoder = encoder.to(device)
+    bn = bn.to(device)
+    decoder = decoder.to(device)
+    encoder_freeze = encoder_freeze.to(device)
+    cls = cls.to(device)
 
     encoder_freeze.eval()
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,

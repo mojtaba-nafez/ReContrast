@@ -314,10 +314,11 @@ def _resnet(
         progress: bool,
         unode_path=None,
         head_end=False,
+        is_unode_model=False,
         **kwargs: Any
 ) -> ResNet:
     unode = True if unode_path is not None else False
-    model = ResNet(block, layers, unode, **kwargs)
+    model = ResNet(block, layers, is_unode_model, **kwargs)
     if (not head_end):
         model.layer4 = None
         model.fc = None

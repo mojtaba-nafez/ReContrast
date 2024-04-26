@@ -286,8 +286,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
-        # dic = torch.load(unode_path)
-        # print(dic.keys())
         encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True)
 
     if trainable_encoder_path is not None:

@@ -319,7 +319,7 @@ def _resnet(
 ) -> ResNet:
     unode = True if unode_path is not None else False
     model = ResNet(block, layers, is_unode_model, **kwargs)
-    if (not head_end):
+    if (not head_end) and (not unode_path):
         model.layer4 = None
         model.fc = None
     if pretrained:

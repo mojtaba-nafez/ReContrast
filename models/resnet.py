@@ -143,6 +143,18 @@ class Bottleneck(nn.Module):
 
         return out
 
+class NormalizeLayer(nn.Module):
+    """
+    In order to certify radii in original coordinates rather than standardized coordinates, we
+    add the Gaussian noise _before_ standardizing, which is why we have standardization be the first
+    layer of the classifier rather than as a part of preprocessing as is typical.
+    """
+
+    def __init__(self):
+        super(NormalizeLayer, self).__init__()
+
+    def forward(self, inputs):
+        return (inputs - 0.5) / 0.5
 
 class ResNet(nn.Module):
 
@@ -202,9 +214,10 @@ class ResNet(nn.Module):
             self.joint_distribution_layer = nn.Linear(512 * 1, 8)
 
 
-        mu = torch.tensor([0.5, 0.5, 0.5]).view(3, 1, 1).cuda()
-        std = torch.tensor([0.5, 0.5, 0.5]).view(3, 1, 1).cuda()
+        mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
+        std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
         self.norm = lambda x: (x - mu) / std
+        self.normalize = NormalizeLayer()
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -250,7 +263,8 @@ class ResNet(nn.Module):
 
     def _forward_impl(self, x: Tensor, eval_unode=False) -> Tensor:
         # See note [TorchScript super()]
-        x = self.norm(x)
+        # x = self.norm(x)
+        x = self.normalize(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

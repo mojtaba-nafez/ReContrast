@@ -374,7 +374,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
 
 
             #  mixed score
-            mix_score = w_map[0] * pr_list_sp[-1] +  w_unode * unode_cls_list_sp[-1]
+            mix_score = w_map[0] * pr_list_sp[-1] +  unode_cls_list_sp[-1]
             mixed_list_sp.append(mix_score / 2)
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)

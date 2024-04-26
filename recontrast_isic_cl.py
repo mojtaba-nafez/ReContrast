@@ -270,7 +270,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
         encoder, bn = resnet18(pretrained=True, head_end=head_end)
-        decoder = de_resnet18(pretrained=False, output_conv=2, head_end=head_end)
+        decoder = de_resnet18(pretrained=False, output_conv=2)
         in_channels = 256
     else:
         encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end)

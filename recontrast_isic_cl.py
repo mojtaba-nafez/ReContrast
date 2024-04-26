@@ -279,10 +279,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         cls = BinaryClassifier(in_channels)
     else:
         cls = BinaryClassifier2(2 * in_channels)
-    cls = cls.to(device)
-    encoder = encoder.to(device)
-    bn = bn.to(device)
-    decoder = decoder.to(device)
+
     if unode_path is None:
         encoder_freeze = copy.deepcopy(encoder)
     else:
@@ -292,15 +289,19 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         # dic = torch.load(unode_path)
         # print(dic.keys())
         encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True)
-        encoder_freeze = encoder_freeze.to(device)
 
     if trainable_encoder_path is not None:
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
         encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end)
-        encoder = encoder.to(device)
-    
+
+    encoder = encoder.to(device)
+    bn = bn.to(device)
+    decoder = decoder.to(device)
+    encoder_freeze = encoder_freeze.to(device)
+    cls = cls.to(device)
+
     if decoder_path is not None:
         if model != 'res18':
             print('Only res18 implemented!')

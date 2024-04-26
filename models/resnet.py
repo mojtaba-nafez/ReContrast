@@ -320,7 +320,7 @@ def _resnet(
     model = ResNet(block, layers, unode, **kwargs)
     if not head_end:
         model.layer4 = None
-        model.encoder.fc = None
+        model.fc = None
     if unode:
         dic = torch.load(unode_path)
         # print('loaded keys:', dic.keys())

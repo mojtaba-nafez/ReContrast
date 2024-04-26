@@ -266,15 +266,15 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     in_channels = 1024
     if model == 'wide_res50':
-        encoder, bn = wide_resnet50_2(pretrained=True)
-        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2, head_end=head_end)
     elif model == 'res18':
-        encoder, bn = resnet18(pretrained=True)
-        decoder = de_resnet18(pretrained=False, output_conv=2)
+        encoder, bn = resnet18(pretrained=True, head_end=head_end)
+        decoder = de_resnet18(pretrained=False, output_conv=2, head_end=head_end)
         in_channels = 256
     else:
-        encoder, bn = wide_resnet50_2(pretrained=True)
-        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2, head_end=head_end)
     if not head_end:
         cls = BinaryClassifier(in_channels)
     else:
@@ -291,14 +291,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             exit(1)
         # dic = torch.load(unode_path)
         # print(dic.keys())
-        encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path)
+        encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end)
         encoder_freeze = encoder_freeze.to(device)
 
     if trainable_encoder_path is not None:
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
-        encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path)
+        encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end)
         encoder = encoder.to(device)
     
     if decoder_path is not None:

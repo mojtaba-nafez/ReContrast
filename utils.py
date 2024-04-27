@@ -348,9 +348,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         print("np.mean(cls_list_sp), max, min", np.mean(cls_list_sp), np.max(cls_list_sp), np.min(cls_list_sp))
     
         auc_1 = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
-        tmp = cls_list_sp+unode_cls_list_sp
+        tmp = list(np.array(cls_list_sp) + np.array(unode_cls_list_sp))
         auc_2 = round(roc_auc_score(gt_list_sp, tmp), 4)
-        tmp = cls_list_sp+unode_cls_list_sp+pr_list_sp
+        tmp = list(np.array(cls_list_sp) + np.array(unode_cls_list_sp) + np.array(pr_list_sp))
         auc_3 = round(roc_auc_score(gt_list_sp, ), 4)
         print("------trainable CLS------")
         print("MSP of CLS: ", auc_1)

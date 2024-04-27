@@ -257,9 +257,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         cls = BinaryClassifier(in_channels)
     else:
         cls = BinaryClassifier2(2 * in_channels)
-    cls_dic = torch.load(cls_path)
-    cls.load_state_dict(cls_dic)
-    print("cls loaded!")
+    
+    if cls_path is not None:
+        cls_dic = torch.load(cls_path)
+        cls.load_state_dict(cls_dic)
+        print("cls loaded!")
 
     if unode_path is None:
         encoder_freeze = copy.deepcopy(encoder)

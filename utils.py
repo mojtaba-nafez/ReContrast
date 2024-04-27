@@ -351,7 +351,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         tmp = list(np.array(cls_list_sp) + np.array(unode_cls_list_sp))
         auc_2 = round(roc_auc_score(gt_list_sp, tmp), 4)
         tmp = list(np.array(cls_list_sp) + np.array(unode_cls_list_sp) + np.array(pr_list_sp))
-        auc_3 = round(roc_auc_score(gt_list_sp, ), 4)
+        auc_3 = round(roc_auc_score(gt_list_sp, tmp), 4)
         print("------trainable CLS------")
         print("MSP of CLS: ", auc_1)
         print("MIX with unode msp: ", auc_2)

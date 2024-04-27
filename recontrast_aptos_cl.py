@@ -276,7 +276,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
-        decoder = de_resnet18(pretrained=False, output_conv=2, decoder_path=decoder_path)    
+        decoder = de_resnet18(pretrained=True, output_conv=2, decoder_path=decoder_path)    
 
     encoder = encoder.to(device)
     bn = bn.to(device)

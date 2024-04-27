@@ -221,7 +221,7 @@ class BinaryClassifier2(nn.Module):
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
-          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None):
+          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None):
     print_fn(_class_)
     setup_seed(111)
 
@@ -280,6 +280,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     else:
         cls = BinaryClassifier2(2 * in_channels)
 
+    cls_dic = torch.load(cls_path)
+    cls.load_state_dict(cls_dic)
+    print("cls loaded!")
     if unode_path is None:
         encoder_freeze = copy.deepcopy(encoder)
     else:
@@ -511,6 +514,7 @@ if __name__ == '__main__':
                         help='put the cls head at the end of the encoder (instead of the 3rd layer)')
     parser.add_argument('--trainable_encoder_path', type=str, default=None)
     parser.add_argument('--decoder_path', type=str, default=None)
+    parser.add_argument('--cls_path', type=str, default=None)
 
     args = parser.parse_args()
 
@@ -549,7 +553,8 @@ if __name__ == '__main__':
         image_size=image_size,
         unode_path=unode_path,
         trainable_encoder_path=args.trainable_encoder_path,
-        decoder_path=args.decoder_path)
+        decoder_path=args.decoder_path,
+        cls_path=args.cls_path)
     '''
     for pad in pad_size:
         result_list[str(pad)].append(

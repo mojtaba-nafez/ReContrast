@@ -268,7 +268,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             cls_list_unode_normal = []
             for img, label in train_loader:
                 img = img.to(device)
-                # -------------------normal--------------------------
                 if not head_end:
                     en, de = model(img, head_end=head_end)
                     cls_output = cls(en[5])
@@ -288,48 +287,14 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp_normal.append(np.mean(anomaly_map))
 
                 unode_cls = model(img, eval_unode=True)
-                
-                # unode_cls = F.softmax(unode_cls, dim=1)[:, 0]
-                # cls_list_unode_normal.append(unode_cls.cpu().numpy()[0])
-                
                 unode_cls_score = unode_cls[:, 0]
                 cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
 
-                # -------------------cutpaste------------------
-                # img_cutpaste = anomaly_transforms(img)
-                # if not head_end:
-                #     en, de = model(img_cutpaste, head_end=head_end)
-                #     cls_output = cls(en[5])
-                # else:
-                #     en, de, en3 = model(img_cutpaste, head_end=head_end)
-                #     cls_output = cls(en3)
-                #
-                # cls_score = cls_output[:, 1]
-                # cls_list_sp_anomaly.append(cls_score.cpu().numpy())
-                #
-                # anomaly_map, _ = cal_anomaly_map(en, de, img_cutpaste.shape[-1], amap_mode='a')
-                # anomaly_map = gaussian_filter(anomaly_map, sigma=4)
-                # gt_list_sp_anomaly.append(1)
-                # if reduction == 'max':
-                #     pr_list_sp_anomaly.append(np.max(anomaly_map))
-                # elif reduction == 'mean':
-                #     pr_list_sp_anomaly.append(np.mean(anomaly_map))
-
-            # print(pr_list_sp_normal)
             w_map[0] = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
-            # w_map[1] = 1 / (np.sum(pr_list_sp_anomaly) / len(pr_list_sp_anomaly))
-            # print('sum', np.sum(cls_list_sp_normal))
-            # print('len', len(cls_list_sp_normal))
-            # print('div',  ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal))))
             w_msp[0] = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))
-            # w_msp[1] = 1 / (np.sum(cls_list_sp_anomaly) / len(cls_list_sp_anomaly))
-
             w_unode = 1 / ((np.sum(cls_list_unode_normal) / len(cls_list_unode_normal)))
 
             print(f'weight of max map score (normal): {w_map[0]}')
-            # print(f'weight of max map score (cutpaste): {w_map[1]}')
-            # print(f'weight of msp score (normal): {w_msp[0]}')
-            # print(f'weight of msp score (cutpaste): {w_msp[1]}')
             print(f'weight of unode msp score (normal): {w_unode}')
 
     gt_list_sp = []
@@ -360,18 +325,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             elif reduction == 'mean':
                 pr_list_sp.append(np.mean(anomaly_map))
 
-            #  mixed score
-            # mix_score = w_map[0] * pr_list_sp[-1] + w_msp[0] * cls_list_sp[-1]
-            # mixed_list_sp.append(mix_score / 2)
-            
             unode_cls = model(img, eval_unode=True)
-            
-            # unode_cls = F.softmax(unode_cls, dim=1)[:, 0]
-            # unode_cls_list_sp.append(unode_cls.cpu().numpy()[0])
-            
             unode_cls_score = w_unode * unode_cls[:, 0] * -1
             unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
-
 
             #  mixed score
             mix_score = w_map[0] * pr_list_sp[-1] +  unode_cls_list_sp[-1]
@@ -380,11 +336,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
+
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
-
-        # auroc_sp_msp = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
         auroc_sp_msp = round(roc_auc_score(gt_list_sp, unode_cls_list_sp), 4)
-
         auroc_mixed = round(roc_auc_score(gt_list_sp, mixed_list_sp), 4)
         print("np.mean(unode_cls_list_sp), max, min", np.mean(unode_cls_list_sp), np.max(unode_cls_list_sp), np.min(unode_cls_list_sp))
         print("np.mean(pr_list_sp), max, min", np.mean(pr_list_sp), np.max(pr_list_sp), np.min(pr_list_sp))

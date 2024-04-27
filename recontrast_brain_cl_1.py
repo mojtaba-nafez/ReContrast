@@ -73,7 +73,7 @@ class BrainTrain(torch.utils.data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         self.image_paths = glob.glob('./Br35H/dataset/train/normal/*')
-        brats_mod = glob('./brats/dataset/train/normal/*')
+        brats_mod = glob.glob('./brats/dataset/train/normal/*')
         random.seed(1)
         random_brats_images = random.sample(brats_mod, 150)
         self.image_paths.extend(random_brats_images)

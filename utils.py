@@ -252,19 +252,15 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                            train_loader=None, anomaly_transforms=None):
     model.eval()
     cls.eval()
-    # calculating w1 and w2
-    w_map = 0  # index[0] --> normal, index[1] --> cutpaste
+    w_map = 0
     w_msp = 0
     w_unode = 0
     cls_weight = 0
     if train_loader is not None:
         with torch.no_grad():
             gt_list_sp_normal = []
-            gt_list_sp_anomaly = []
             pr_list_sp_normal = []
-            pr_list_sp_anomaly = []
             cls_list_sp_normal = []
-            cls_list_sp_anomaly = []
 
             cls_list_unode_normal = []
             for img, label in train_loader:
@@ -331,33 +327,42 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             unode_cls_score = w_unode * unode_cls[:, 0] * -1
             unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
 
-            #  mixed score
-            mix_score = pr_list_sp[-1] +  unode_cls_list_sp[-1]
-            mixed_list_sp.append(mix_score / 2)
-
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
 
-        auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
-        auroc_sp_msp_unode = round(roc_auc_score(gt_list_sp, unode_cls_list_sp), 4)
-        auroc_mixed = round(roc_auc_score(gt_list_sp, mixed_list_sp), 4)
 
         print("np.mean(unode_cls_list_sp), max, min", np.mean(unode_cls_list_sp), np.max(unode_cls_list_sp), np.min(unode_cls_list_sp))
         print("np.mean(pr_list_sp), max, min", np.mean(pr_list_sp), np.max(pr_list_sp), np.min(pr_list_sp))
         print("np.mean(cls_list_sp), max, min", np.mean(cls_list_sp), np.max(cls_list_sp), np.min(cls_list_sp))
     
-        auc_1 = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
-        tmp = list(np.array(cls_list_sp) + np.array(unode_cls_list_sp))
-        auc_2 = round(roc_auc_score(gt_list_sp, tmp), 4)
-        tmp = list(np.array(cls_list_sp) + np.array(unode_cls_list_sp) + np.array(pr_list_sp))
-        auc_3 = round(roc_auc_score(gt_list_sp, tmp), 4)
-        print("------trainable CLS------")
-        print("MSP of CLS: ", auc_1)
-        print("MIX with unode msp: ", auc_2)
-        print("MIX with unode msp and recontrast diff: ", auc_3)
-        print('--------------------------')
-    return auroc_sp, f1, acc, auroc_sp_msp_unode, auroc_mixed
+        cls_auc = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
+        recon_diff_auc = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
+        unode_auc = round(roc_auc_score(gt_list_sp, unode_cls_list_sp), 4)
+        
+        mix_unode_diff = round(roc_auc_score(gt_list_sp, \
+            list(np.array(unode_cls_list_sp)) + np.array(pr_list_sp)), 4)
+        mix_unode_cls = round(roc_auc_score(gt_list_sp, \
+            list(np.array(unode_cls_list_sp) + np.array(cls_list_sp))), 4)
+        mix_cls_diff = round(roc_auc_score(gt_list_sp, \
+            list(np.array(cls_list_sp) + np.array(pr_list_sp))), 4)
+        
+        mix_cls_unode_diff = round(roc_auc_score(gt_list_sp, \
+            list(np.array(cls_list_sp) + np.array(unode_cls_list_sp) + np.array(pr_list_sp))), 4)
+        
+        
+        print("----------------------------------")
+        print("CLS: ", cls_auc)
+        print("Recon_Diff: ", recon_diff_auc)
+        print("Unode: ", unode_auc)
+
+        print("Unode + Recon_Diff: ", mix_unode_diff)
+        print("Unode + CLS: ", mix_unode_cls)
+        print("Recon_Diff + CLS: ", mix_cls_diff)
+        
+        print("Unode + CLS + Recon_Diff: ", mix_cls_unode_diff)
+        print("----------------------------------")
+    return cls_auc, f1, acc, unode_auc, mix_unode_diff
 
 
 def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0, cls=None, head_end=False):

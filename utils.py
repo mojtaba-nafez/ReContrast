@@ -362,7 +362,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         
         print("Unode + CLS + Recon_Diff: ", mix_cls_unode_diff)
         print("----------------------------------")
-    return cls_auc, f1, acc, unode_auc, mix_unode_diff
+    return recon_diff_auc, f1, acc, unode_auc, mix_unode_diff
 
 
 def evaluation(model, dataloader, device, _class_=None, calc_pro=True, max_ratio=0, cls=None, head_end=False):

@@ -327,7 +327,8 @@ def _resnet(
     if pretrained:
         if decoder_path is not None:
             dic = torch.load(decoder_path)
-            model.load_state_dict(dic, strict=False)
+            model.load_state_dict(dic)
+            print('decoder loaded')
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],
                                                   progress=progress)

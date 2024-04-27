@@ -253,9 +253,10 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     model.eval()
     cls.eval()
     # calculating w1 and w2
-    w_map = [0, 0]  # index[0] --> normal, index[1] --> cutpaste
-    w_msp = [0, 0]
+    w_map = 0  # index[0] --> normal, index[1] --> cutpaste
+    w_msp = 0
     w_unode = 0
+    cls_weight = 0
     if train_loader is not None:
         with torch.no_grad():
             gt_list_sp_normal = []
@@ -275,7 +276,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     en, de, en3 = model(img, head_end=head_end)
                     cls_output = cls(en3)
                 
-                cls_score = cls_output[:, 1]
+                cls_score = cls_output[:, 0]
                 cls_list_sp_normal.append(cls_score.cpu().numpy()[0])
 
                 anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
@@ -290,11 +291,12 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 unode_cls_score = unode_cls[:, 0]
                 cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
 
-            w_map[0] = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
-            w_msp[0] = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))
+            w_map = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
+            cls_weight = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))
             w_unode = 1 / ((np.sum(cls_list_unode_normal) / len(cls_list_unode_normal)))
 
-            print(f'weight of max map score (normal): {w_map[0]}')
+            print(f'weight of max map score (normal): {w_map}')
+            print(f'weight of CLS msp score (normal): {cls_weight}')
             print(f'weight of unode msp score (normal): {w_unode}')
 
     gt_list_sp = []
@@ -314,23 +316,23 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 en, de, en3 = model(img, head_end=head_end)
                 cls_output = cls(en3)
 
-            cls_score = F.softmax(cls_output, dim=1)[:, 1]
+            cls_score = cls_weight * cls_output[:, 0] * -1
             cls_list_sp.append(cls_score.cpu().numpy()[0])
 
             anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
             anomaly_map = gaussian_filter(anomaly_map, sigma=4)
             gt_list_sp.append(label.item())
             if reduction == 'max':
-                pr_list_sp.append(np.max(anomaly_map))
+                pr_list_sp.append(w_map * np.max(anomaly_map))
             elif reduction == 'mean':
-                pr_list_sp.append(np.mean(anomaly_map))
+                pr_list_sp.append(w_map * np.mean(anomaly_map))
 
             unode_cls = model(img, eval_unode=True)
             unode_cls_score = w_unode * unode_cls[:, 0] * -1
             unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
 
             #  mixed score
-            mix_score = w_map[0] * pr_list_sp[-1] +  unode_cls_list_sp[-1]
+            mix_score = pr_list_sp[-1] +  unode_cls_list_sp[-1]
             mixed_list_sp.append(mix_score / 2)
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
@@ -340,8 +342,21 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         auroc_sp = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
         auroc_sp_msp_unode = round(roc_auc_score(gt_list_sp, unode_cls_list_sp), 4)
         auroc_mixed = round(roc_auc_score(gt_list_sp, mixed_list_sp), 4)
+
         print("np.mean(unode_cls_list_sp), max, min", np.mean(unode_cls_list_sp), np.max(unode_cls_list_sp), np.min(unode_cls_list_sp))
         print("np.mean(pr_list_sp), max, min", np.mean(pr_list_sp), np.max(pr_list_sp), np.min(pr_list_sp))
+        print("np.mean(cls_list_sp), max, min", np.mean(cls_list_sp), np.max(cls_list_sp), np.min(cls_list_sp))
+    
+        auc_1 = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
+        tmp = cls_list_sp+unode_cls_list_sp
+        auc_2 = round(roc_auc_score(gt_list_sp, tmp), 4)
+        tmp = cls_list_sp+unode_cls_list_sp+pr_list_sp
+        auc_3 = round(roc_auc_score(gt_list_sp, ), 4)
+        print("------trainable CLS------")
+        print("MSP of CLS: ", auc_1)
+        print("MIX with unode msp: ", auc_2)
+        print("MIX with unode msp and recontrast diff: ", auc_3)
+        print('--------------------------')
     return auroc_sp, f1, acc, auroc_sp_msp_unode, auroc_mixed
 
 

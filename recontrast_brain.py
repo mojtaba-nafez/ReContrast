@@ -399,7 +399,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                  train_loader=train_dataloader2,
                                                                  anomaly_transforms=anomaly_transforms)
                 print_fn(
-                    'Shrink Factor:{}, CSL Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, CLS + UNODE:{:.3f}'.format(
+                    'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
                         shrink_factor,
                         auroc_px_list[
                             str(shrink_factor)],
@@ -428,7 +428,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                  train_loader=train_dataloader2,
                                                                  anomaly_transforms=anomaly_transforms)
                 print_fn(
-                    'Shrink Factor:{}, CSL Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, CLS + UNODE:{:.3f}'.format(
+                    'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
                         shrink_factor,
                         auroc_px_list[
                             str(shrink_factor)],

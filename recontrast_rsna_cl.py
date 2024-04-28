@@ -1,8 +1,7 @@
 import torch
-from dataset import get_data_transforms, get_strong_transforms
+from dataset import get_data_transforms, get_strong_transforms, RSNATEST, RSNATRAIN
 from torchvision.datasets import ImageFolder
 import numpy as np
-import torch.nn as nn
 import random
 import os
 from torch.utils.data import DataLoader
@@ -11,66 +10,73 @@ from models.de_resnet import de_wide_resnet50_2, de_resnet18, de_resnet34, de_re
 from models.recontrast import ReContrast, ReContrast
 import torch.backends.cudnn as cudnn
 import argparse
-from utils import evaluation, visualize, global_cosine, modify_grad, NT_xent, contrastive_loss, evaluation_noseg_brain
+from utils import evaluation, visualize, global_cosine, global_cosine_hm, NT_xent, contrastive_loss, \
+    evaluation_noseg_brain
 from torch.nn import functional as F
 from functools import partial
 from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
-import glob
-from PIL import Image
+import torch.nn as nn
+
 import warnings
 import copy
 import logging
-from cutpaste_transformation import *
+import glob
 import pandas as pd
+from PIL import Image
+from cutpaste_transformation import *
 
 warnings.filterwarnings("ignore")
 
 
-class ISICTest(torch.utils.data.Dataset):
+class BrainTest(torch.utils.data.Dataset):
     def __init__(self, transform, test_id=1):
+
         self.transform = transform
         self.test_id = test_id
 
-        test_normal_path = glob.glob('/kaggle/input/isic-task3-dataset/dataset/test/NORMAL/*')
-        test_anomaly_path = glob.glob('/kaggle/input/isic-task3-dataset/dataset/test/ABNORMAL/*')
+        test_normal_path = glob.glob('./Br35H/dataset/test/normal/*')
+        test_anomaly_path = glob.glob('./Br35H/dataset/test/anomaly/*')
 
         self.test_path = test_normal_path + test_anomaly_path
         self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
 
         if self.test_id == 2:
-            df = pd.read_csv('/kaggle/input/pad-ufes-20/PAD-UFES-20/metadata.csv')
+            test_normal_path = glob.glob('./brats/dataset/test/normal/*')
+            test_anomaly_path = glob.glob('./brats/dataset/test/anomaly/*')
 
-            shifted_test_label = df["diagnostic"].to_numpy()
-            shifted_test_label = (shifted_test_label != "NEV")
-
-            shifted_test_path = df["img_id"].to_numpy()
-            shifted_test_path = '/kaggle/input/pad-ufes-20/PAD-UFES-20/Dataset/' + shifted_test_path
-
-            self.test_path = shifted_test_path
-            self.test_label = shifted_test_label
+            self.test_path = test_normal_path + test_anomaly_path
+            self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
 
     def __len__(self):
         return len(self.test_path)
 
     def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
         img_path = self.test_path[idx]
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
 
         has_anomaly = 0 if self.test_label[idx] == 0 else 1
 
+        # this is fake:)
         gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
         gt[:, :, 1:3] = 1
-
+        # return img, , has_anomaly, img_path
         return img, gt, has_anomaly, img_path
 
 
-class ISICTrain(torch.utils.data.Dataset):
+class BrainTrain(torch.utils.data.Dataset):
     def __init__(self, transform):
         self.transform = transform
-        self.image_paths = glob.glob('/kaggle/input/isic-task3-dataset/dataset/train/NORMAL/*')
+        self.image_paths = glob.glob('./Br35H/dataset/train/normal/*')
+        brats_mod = glob.glob('./brats/dataset/train/normal/*')
+        random.seed(1)
+        random_brats_images = random.sample(brats_mod, 150)
+        self.image_paths.extend(random_brats_images)
 
     def __len__(self):
         return len(self.image_paths)
@@ -80,6 +86,7 @@ class ISICTrain(torch.utils.data.Dataset):
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
         return img, 0
+
 
 
 def get_logger(name, save_path=None, level='INFO'):
@@ -151,40 +158,6 @@ def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     show_images(images, labels, dataset_name)
 
 
-def global_cosine_hm_1(a, b, anomaly_data, alpha=1., factor=0.):
-    # a(enc), b(dec): [[16,256,64,64], [16,512,32,32], [16,1024,16,16]]
-    cos_loss = torch.nn.CosineSimilarity()
-    loss = 0
-    weight = [1, 1, 1]
-    for item in range(len(a)):
-        a_ = a[item].detach()
-        b_ = b[item]
-
-        a_ = a_[anomaly_data == 1]
-        b_ = b_[anomaly_data == 1]
-        if (len(a_) < 1) or (len(b_) < 1):
-            print("a_, b_", a_, b_)
-            print("a, b", a, b)
-            print("anomaly_data:", anomaly_data)
-            continue
-
-        with torch.no_grad():
-            point_dist = 1 - cos_loss(a_, b_).unsqueeze(1)
-
-        # mean_dist, std_dist: just are a number
-        mean_dist = point_dist.mean()
-        std_dist = point_dist.reshape(-1).std()
-
-        # cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)): torch.Size([8])
-        # loss += (torch.mean((1 - cos_loss(a_.view(a_.shape[0], -1),b_.view(b_.shape[0], -1)))*anomaly_data)) * weight[item]
-        loss += torch.mean(1 - cos_loss(a_.view(a_.shape[0], -1), b_.view(b_.shape[0], -1))) * weight[item]
-        thresh = mean_dist + alpha * std_dist
-        partial_func = partial(modify_grad, inds=point_dist < thresh, factor=factor)
-        b_.register_hook(partial_func)
-
-    return loss
-
-
 class BinaryClassifier(nn.Module):
     def __init__(self, in_channels=1024):
         super(BinaryClassifier, self).__init__()
@@ -243,27 +216,29 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             transforms.ToTensor(),
             transforms.CenterCrop(crop_size),
         ])
-    data_transform, gt_transform = get_data_transforms(image_size, crop_size)
+    data_transform, gt_transform = get_data_transforms(image_size, image_size)
 
-    train_path = '../ISIC2018/'
-    test_path = '../ISIC2018/'
+    train_data = RSNATRAIN(transform=data_transform)
+    test_data1 = RSNATEST(transform=data_transform, test_id=1)
+    test_data2 = RSNATEST(transform=data_transform, test_id=2)
+    test_data3 = RSNATEST(transform=data_transform, test_id=3)
 
-    train_data = ISICTrain(transform=train_data_transforms)
-    test_data1 = ISICTest(transform=data_transform, test_id=1)
-    test_data2 = ISICTest(transform=data_transform, test_id=2)
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset isic')
-    visualize_random_samples_from_clean_dataset(test_data1, f'test data isic1')
-    visualize_random_samples_from_clean_dataset(test_data2, f'test data isic2')
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset RSNA')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data RSNA')
+    visualize_random_samples_from_clean_dataset(test_data3, f'test data CXRP')
 
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True)
+
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
+                                                   drop_last=False)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader3 = torch.utils.data.DataLoader(test_data3, batch_size=1, shuffle=False, num_workers=1)
 
-    # visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
-    # visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)
-
+    print('len Trainset(main)', len(train_dataloader))
+    print('len Testset(main)', len(test_dataloader1))
+    print('len Testset(shifted CXRP)', len(test_dataloader3))
+    
     in_channels = 1024
     if model == 'wide_res50':
         encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end)
@@ -284,7 +259,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         cls_dic = torch.load(cls_path)
         cls.load_state_dict(cls_dic)
         print("cls loaded!")
-    
+
     if unode_path is None:
         encoder_freeze = copy.deepcopy(encoder)
     else:
@@ -310,13 +285,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     decoder = decoder.to(device)
     encoder_freeze = encoder_freeze.to(device)
     cls = cls.to(device)
-
+    
     encoder_freeze.eval()
     model = ReContrast(encoder=encoder, encoder_freeze=encoder_freeze, bottleneck=bn, decoder=decoder,
                        image_size=image_size, crop_size=crop_size, device=device, head_end=head_end)
     # for m in encoder.modules():
     #     if isinstance(m, torch.nn.BatchNorm2d):
     #         m.eps = 1e-8
+
     criterion = nn.CrossEntropyLoss()
     optimizer_cls = torch.optim.AdamW(list(cls.parameters()), lr=1e-3, betas=(0.9, 0.999), weight_decay=1e-5)
     optimizer = torch.optim.AdamW(list(decoder.parameters()) + list(bn.parameters()),
@@ -345,6 +321,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     auroc_cls_auc_list = {"main": 0, "shifted": 0}
     auroc_cls_auc_list_best = {"main": 0, "shifted": 0}
 
+    auroc_mixed_auc_list = {"main": 0, "shifted": 0}
+    auroc_mixed_auc_list_best = {"main": 0, "shifted": 0}
+
     auroc_mix_auc_list = {"main": 0, "shifted": 0}
     auroc_mix_auc_list_best = {"main": 0, "shifted": 0}
 
@@ -352,7 +331,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         transforms.ToPILImage(),
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
-
+    print('len(train_dataloader):', len(train_dataloader))
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=True)
@@ -384,13 +363,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
-            loss = None
-            if sum(anomaly_data[anomaly_data == 1]) > 0:
-                loss1 = global_cosine_hm_1(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
-                        global_cosine_hm_1(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
-                loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
-                        (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
-                loss = loss1 + loss2 + cls_loss
+
+            loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
+                    global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
+            loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
+                    (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
+            loss = loss1 + loss2 + cls_loss
             '''
             loss2 = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=0) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=1) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2)
             loss3 = contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=0) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=1) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2)
@@ -398,20 +376,16 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             '''
             # loss = global_cosine(en[:3], de[:3], stop_grad=False) / 2 + \
             #        global_cosine(en[3:], de[3:], stop_grad=False) / 2
-
             optimizer_cls.zero_grad()
             optimizer.zero_grad()
             optimizer2.zero_grad()
-            try:
-                loss.backward()
-            except:
-                print("loss has not grad!")
-                continue
+            loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
             optimizer_cls.step()
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
+
             if (it + 1) % evaluation_epochs == 0:
                 cls.eval()
                 model.train(mode=False)
@@ -449,7 +423,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                 auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
                     str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)], auroc_mix_auc_list[
                     str(shrink_factor)] = evaluation_noseg_brain(model,
-                                                                 test_dataloader2,
+                                                                 test_dataloader3,
                                                                  device,
                                                                  cls=cls,
                                                                  head_end=head_end,
@@ -481,13 +455,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             if it == total_iters:
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
-
+    
     model.save_models()
     torch.save(cls.state_dict(), './cls.pt')
-
     # visualize(model, test_dataloader, device, _class_=_class_, save_name=args.save_name)
-    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, \
-           auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best
+    return auroc_px_list, auroc_sp_list, auroc_aupro_px_list, auroc_cls_auc_list, auroc_mixed_auc_list, \
+           auroc_px_list_best, auroc_sp_list_best, auroc_aupro_px_list_best, auroc_cls_auc_list_best, auroc_mixed_auc_list_best
 
 
 if __name__ == '__main__':
@@ -508,26 +481,22 @@ if __name__ == '__main__':
     parser.add_argument('--training_using_pad', action='store_true')
     parser.add_argument('--max_ratio', type=float, default=0)
     parser.add_argument('--augmented_view', action='store_true')
-    parser.add_argument('--different_view', action='store_true')
     parser.add_argument('--model', type=str, default='wide_res50')
     parser.add_argument('--item_list', type=str, default='0,15')
-    parser.add_argument('--image_size', type=int, default=256)
-    parser.add_argument('--unode_path', type=str, default=None)
+    parser.add_argument('--different_view', action='store_true')
     parser.add_argument('--head_end', action='store_true',
                         help='put the cls head at the end of the encoder (instead of the 3rd layer)')
+    parser.add_argument('--image_size', type=int, default=256)
+    parser.add_argument('--unode_path', type=str, default=None)
     parser.add_argument('--trainable_encoder_path', type=str, default=None)
     parser.add_argument('--decoder_path', type=str, default=None)
     parser.add_argument('--cls_path', type=str, default=None)
 
     args = parser.parse_args()
-
-    unode_path = args.unode_path
     image_size = args.image_size
 
     if args.training_shrink_factor:
         args.training_using_pad = True
-
-    # item_list = ['toothbrush']
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
     print_fn = logger.info
@@ -540,9 +509,9 @@ if __name__ == '__main__':
     result_list = {"main": [], "shifted": []}
     result_list_best = {"main": [], "shifted": []}
     pad_size = ["main", "shifted"]
-    item = 'isic'
+    item = 'brain'
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
-    auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
+    auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_mixed, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best, auroc_mixed_best = train(
         item,
         shrink_factor=args.shrink_factor,
         total_iters=args.total_iters,
@@ -552,21 +521,20 @@ if __name__ == '__main__':
         augmented_view=args.augmented_view,
         batch_size=args.batch_size,
         model=args.model,
+        different_view=args.different_view,
         head_end=head_end,
         image_size=image_size,
-        unode_path=unode_path,
+        unode_path=args.unode_path,
         trainable_encoder_path=args.trainable_encoder_path,
         decoder_path=args.decoder_path,
         cls_path=args.cls_path)
+    # for pad in pad_size:
+    #     result_list[str(pad)].append(
+    #         [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
+    #     result_list_best[str(pad)].append(
+    #         [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)],
+    #          auroc_sp_cls_best[str(pad)]])
     '''
-    for pad in pad_size:
-        result_list[str(pad)].append(
-            [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])
-        result_list_best[str(pad)].append(
-            [item, auroc_px_best[str(pad)], auroc_sp_best[str(pad)], aupro_px_best[str(pad)],
-             auroc_sp_cls_best[str(pad)]])
-
-    
     for pad in pad_size:
         print(f'-------- shrink factor = {pad} --------')
         mean_auroc_px = np.mean([result[1] for result in result_list[str(pad)]])

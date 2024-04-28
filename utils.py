@@ -337,7 +337,7 @@ def evaluation_noseg(model, dataloader, device, _class_=None, reduction='max'):
     gt_list_sp = []
     pr_list_sp = []
     with torch.no_grad():
-        for img, label, _ in dataloader:
+        for img, label in dataloader:
             img = img.to(device)
             en, de = model(img)
 

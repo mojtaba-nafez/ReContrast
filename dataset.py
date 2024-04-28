@@ -527,7 +527,7 @@ class RSNATRAIN(torch.utils.data.Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        return image, 0, self.image_paths[idx]
+        return image, 0
 
 class RSNATEST(torch.utils.data.Dataset):
     def __init__(self, transform, test_id=1):
@@ -585,5 +585,7 @@ class RSNATEST(torch.utils.data.Dataset):
 
         has_anomaly = 0 if self.test_label[idx] == 0 else 1
 
-        return img, has_anomaly, img_path
+        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+        gt[:, :, 1:3] = 1
+        return img, gt, has_anomaly, img_path
 

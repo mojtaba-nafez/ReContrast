@@ -510,7 +510,7 @@ class Train_Visa(torch.utils.data.Dataset):
 class RSNATRAIN(torch.utils.data.Dataset):
     def __init__(self, transform):
         self.transform = transform
-        self.image_paths = glob.glob('/kaggle/working/train/normal/*')
+        self.image_paths = glob.glob('/kaggle/working/ReContrast/train/normal/*')
 
 
     def __len__(self):
@@ -535,25 +535,25 @@ class RSNATEST(torch.utils.data.Dataset):
         self.transform = transform
         self.test_id = test_id
 
-        test_normal_path = glob.glob('/kaggle/working/test/normal/*')
-        test_anomaly_path = glob.glob('/kaggle/working/test/anomaly/*')
+        test_normal_path = glob.glob('/kaggle/working/ReContrast/test/normal/*')
+        test_anomaly_path = glob.glob('/kaggle/working/ReContrast/test/anomaly/*')
 
         self.test_path = test_normal_path + test_anomaly_path
         self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
 
         if self.test_id == 2:
-            shifted_test_normal_path = glob.glob('/kaggle/working/4. Operations Department/Test/1/*')
-            shifted_test_anomaly_path = (glob.glob('/kaggle/working/4. Operations Department/Test/0/*') + glob.glob(
-                '/kaggle/working/4. Operations Department/Test/2/*') +
-                glob.glob('/kaggle/working/4. Operations Department/Test/3/*'))
+            shifted_test_normal_path = glob.glob('/kaggle/working/ReContrast/4. Operations Department/Test/1/*')
+            shifted_test_anomaly_path = (glob.glob('/kaggle/working/ReContrast/4. Operations Department/Test/0/*') + glob.glob(
+                '/kaggle/working/ReContrast/4. Operations Department/Test/2/*') +
+                glob.glob('/kaggle/working/ReContrast/4. Operations Department/Test/3/*'))
 
             self.test_path = shifted_test_normal_path + shifted_test_anomaly_path
             self.test_label = [0] * len(shifted_test_normal_path) + [1] * len(shifted_test_anomaly_path)
 
 
         if self.test_id == 3:
-            test_normal_path = glob.glob('/kaggle/working/chest_xray/test/NORMAL/*')
-            test_anomaly_path = glob.glob('/kaggle/working/chest_xray/test/PNEUMONIA/*')
+            test_normal_path = glob.glob('/kaggle/working/ReContrast/chest_xray/test/NORMAL/*')
+            test_anomaly_path = glob.glob('/kaggle/working/ReContrast/chest_xray/test/PNEUMONIA/*')
 
             self.test_path = test_normal_path + test_anomaly_path
             self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)

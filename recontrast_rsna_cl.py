@@ -237,9 +237,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader3 = torch.utils.data.DataLoader(test_data3, batch_size=1, shuffle=False, num_workers=1)
 
-    print('len Trainset(main)', len(train_dataloader))
-    print('len Testset(main)', len(test_dataloader1))
-    print('len Testset(shifted CXRP)', len(test_dataloader3))
+    print('len Trainset(main)', len(train_data))
+    print('len Testset(main)', len(test_data1))
+    print('len Testset(shifted CXRP)', len(test_data3))
     
     in_channels = 1024
     if model == 'wide_res50':

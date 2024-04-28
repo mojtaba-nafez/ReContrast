@@ -576,7 +576,7 @@ class RSNATEST(torch.utils.data.Dataset):
             if self.transform is not None:
                 image = self.transform(image)
 
-            gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+            gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
             gt[:, :, 1:3] = 1
             has_anomaly = 0 if self.test_label[idx] == 0 else 1
             return image, gt, has_anomaly, self.test_path[idx]

@@ -147,6 +147,8 @@ def show_images(images, labels, dataset_name):
 
 def visualize_random_samples_from_clean_dataset(dataset, dataset_name):
     print(f"Start visualization of clean dataset: {dataset_name}")
+    print(len(dataset))
+    print(type(dataset[0]))
     if len(dataset) > 20:
         random_indices = random.sample(range(len(dataset)), 20)
     else:
@@ -191,9 +193,9 @@ def train(_class_, model='wide_res50', batch_size=16, total_iters=2000, evaluati
     test_dataloader_landbg = torch.utils.data.DataLoader(test_data_landbg, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader_waterbg = torch.utils.data.DataLoader(test_data_waterbg, batch_size=1, shuffle=False, num_workers=1)
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset isic')
-    visualize_random_samples_from_clean_dataset(test_dataloader_landbg, f'test data isic1')
-    visualize_random_samples_from_clean_dataset(test_dataloader_waterbg, f'test data isic2')
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset waterbirds')
+    visualize_random_samples_from_clean_dataset(test_dataloader_landbg, f'test data waterbirds landbg')
+    visualize_random_samples_from_clean_dataset(test_dataloader_waterbg, f'test data waterbirds waterbg')
 
     if model == 'wide_res50':
         encoder, bn = wide_resnet50_2(pretrained=True)

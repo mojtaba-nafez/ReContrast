@@ -224,9 +224,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     test_data3 = RSNATEST(transform=data_transform, test_id=3)
 
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset RSNA')
-    visualize_random_samples_from_clean_dataset(test_data1, f'test data RSNA')
-    visualize_random_samples_from_clean_dataset(test_data3, f'test data CXRP')
+    # visualize_random_samples_from_clean_dataset(train_data, 'train dataset RSNA')
+    # visualize_random_samples_from_clean_dataset(test_data1, f'test data RSNA')
+    # visualize_random_samples_from_clean_dataset(test_data3, f'test data CXRP')
 
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,

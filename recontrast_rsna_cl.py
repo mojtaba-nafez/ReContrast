@@ -345,32 +345,16 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
             img = img.to(device)
             anomaly_data = np.ones(len(img))
-            anomaly_data[int(len(anomaly_data) / 2):] = 1
-            for i in range(len(anomaly_data)):
-                if anomaly_data[i] == -1:
-                    img[i] = anomaly_transforms(img[i])
-            anomaly_data = torch.tensor(anomaly_data).to(device)
-            # we also need one where instead on -1s we have 1s
-            anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]
             anomaly_one = torch.tensor(anomaly_one).to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
-            if not head_end:
-                en, de = model(img, head_end=head_end)
-                # cls_output = cls(en[5])
-            else:
-                en, de, en3 = model(img, head_end=head_end)
-                # cls_output = cls(en3)
-
-            # cls_loss = criterion(cls_output, anomaly_one.to(torch.int64))
+            en, de = model(img)
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)
 
-            loss1 = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
+            loss = global_cosine_hm(en[:3], de[:3], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2 + \
                     global_cosine_hm(en[3:], de[3:], anomaly_data=anomaly_data, alpha=alpha, factor=0.) / 2
-            # loss2 = (contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2) / 2) + \
-            #         (contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2) / 2)
-            loss = loss1 # + loss2 + cls_loss
+            
             '''
             loss2 = contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=0) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=1) + contrastive_loss(en[:3], de[:3], anomaly_data=anomaly_data, layer_num=2)
             loss3 = contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=0) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=1) +  contrastive_loss(en[3:], de[3:], anomaly_data=anomaly_data, layer_num=2)

@@ -1,4 +1,3 @@
-
 import torch
 from dataset import get_data_transforms, get_strong_transforms
 from torchvision.datasets import ImageFolder
@@ -54,7 +53,6 @@ def setup_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
 
 
 def train(_class_):

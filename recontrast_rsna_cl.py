@@ -345,7 +345,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
             img = img.to(device)
             anomaly_data = np.ones(len(img))
-            anomaly_one = torch.tensor(anomaly_one).to(device)
             # en : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             # de : [[16,256,64,64], [16,512,32,32], [16,1024,16,16], [16,256,64,64], [16,512,32,32], [16,1024,16,16]]
             en, de = model(img)

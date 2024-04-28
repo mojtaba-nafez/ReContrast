@@ -241,9 +241,12 @@ def train(_class_, model='wide_res50', batch_size=16, total_iters=2000, evaluati
     for epoch in range(total_iters // len(train_dataloader) + 1):
         model.train(encoder_bn_train=True)
         loss_list = []
-        for img, label, _ in train_dataloader:
+        for img, label in train_dataloader:
             img = img.to(device)
             en, de = model(img)
+
+            if it == 0:
+                print(img.shape, label.shape)
 
             alpha_final = 1
             alpha = min(-3 + (alpha_final - -3) * it / (total_iters * 0.1), alpha_final)

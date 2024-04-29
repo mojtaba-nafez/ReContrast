@@ -143,6 +143,7 @@ class Bottleneck(nn.Module):
 
         return out
 
+
 class NormalizeLayer(nn.Module):
     """
     In order to certify radii in original coordinates rather than standardized coordinates, we
@@ -155,6 +156,7 @@ class NormalizeLayer(nn.Module):
 
     def forward(self, inputs):
         return (inputs - 0.5) / 0.5
+
 
 class ResNet(nn.Module):
 
@@ -206,13 +208,12 @@ class ResNet(nn.Module):
         else:
             self.linear = nn.Linear(512 * 1, 2)
             self.simclr_layer = nn.Sequential(
-                    nn.Linear(512, 512),
-                    nn.ReLU(),
-                    nn.Linear(512, 128)
-                )
+                nn.Linear(512, 512),
+                nn.ReLU(),
+                nn.Linear(512, 128)
+            )
             self.shift_cls_layer = nn.Linear(512 * 1, 2)
             self.joint_distribution_layer = nn.Linear(512 * 1, 8)
-
 
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
@@ -279,10 +280,10 @@ class ResNet(nn.Module):
             feature_d = self.avgpool(feature_d)
             feature_d = torch.flatten(feature_d, 1)
             return self.shift_cls_layer(feature_d)
-        
+
         return [feature_a, feature_b, feature_c]
 
-    def forward(self, x: Tensor, head_end=False, eval_unode=False) -> Tensor:            
+    def forward(self, x: Tensor, head_end=False, eval_unode=False) -> Tensor:
         if not head_end:
             return self._forward_impl(x, eval_unode)
         x = self.normalize(x)
@@ -534,14 +535,16 @@ class BN_layer(nn.Module):
         return output.contiguous()
 
 
-def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, head_end=False, is_unode_model=False,**kwargs: Any):
+def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, head_end=False, is_unode_model=False,
+             **kwargs: Any):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path, head_end=head_end, is_unode_model=is_unode_model,
+    encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path,
+                      head_end=head_end, is_unode_model=is_unode_model,
                       **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
@@ -610,7 +613,8 @@ def resnet152(pretrained: bool = False, progress: bool = True, **kwargs: Any):
     return encoder, bn
 
 
-def wide_resnet50_2(pretrained: bool = False, progress: bool = True,  head_end=False,**kwargs: Any):
+def wide_resnet50_2(pretrained: bool = False, progress: bool = True, unode_path=None, head_end=False,
+                    is_unode_model=False, **kwargs: Any):
     r"""Wide ResNet-50-2 model from
     `"Wide Residual Networks" <https://arxiv.org/pdf/1605.07146.pdf>`_.
     The model is the same as ResNet except for the bottleneck number of channels
@@ -623,7 +627,8 @@ def wide_resnet50_2(pretrained: bool = False, progress: bool = True,  head_end=F
     """
     kwargs['width_per_group'] = 64 * 2
     encoder = _resnet('wide_resnet50_2', Bottleneck, [3, 4, 6, 3],
-                      pretrained, progress, head_end=head_end, **kwargs)
+                      pretrained, progress, unode_path=unode_path, head_end=head_end, is_unode_model=is_unode_model,
+                      **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
     bn = BN_layer(Bottleneck, 3, **kwargs)

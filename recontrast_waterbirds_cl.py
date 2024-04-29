@@ -228,12 +228,10 @@ class Waterbird(torch.utils.data.Dataset):
         gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
         gt[:, :, 1:3] = 1
         if self.train:
-            if self.return_num == 2:
-                return img, 0
-            return img, gt, 0, img_path
+            return img, 0
         else:
-            if self.return_num == 2:
-                return img, self.labels[idx]
+            # if self.return_num == 2:
+            #     return img, self.labels[idx]
             return img, None, self.labels[idx], img_path
 
 
@@ -267,8 +265,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     df = pd.read_csv('/kaggle/input/waterbird/waterbird/metadata.csv')
     train_data = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df,
                            transform=data_transform, train=True, count_train_landbg=3500, count_train_waterbg=100)
-    train_data_4ret = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df,
-                           transform=data_transform, train=True, count_train_landbg=3500, count_train_waterbg=100, return_num=4)
     test_data_landbg = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
                                  train=False, count_train_landbg=3500, count_train_waterbg=100, mode='bg_land')
     test_data_waterbg = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
@@ -280,7 +276,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(test_data_waterbg, f'test data waterbirds waterbg')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    train_dataloader2 = torch.utils.data.DataLoader(train_data_4ret, batch_size=1, shuffle=True)
     test_dataloader1 = torch.utils.data.DataLoader(test_data_landbg, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data_waterbg, batch_size=1, shuffle=False, num_workers=1)
 

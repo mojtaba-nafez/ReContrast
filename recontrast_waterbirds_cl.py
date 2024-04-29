@@ -224,10 +224,12 @@ class Waterbird(torch.utils.data.Dataset):
         img_path = self.image_paths[idx]
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
+        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+        gt[:, :, 1:3] = 1
         if self.train:
-            return img, 0
+            return img, gt, 0, img_path
         else:
-            return img, self.labels[idx]
+            return img, None, self.labels[idx], img_path
 
 
 

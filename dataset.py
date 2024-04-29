@@ -598,7 +598,7 @@ class Camelyon17Test(torch.utils.data.Dataset):
             node4_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node4/test/anomaly/*')
 
             shifted_test_path_normal = node3_test_normal + node4_test_normal
-            shifted_test_path_anomaly = node4_test_anomaly + node4_test_anomaly
+            shifted_test_path_anomaly = node3_test_anomaly + node4_test_anomaly
 
             self.test_path = shifted_test_path_normal + shifted_test_path_anomaly
             self.test_label = [0] * len(shifted_test_path_normal) + [1] * len(shifted_test_path_anomaly)

@@ -456,7 +456,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                  device,
                                                                  cls=cls,
                                                                  head_end=head_end,
-                                                                 train_loader=train_dataloader2,
+                                                                 train_loader=train_dataloader,
                                                                  anomaly_transforms=anomaly_transforms)
                 print_fn(
                     'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
@@ -485,7 +485,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                  device,
                                                                  cls=cls,
                                                                  head_end=head_end,
-                                                                 train_loader=train_dataloader2,
+                                                                 train_loader=train_dataloader,
                                                                  anomaly_transforms=anomaly_transforms)
                 print_fn(
                     'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(

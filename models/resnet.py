@@ -171,7 +171,8 @@ class ResNet(nn.Module):
             groups: int = 1,
             width_per_group: int = 64,
             replace_stride_with_dilation: Optional[List[bool]] = None,
-            norm_layer: Optional[Callable[..., nn.Module]] = None
+            norm_layer: Optional[Callable[..., nn.Module]] = None,
+            is_wide=False
     ) -> None:
         super(ResNet, self).__init__()
         self.unode = unode
@@ -203,17 +204,19 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+
+        end_size = 2048 if is_wide else 512
         if not unode:
-            self.fc = nn.Linear(512 * block.expansion, num_classes)
+            self.fc = nn.Linear(end_size * block.expansion, num_classes)
         else:
-            self.linear = nn.Linear(512 * 1, 2)
+            self.linear = nn.Linear(end_size * 1, 2)
             self.simclr_layer = nn.Sequential(
-                nn.Linear(512, 512),
+                nn.Linear(end_size, end_size),
                 nn.ReLU(),
-                nn.Linear(512, 128)
+                nn.Linear(end_size, 128)
             )
-            self.shift_cls_layer = nn.Linear(512 * 1, 2)
-            self.joint_distribution_layer = nn.Linear(512 * 1, 8)
+            self.shift_cls_layer = nn.Linear(end_size * 1, 2)
+            self.joint_distribution_layer = nn.Linear(end_size * 1, 8)
 
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
@@ -319,7 +322,8 @@ def _resnet(
         **kwargs: Any
 ) -> ResNet:
     unode = True if unode_path is not None else False
-    model = ResNet(block, layers, is_unode_model, **kwargs)
+    is_wide = True if arch == 'wide_resnet50_2' else False
+    model = ResNet(block, layers, is_unode_model, is_wide=is_wide, **kwargs)
     if (not head_end) and (not is_unode_model):
         model.layer4 = None
         model.fc = None

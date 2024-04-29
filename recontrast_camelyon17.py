@@ -45,8 +45,7 @@ class Camelyon17Train(torch.utils.data.Dataset):
         img_path = self.image_paths[idx]
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
-        return img, 0, img_path
-
+        return img, 0
 class Camelyon17Test(torch.utils.data.Dataset):
     def __init__(self, transform, test_id=1):
 
@@ -94,7 +93,7 @@ class Camelyon17Test(torch.utils.data.Dataset):
 
         has_anomaly = 0 if self.test_label[idx] == 0 else 1
 
-        return img, has_anomaly, img_path
+        return img, has_anomaly
 
 
 def get_logger(name, save_path=None, level='INFO'):

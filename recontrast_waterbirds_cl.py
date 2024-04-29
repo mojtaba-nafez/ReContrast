@@ -168,7 +168,7 @@ class BinaryClassifier2(nn.Module):
 
 class Waterbird(torch.utils.data.Dataset):
     def __init__(self, root, df, transform, train=True, count_train_landbg=-1, count_train_waterbg=-1, mode='bg_all',
-                 count=-1):
+                 count=-1, return_num=2):
         self.transform = transform
         self.train = train
         self.df = df
@@ -176,6 +176,7 @@ class Waterbird(torch.utils.data.Dataset):
         lb_on_w = df[(df['y'] == 0) & (df['place'] == 1)]
         self.normal_paths = []
         self.labels = []
+        self.return_num = return_num
 
         normal_df = lb_on_l.iloc[:count_train_landbg]
         normal_df_np = normal_df['img_filename'].to_numpy()
@@ -227,8 +228,12 @@ class Waterbird(torch.utils.data.Dataset):
         gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
         gt[:, :, 1:3] = 1
         if self.train:
+            if self.return_num == 2:
+                return img, 0
             return img, gt, 0, img_path
         else:
+            if self.return_num == 2:
+                return img, self.labels[idx]
             return img, None, self.labels[idx], img_path
 
 
@@ -262,6 +267,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     df = pd.read_csv('/kaggle/input/waterbird/waterbird/metadata.csv')
     train_data = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df,
                            transform=data_transform, train=True, count_train_landbg=3500, count_train_waterbg=100)
+    train_data_4ret = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df,
+                           transform=data_transform, train=True, count_train_landbg=3500, count_train_waterbg=100, return_num=4)
     test_data_landbg = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
                                  train=False, count_train_landbg=3500, count_train_waterbg=100, mode='bg_land')
     test_data_waterbg = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
@@ -273,7 +280,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(test_data_waterbg, f'test data waterbirds waterbg')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True)
+    train_dataloader2 = torch.utils.data.DataLoader(train_data_4ret, batch_size=1, shuffle=True)
     test_dataloader1 = torch.utils.data.DataLoader(test_data_landbg, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data_waterbg, batch_size=1, shuffle=False, num_workers=1)
 
@@ -383,7 +390,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         model.train(encoder_bn_train=True)
 
         loss_list = []
-        for img, label in train_dataloader:
+        for img, _, label, _ in train_dataloader:
             # img : [16, 3, 256, 256]
             # img = torch.cat([img, img.clone()])
 

@@ -232,7 +232,7 @@ class Waterbird(torch.utils.data.Dataset):
         else:
             # if self.return_num == 2:
             #     return img, self.labels[idx]
-            return img, None, self.labels[idx], img_path
+            return img, gt, self.labels[idx], img_path
 
 
 

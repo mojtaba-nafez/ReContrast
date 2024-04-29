@@ -266,9 +266,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                   train=False, count_train_landbg=3500, count_train_waterbg=100, mode='bg_water')
 
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset isic')
-    visualize_random_samples_from_clean_dataset(test_data_landbg, f'test data isic1')
-    visualize_random_samples_from_clean_dataset(test_data_waterbg, f'test data isic2')
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset waterbirds')
+    visualize_random_samples_from_clean_dataset(test_data_landbg, f'test data waterbirds landbg')
+    visualize_random_samples_from_clean_dataset(test_data_waterbg, f'test data waterbirds waterbg')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True)

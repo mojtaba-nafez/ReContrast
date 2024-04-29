@@ -107,7 +107,7 @@ def train(_class_, unode1_checkpoint=None, unode2_checkpoint=None):
     setup_seed(111)
 
     total_iters = 2000
-    batch_size = 16
+    batch_size = 32
     image_size = 96
     crop_size = 96
 

@@ -553,9 +553,9 @@ class RSNATEST(torch.utils.data.Dataset):
 class Camelyon17Train(torch.utils.data.Dataset):
     def __init__(self, transform):
         self.transform = transform
-        node0_train = glob('/kaggle/input/camelyon17-clean/node0/train/normal/*')
-        node1_train = glob('/kaggle/input/camelyon17-clean/node1/train/normal/*')
-        node2_train = glob('/kaggle/input/camelyon17-clean/node2/train/normal/*')
+        node0_train = glob.glob('/kaggle/input/camelyon17-clean/node0/train/normal/*')
+        node1_train = glob.glob('/kaggle/input/camelyon17-clean/node1/train/normal/*')
+        node2_train = glob.glob('/kaggle/input/camelyon17-clean/node2/train/normal/*')
 
         self.image_paths = node0_train + node1_train + node2_train
 
@@ -576,14 +576,14 @@ class Camelyon17Test(torch.utils.data.Dataset):
         self.test_id = test_id
 
         if test_id == 1:
-            node0_test_normal = glob('/kaggle/input/camelyon17-clean/node0/test/normal/*')
-            node0_test_anomaly = glob('/kaggle/input/camelyon17-clean/node0/test/anomaly/*')
+            node0_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node0/test/normal/*')
+            node0_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node0/test/anomaly/*')
 
-            node1_test_normal = glob('/kaggle/input/camelyon17-clean/node1/test/normal/*')
-            node1_test_anomaly = glob('/kaggle/input/camelyon17-clean/node1/test/anomaly/*')
+            node1_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node1/test/normal/*')
+            node1_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node1/test/anomaly/*')
 
-            node2_test_normal = glob('/kaggle/input/camelyon17-clean/node2/test/normal/*')
-            node2_test_anomaly = glob('/kaggle/input/camelyon17-clean/node2/test/anomaly/*')
+            node2_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node2/test/normal/*')
+            node2_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node2/test/anomaly/*')
 
             test_path_normal = node0_test_normal + node1_test_normal + node2_test_normal
             test_path_anomaly = node0_test_anomaly + node1_test_anomaly + node2_test_anomaly
@@ -591,11 +591,11 @@ class Camelyon17Test(torch.utils.data.Dataset):
             self.test_path = test_path_normal + test_path_anomaly
             self.test_label = [0] * len(test_path_normal) + [1] * len(test_path_anomaly)
         else:
-            node3_test_normal = glob('/kaggle/input/camelyon17-clean/node3/test/normal/*')
-            node3_test_anomaly = glob('/kaggle/input/camelyon17-clean/node3/test/anomaly/*')
+            node3_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node3/test/normal/*')
+            node3_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node3/test/anomaly/*')
 
-            node4_test_normal = glob('/kaggle/input/camelyon17-clean/node4/test/normal/*')
-            node4_test_anomaly = glob('/kaggle/input/camelyon17-clean/node4/test/anomaly/*')
+            node4_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node4/test/normal/*')
+            node4_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node4/test/anomaly/*')
 
             shifted_test_path_normal = node3_test_normal + node4_test_normal
             shifted_test_path_anomaly = node4_test_anomaly + node4_test_anomaly

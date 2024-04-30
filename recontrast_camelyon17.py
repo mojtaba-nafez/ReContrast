@@ -93,7 +93,7 @@ class Camelyon17Test(torch.utils.data.Dataset):
 
         has_anomaly = 0 if self.test_label[idx] == 0 else 1
 
-        return img, has_anomaly
+        return img, 'd', has_anomaly, 'i'
 
 
 def get_logger(name, save_path=None, level='INFO'):

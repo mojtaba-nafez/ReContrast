@@ -349,10 +349,12 @@ class WaterbirdCutpastePlus(torch.utils.data.Dataset):
         img = self.transform(img)
 
         img_cp = self.cutpaste(img, self.paste_patches[idx])
+        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+        gt[:, :, 1:3] = 1
         if self.train:
             return img, 0, img_cp
         else:
-            return img, self.labels[idx], img_cp
+            return img, gt, self.labels[idx], img_path
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
@@ -380,21 +382,25 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             transforms.CenterCrop(crop_size),
         ])
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
+    pre_model = resnet18(pretrained=True)
 
     df = pd.read_csv('/kaggle/input/waterbird/waterbird/metadata.csv')
-    train_data = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df,
-                           transform=data_transform, train=True, count_train_landbg=3500, count_train_waterbg=100)
-    test_data_landbg = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
-                                 train=False, count_train_landbg=3500, count_train_waterbg=100, mode='bg_land')
-    test_data_waterbg = Waterbird(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
-                                  train=False, count_train_landbg=3500, count_train_waterbg=100, mode='bg_water')
+    train_data = WaterbirdCutpastePlus(root='/kaggle/input/waterbird/waterbird', df=df,
+                                       transform=data_transform, train=True, count_train_landbg=3500,
+                                       count_train_waterbg=100, grad_model=pre_model)
+    test_data_landbg = WaterbirdCutpastePlus(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
+                                             train=False, count_train_landbg=3500, count_train_waterbg=100,
+                                             mode='bg_land', grad_model=pre_model)
+    test_data_waterbg = WaterbirdCutpastePlus(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
+                                              train=False, count_train_landbg=3500, count_train_waterbg=100,
+                                              mode='bg_water', grad_model=pre_model)
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset waterbirds')
     visualize_random_samples_from_clean_dataset(test_data_landbg, f'test data waterbirds landbg')
     visualize_random_samples_from_clean_dataset(test_data_waterbg, f'test data waterbirds waterbg')
 
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    test_dataloader1 = torch.utils.data.DataLoader(test_data_landbg, batch_size=1, shuffle=False, num_workers=1)
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)  #img, label, img_cp
+    test_dataloader1 = torch.utils.data.DataLoader(test_data_landbg, batch_size=1, shuffle=False, num_workers=1)  #img, gt, label, path
     test_dataloader2 = torch.utils.data.DataLoader(test_data_waterbg, batch_size=1, shuffle=False, num_workers=1)
 
     # visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
@@ -504,16 +510,17 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         model.train(encoder_bn_train=True)
 
         loss_list = []
-        for img, label in train_dataloader:
+        for img, label, img_cp in train_dataloader:
             # img : [16, 3, 256, 256]
             # img = torch.cat([img, img.clone()])
 
             img = img.to(device)
+            img_cp = img_cp.to(device)
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(anomaly_data) / 2):] = -1
             for i in range(len(anomaly_data)):
                 if anomaly_data[i] == -1:
-                    img[i] = anomaly_transforms(img[i])
+                    img[i] = img_cp[i]
             anomaly_data = torch.tensor(anomaly_data).to(device)
             # we also need one where instead on -1s we have 1s
             anomaly_one = [1 if x == -1 else 0 for x in anomaly_data]

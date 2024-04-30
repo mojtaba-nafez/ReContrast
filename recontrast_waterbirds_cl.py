@@ -359,7 +359,7 @@ class WaterbirdCutpastePlus(torch.utils.data.Dataset):
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
-          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None, grad=False):
+          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None, land=3500, water=100):
     print_fn(_class_)
     setup_seed(111)
 
@@ -386,13 +386,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     df = pd.read_csv('/kaggle/input/waterbird/waterbird/metadata.csv')
     train_data = WaterbirdCutpastePlus(root='/kaggle/input/waterbird/waterbird', df=df,
-                                       transform=data_transform, train=True, count_train_landbg=3500,
-                                       count_train_waterbg=100, grad_model=pre_model)
+                                       transform=data_transform, train=True, count_train_landbg=land,
+                                       count_train_waterbg=water, grad_model=pre_model)
     test_data_landbg = WaterbirdCutpastePlus(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
-                                             train=False, count_train_landbg=3500, count_train_waterbg=100,
+                                             train=False, count_train_landbg=land, count_train_waterbg=water,
                                              mode='bg_land', grad_model=pre_model)
     test_data_waterbg = WaterbirdCutpastePlus(root='/kaggle/input/waterbird/waterbird', df=df, transform=data_transform,
-                                              train=False, count_train_landbg=3500, count_train_waterbg=100,
+                                              train=False, count_train_landbg=land, count_train_waterbg=water,
                                               mode='bg_water', grad_model=pre_model)
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset waterbirds')
@@ -671,7 +671,8 @@ if __name__ == '__main__':
     parser.add_argument('--trainable_encoder_path', type=str, default=None)
     parser.add_argument('--decoder_path', type=str, default=None)
     parser.add_argument('--cls_path', type=str, default=None)
-    parser.add_argument('--grad', action='store_true')
+    parser.add_argument('--land', type=int, default=3500)
+    parser.add_argument('--water', type=int, default=100)
 
     args = parser.parse_args()
 
@@ -712,7 +713,7 @@ if __name__ == '__main__':
         trainable_encoder_path=args.trainable_encoder_path,
         decoder_path=args.decoder_path,
         cls_path=args.cls_path,
-        grad=args.grad)
+        land=args.land, water=args.water)
     '''
     for pad in pad_size:
         result_list[str(pad)].append(

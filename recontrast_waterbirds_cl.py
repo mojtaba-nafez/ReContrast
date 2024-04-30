@@ -319,26 +319,26 @@ class WaterbirdCutpastePlus(torch.utils.data.Dataset):
 
         print('Calculating grads...')
         now = time.time()
-        # for i in range(img_len):
-        #     image = Image.open(self.image_paths[i])
-        #     image = image.convert('RGB')
-        #     if self.transform is not None:
-        #         image = self.transform(image)
-        #     height = image.shape[1]
-        #     width = image.shape[2]
-        #     heatmap = cam(input_tensor=image.unsqueeze(0))
-        #     heats = []
-        #     for k in range(height):  # replace width & height if error
-        #         for j in range(width):
-        #             heats.append((heatmap[0][k][j], (k, j)))
-        #     sorted_heat = list(reversed(sorted(heats)))
-        #     sep = round(ratio * len(sorted_heat))
-        #     paste_patch = [x[1] for x in sorted_heat][:sep]
-        #     self.paste_patches.append(paste_patch)
-        #
-        #     if i % 100 == 0 or i == img_len - 1:
-        #         print(f'{i + 1} / {img_len}')
-        # print(f'total time spent getting grads: {time.time() - now} secs.')
+        for i in range(img_len):
+            image = Image.open(self.image_paths[i])
+            image = image.convert('RGB')
+            if self.transform is not None:
+                image = self.transform(image)
+            height = image.shape[1]
+            width = image.shape[2]
+            heatmap = cam(input_tensor=image.unsqueeze(0))
+            heats = []
+            for k in range(height):  # replace width & height if error
+                for j in range(width):
+                    heats.append((heatmap[0][k][j], (k, j)))
+            sorted_heat = list(reversed(sorted(heats)))
+            sep = round(ratio * len(sorted_heat))
+            paste_patch = [x[1] for x in sorted_heat][:sep]
+            self.paste_patches.append(paste_patch)
+
+            if i % 100 == 0 or i == img_len - 1:
+                print(f'{i + 1} / {img_len}')
+        print(f'total time spent getting grads: {time.time() - now} secs.')
 
     def __len__(self):
         return len(self.image_paths)
@@ -348,11 +348,11 @@ class WaterbirdCutpastePlus(torch.utils.data.Dataset):
         img = Image.open(img_path).convert('RGB')
         img = self.transform(img)
 
-        # img_cp = self.cutpaste(img, self.paste_patches[idx])
+        img_cp = self.cutpaste(img, self.paste_patches[idx])
         gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
         gt[:, :, 1:3] = 1
         if self.train:
-            return img, 0, img
+            return img, 0, img_cp
         else:
             return img, gt, self.labels[idx], img_path
 

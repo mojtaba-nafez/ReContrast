@@ -33,6 +33,7 @@ warnings.filterwarnings("ignore")
 
 class MNIST_Dataset(Dataset):
     def __init__(self, train, test_id=1, transform=None):
+        self.train = train
         self.transform = transform
         if train:
             with open('./content/mnist_shifted_dataset/train_normal.pkl', 'rb') as f:
@@ -60,8 +61,11 @@ class MNIST_Dataset(Dataset):
 
         if self.transform is not None:
             image = self.transform(image)
-
-        return image, self.labels[index]
+        
+        if self.train:
+            return image, self.labels[index], None
+        else:
+            return image, None,  self.labels[index], None
 
     def __len__(self):
         return len(self.images)

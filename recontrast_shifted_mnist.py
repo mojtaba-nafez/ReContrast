@@ -60,11 +60,7 @@ class MNIST_Dataset(Dataset):
         image = torch.tensor(self.images[index])
         if self.transform is not None:
             image = self.transform(image)
-        
-        if self.train:
-            return image, self.labels[index], 1
-        else:
-            return image, 1,  self.labels[index], 1
+        return image, self.labels[index], 1
 
     def __len__(self):
         return len(self.images)

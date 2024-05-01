@@ -210,16 +210,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
             transforms.RandomGrayscale(p=0.2),  # Random grayscale
             transforms.ToTensor(),
-            transforms.Normalize(mean=mean_train,
-                                std=std_train)
         ])
     else:
         transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=mean_train,
-                                std=std_train)
         ])
     data_transform, gt_transform = get_data_transforms(image_size, image_size)
     

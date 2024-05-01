@@ -33,6 +33,19 @@ from cutpaste_transformation import *
 warnings.filterwarnings("ignore")
 
 
+class RandomRotationTransform:
+    def __init__(self, transform=None):
+        # List of angles
+        self.angles = [90, 180, 270]
+        self.transform = transform
+
+    def __call__(self, x):
+        # Select a random angle
+        angle = random.choice(self.angles)
+        if self.transform:
+            x = self.transform(x)
+        return transforms.functional.rotate(x, angle)
+
 class MNIST_Dataset(Dataset):
     def __init__(self, train, test_id=1, transform=None):
         self.train = train
@@ -315,7 +328,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
-        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+        RandomRotationTransform(transform=transforms.Compose([transforms.ToTensor(),])),
     ])
     print('len(train_dataloader):', len(train_dataloader))
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):

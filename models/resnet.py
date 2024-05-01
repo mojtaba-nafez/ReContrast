@@ -615,7 +615,7 @@ def resnet152(pretrained: bool = False, pretrain_unode_weghts=False, progress: b
     return encoder, bn
 
 
-def wide_resnet50_2(pretrained: bool = False, progress: bool = True,  head_end=False, pretrain_unode_weghts=False,**kwargs: Any):
+def wide_resnet50_2(pretrained: bool = False, progress: bool = True, unode_path=None,  head_end=False, is_unode_model=False, pretrain_unode_weghts=False,**kwargs: Any):
     r"""Wide ResNet-50-2 model from
     `"Wide Residual Networks" <https://arxiv.org/pdf/1605.07146.pdf>`_.
     The model is the same as ResNet except for the bottleneck number of channels
@@ -628,7 +628,7 @@ def wide_resnet50_2(pretrained: bool = False, progress: bool = True,  head_end=F
     """
     kwargs['width_per_group'] = 64 * 2
     encoder = _resnet('wide_resnet50_2', Bottleneck, [3, 4, 6, 3],
-                      pretrained, progress, head_end=head_end, pretrain_unode_weghts=pretrain_unode_weghts, **kwargs)
+                      pretrained, progress, unode_path=unode_path, head_end=head_end, is_unode_model=is_unode_model, pretrain_unode_weghts=pretrain_unode_weghts, **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
     bn = BN_layer(Bottleneck, 3, **kwargs)

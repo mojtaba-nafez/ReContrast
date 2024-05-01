@@ -259,9 +259,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         encoder_freeze = copy.deepcopy(encoder)
     else:
         if model != 'res18':
-            print('Only res18 implemented!')
-            exit(1)
-        encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True, pretrain_unode_weghts=pretrain_unode_weghts)
+            encoder_freeze, _ = wide_resnet50_2(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True, pretrain_unode_weghts=pretrain_unode_weghts)
+        else:
+            encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True, pretrain_unode_weghts=pretrain_unode_weghts)
 
     if trainable_encoder_path is not None:
         if model != 'res18':

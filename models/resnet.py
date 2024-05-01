@@ -218,9 +218,11 @@ class ResNet(nn.Module):
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
         self.norm = lambda x: (x - mu) / std
-        self.normalize = NormalizeLayer()
+        self.normalize = None
         if pretrain_unode_weghts:
             self.normalize = lambda x: (x - mu) / std
+        else:
+            self.normalize = NormalizeLayer()
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')

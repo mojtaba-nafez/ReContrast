@@ -58,7 +58,6 @@ class MNIST_Dataset(Dataset):
 
     def __getitem__(self, index):
         image = torch.tensor(self.images[index])
-        print(image.shape)
         if self.transform is not None:
             image = self.transform(image)
         
@@ -203,6 +202,7 @@ def train(_class_):
         model.train(encoder_bn_train=True)
         loss_list = []
         for img, label, _ in train_dataloader:
+            print(img.shape)
             img = img.to(device)
             en, de = model(img)
 

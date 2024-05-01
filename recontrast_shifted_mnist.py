@@ -64,7 +64,7 @@ class MNIST_Dataset(Dataset):
             image = self.transform(image)
         if self.train:
             return image, self.labels[index]
-        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+        gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
         gt[:, :, 1:3] = 1
         return image, gt, self.labels[index], 1
 

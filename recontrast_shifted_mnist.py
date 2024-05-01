@@ -25,6 +25,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 import pickle
+from torchvision import datasets, transforms
 
 
 warnings.filterwarnings("ignore")

@@ -151,8 +151,8 @@ def train(_class_):
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    mean_train = [0.485, 0.456, 0.406] if mean_train is None else mean_train
-    std_train = [0.229, 0.224, 0.225] if std_train is None else std_train
+    mean_train = [0.485, 0.456, 0.406]
+    std_train = [0.229, 0.224, 0.225]
     
     transform = transforms.Compose([
         transforms.ToPILImage(),

@@ -457,7 +457,7 @@ class BrainTest(torch.utils.data.Dataset):
 
         return img, has_anomaly, img_path
 class BrainTrain(torch.utils.data.Dataset):
-    def __init__(self, transform):
+    def __init__(self, transform, brats=150):
         self.transform = transform
         self.image_paths = glob.glob('./Br35H/dataset/train/normal/*')
 
@@ -465,9 +465,9 @@ class BrainTrain(torch.utils.data.Dataset):
 
         random.seed(1)
 
-        random_brats_images = random.sample(brats_mod, 150)
+        random_brats_images = random.sample(brats_mod, brats)
         self.image_paths.extend(random_brats_images)
-        print('added 150 normal brat images')
+        print(f'added {brats} normal brat images')
 
     def __len__(self):
         return len(self.image_paths)

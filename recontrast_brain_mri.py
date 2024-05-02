@@ -102,21 +102,18 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_):
+def train(_class_, args):
     print_fn(_class_)
     setup_seed(111)
 
-    total_iters = 2000
+    total_iters = 1000
     batch_size = 16
     image_size = 256
     crop_size = 256
 
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    train_path = '../APTOS/'
-    test_path = '../APTOS/'
-
-    train_data = BrainTrain(transform=data_transform)
+    train_data = BrainTrain(transform=data_transform, brats=args.brats)
     test_data1 = BrainTest(transform=data_transform, test_id=1)
     test_data2 = BrainTest(transform=data_transform, test_id=2)
 
@@ -204,6 +201,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
     parser.add_argument('--test_id', default=1, type=int)
+    parser.add_argument('--brats', default=150, type=int)
     args = parser.parse_args()
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
@@ -214,4 +212,4 @@ if __name__ == '__main__':
 
     item_list = ['APTOS']
     for item in item_list:
-        train(item)
+        train(item, args)

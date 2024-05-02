@@ -172,6 +172,7 @@ class ResNet(nn.Module):
             width_per_group: int = 64,
             replace_stride_with_dilation: Optional[List[bool]] = None,
             norm_layer: Optional[Callable[..., nn.Module]] = None,
+            pretrain_unode_weghts=False,
             is_wide=False
     ) -> None:
         super(ResNet, self).__init__()
@@ -204,8 +205,8 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-
         end_size = 2048 if is_wide else 512
+
         if not unode:
             self.fc = nn.Linear(end_size * block.expansion, num_classes)
         else:
@@ -221,8 +222,11 @@ class ResNet(nn.Module):
         mu = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1).cuda()
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1).cuda()
         self.norm = lambda x: (x - mu) / std
-        self.normalize = NormalizeLayer()
-
+        self.normalize = None
+        if pretrain_unode_weghts:
+            self.normalize = lambda x: (x - mu) / std
+        else:
+            self.normalize = NormalizeLayer()
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -319,11 +323,13 @@ def _resnet(
         unode_path=None,
         head_end=False,
         is_unode_model=False,
+        pretrain_unode_weghts=False,
         **kwargs: Any
 ) -> ResNet:
     unode = True if unode_path is not None else False
     is_wide = True if arch == 'wide_resnet50_2' else False
-    model = ResNet(block, layers, is_unode_model, is_wide=is_wide, **kwargs)
+    model = ResNet(block, layers, is_unode_model, pretrain_unode_weghts=pretrain_unode_weghts, is_wide=is_wide,
+                   **kwargs)
     if (not head_end) and (not is_unode_model):
         model.layer4 = None
         model.fc = None
@@ -540,7 +546,7 @@ class BN_layer(nn.Module):
 
 
 def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, head_end=False, is_unode_model=False,
-             **kwargs: Any):
+             pretrain_unode_weghts=False, **kwargs: Any):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
@@ -548,7 +554,7 @@ def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, h
         progress (bool): If True, displays a progress bar of the download to stderr
     """
     encoder = _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress, unode_path=unode_path,
-                      head_end=head_end, is_unode_model=is_unode_model,
+                      head_end=head_end, is_unode_model=is_unode_model, pretrain_unode_weghts=pretrain_unode_weghts,
                       **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
@@ -556,7 +562,7 @@ def resnet18(pretrained: bool = False, progress: bool = True, unode_path=None, h
     return encoder, bn
 
 
-def resnet34(pretrained: bool = False, progress: bool = True, **kwargs: Any):
+def resnet34(pretrained: bool = False, progress: bool = True, pretrain_unode_weghts=False, **kwargs: Any):
     r"""ResNet-34 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
@@ -564,6 +570,7 @@ def resnet34(pretrained: bool = False, progress: bool = True, **kwargs: Any):
         progress (bool): If True, displays a progress bar of the download to stderr
     """
     encoder = _resnet('resnet34', BasicBlock, [3, 4, 6, 3], pretrained, progress,
+                      pretrain_unode_weghts=pretrain_unode_weghts,
                       **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
@@ -571,7 +578,7 @@ def resnet34(pretrained: bool = False, progress: bool = True, **kwargs: Any):
     return encoder, bn
 
 
-def resnet50(pretrained: bool = False, progress: bool = True, **kwargs: Any):
+def resnet50(pretrained: bool = False, pretrain_unode_weghts=False, progress: bool = True, **kwargs: Any):
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
@@ -579,14 +586,14 @@ def resnet50(pretrained: bool = False, progress: bool = True, **kwargs: Any):
         progress (bool): If True, displays a progress bar of the download to stderr
     """
     encoder = _resnet('resnet50', Bottleneck, [3, 4, 6, 3],
-                      pretrained, progress, **kwargs)
+                      pretrained, progress, pretrain_unode_weghts=pretrain_unode_weghts, **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
     bn = BN_layer(Bottleneck, 3, **kwargs)
     return encoder, bn
 
 
-def resnet101(pretrained: bool = False, progress: bool = True, **kwargs: Any):
+def resnet101(pretrained: bool = False, pretrain_unode_weghts=False, progress: bool = True, **kwargs: Any):
     r"""ResNet-101 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
@@ -595,14 +602,14 @@ def resnet101(pretrained: bool = False, progress: bool = True, **kwargs: Any):
     """
 
     encoder = _resnet('resnet101', Bottleneck, [3, 4, 23, 3],
-                      pretrained, progress, **kwargs)
+                      pretrained, progress, pretrain_unode_weghts=pretrain_unode_weghts, **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
     bn = BN_layer(Bottleneck, 3, **kwargs)
     return encoder, bn
 
 
-def resnet152(pretrained: bool = False, progress: bool = True, **kwargs: Any):
+def resnet152(pretrained: bool = False, pretrain_unode_weghts=False, progress: bool = True, **kwargs: Any):
     r"""ResNet-152 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:
@@ -610,7 +617,7 @@ def resnet152(pretrained: bool = False, progress: bool = True, **kwargs: Any):
         progress (bool): If True, displays a progress bar of the download to stderr
     """
     encoder = _resnet('resnet152', Bottleneck, [3, 8, 36, 3],
-                      pretrained, progress, **kwargs)
+                      pretrained, progress, pretrain_unode_weghts=pretrain_unode_weghts, **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
     bn = BN_layer(Bottleneck, 3, **kwargs)
@@ -618,7 +625,7 @@ def resnet152(pretrained: bool = False, progress: bool = True, **kwargs: Any):
 
 
 def wide_resnet50_2(pretrained: bool = False, progress: bool = True, unode_path=None, head_end=False,
-                    is_unode_model=False, **kwargs: Any):
+                    is_unode_model=False, pretrain_unode_weghts=False, **kwargs: Any):
     r"""Wide ResNet-50-2 model from
     `"Wide Residual Networks" <https://arxiv.org/pdf/1605.07146.pdf>`_.
     The model is the same as ResNet except for the bottleneck number of channels
@@ -632,14 +639,14 @@ def wide_resnet50_2(pretrained: bool = False, progress: bool = True, unode_path=
     kwargs['width_per_group'] = 64 * 2
     encoder = _resnet('wide_resnet50_2', Bottleneck, [3, 4, 6, 3],
                       pretrained, progress, unode_path=unode_path, head_end=head_end, is_unode_model=is_unode_model,
-                      **kwargs)
+                      pretrain_unode_weghts=pretrain_unode_weghts, **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
     bn = BN_layer(Bottleneck, 3, **kwargs)
     return encoder, bn
 
 
-def wide_resnet101_2(pretrained: bool = False, progress: bool = True, **kwargs: Any):
+def wide_resnet101_2(pretrained: bool = False, progress: bool = True, pretrain_unode_weghts=False, **kwargs: Any):
     r"""Wide ResNet-101-2 model from
     `"Wide Residual Networks" <https://arxiv.org/pdf/1605.07146.pdf>`_.
     The model is the same as ResNet except for the bottleneck number of channels
@@ -652,14 +659,14 @@ def wide_resnet101_2(pretrained: bool = False, progress: bool = True, **kwargs: 
     """
     kwargs['width_per_group'] = 64 * 2
     encoder = _resnet('wide_resnet101_2', Bottleneck, [3, 4, 23, 3],
-                      pretrained, progress, **kwargs)
+                      pretrained, progress, pretrain_unode_weghts=pretrain_unode_weghts, **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
     bn = BN_layer(Bottleneck, 3, **kwargs)
     return encoder, bn
 
 
-def resnext50_32x4d(pretrained: bool = False, progress: bool = True, **kwargs: Any):
+def resnext50_32x4d(pretrained: bool = False, progress: bool = True, pretrain_unode_weghts=False, **kwargs: Any):
     r"""ResNeXt-50 32x4d model from
     `"Aggregated Residual Transformation for Deep Neural Networks" <https://arxiv.org/pdf/1611.05431.pdf>`_.
 
@@ -671,7 +678,7 @@ def resnext50_32x4d(pretrained: bool = False, progress: bool = True, **kwargs: A
     kwargs['width_per_group'] = 4
 
     encoder = _resnet('resnext50_32x4d', Bottleneck, [3, 4, 6, 3],
-                      pretrained, progress, **kwargs)
+                      pretrained, progress, pretrain_unode_weghts=pretrain_unode_weghts, **kwargs)
     if 'norm_layer' in kwargs:
         kwargs.pop('norm_layer')
     bn = BN_layer(Bottleneck, 3, **kwargs)

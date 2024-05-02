@@ -26,9 +26,9 @@ from cutpaste_transformation import *
 import pandas as pd
 
 import copy
-from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
-from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
-from pytorch_grad_cam.utils.image import show_cam_on_image
+# from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+# from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+# from pytorch_grad_cam.utils.image import show_cam_on_image
 from torchvision.models import resnet18
 import numpy as np
 from PIL import Image
@@ -176,6 +176,20 @@ class BinaryClassifier2(nn.Module):
         return x
 
 
+class RandomRotationTransform:
+    def __init__(self, transform=None):
+        # List of angles
+        self.angles = [90, 180, 270]
+        self.transform = transform
+
+    def __call__(self, x):
+        # Select a random angle
+        angle = random.choice(self.angles)
+        if self.transform:
+            x = self.transform(x)
+        return transforms.functional.rotate(x, angle)
+
+
 class Waterbird(torch.utils.data.Dataset):
     def __init__(self, root, df, transform, train=True, count_train_landbg=-1, count_train_waterbg=-1, mode='bg_all',
                  count=-1, return_num=2):
@@ -245,119 +259,10 @@ class Waterbird(torch.utils.data.Dataset):
             return img, gt, self.labels[idx], img_path
 
 
-import time
-
-
-class WaterbirdCutpastePlus(torch.utils.data.Dataset):
-    def __init__(self, root, df, transform, train=True, count_train_landbg=-1, count_train_waterbg=-1, mode='bg_all',
-                 count=-1,
-                 copy=False, grad_model=None, ratio=0.1):
-        self.transform = transform
-        self.train = train
-        self.df = df
-        lb_on_l = df[(df['y'] == 0) & (df['place'] == 0)]
-        lb_on_w = df[(df['y'] == 0) & (df['place'] == 1)]
-        self.normal_paths = []
-        self.labels = []
-
-        normal_df = lb_on_l.iloc[:count_train_landbg]
-        normal_df_np = normal_df['img_filename'].to_numpy()
-        self.normal_paths.extend([os.path.join(root, x) for x in normal_df_np][:count_train_landbg])
-        normal_df = lb_on_w.iloc[:count_train_waterbg]
-        normal_df_np = normal_df['img_filename'].to_numpy()
-        copy_count = 1
-        if copy:
-            copy_count = count_train_landbg // count_train_waterbg
-        for _ in range(copy_count):
-            self.normal_paths.extend([os.path.join(root, x) for x in normal_df_np][:count_train_waterbg])
-
-        if train:
-            self.image_paths = self.normal_paths
-        else:
-            self.image_paths = []
-            if mode == 'bg_all':
-                dff = df
-            elif mode == 'bg_water':
-                dff = df[(df['place'] == 1)]
-            elif mode == 'bg_land':
-                dff = df[(df['place'] == 0)]
-            else:
-                print('Wrong mode!')
-                raise ValueError('Wrong bg mode!')
-            all_paths = dff[['img_filename', 'y']].to_numpy()
-            for i in range(len(all_paths)):
-                full_path = os.path.join(root, all_paths[i][0])
-                if full_path not in self.normal_paths:
-                    self.image_paths.append(full_path)
-                    self.labels.append(all_paths[i][1])
-
-        if count != -1:
-            random.seed(42)
-            random.shuffle(self.image_paths)
-            if count < len(self.image_paths):
-                self.image_paths = self.image_paths[:count]
-                if not train:
-                    self.labels = self.labels[:count]
-            else:
-                t = len(self.image_paths)
-                for i in range(count - t):
-                    self.image_paths.append(random.choice(self.image_paths[:t]))
-                    if not train:
-                        self.labels.append(random.choice(self.labels[:t]))
-
-        self.cutpaste = CutPastePlusUnion(transform=transforms.Compose([transforms.ToTensor(), ]))
-
-        self.model = grad_model.to('cuda')
-        self.model.eval()
-        module_dict = dict(self.model.named_modules())
-        target_layers = module_dict['layer4.1.conv2']
-        cam = GradCAM(model=self.model, target_layers=[target_layers])
-
-        self.paste_patches = []
-
-        img_len = len(self.image_paths)
-
-        print('Calculating grads...')
-        now = time.time()
-        for i in range(img_len):
-            image = Image.open(self.image_paths[i])
-            image = image.convert('RGB')
-            if self.transform is not None:
-                image = self.transform(image)
-            height = image.shape[1]
-            width = image.shape[2]
-            heatmap = cam(input_tensor=image.unsqueeze(0))
-            heats = []
-            for k in range(height):  # replace width & height if error
-                for j in range(width):
-                    heats.append((heatmap[0][k][j], (k, j)))
-            sorted_heat = list(reversed(sorted(heats)))
-            sep = round(ratio * len(sorted_heat))
-            paste_patch = [x[1] for x in sorted_heat][:sep]
-            self.paste_patches.append(paste_patch)
-
-            if i % 100 == 0 or i == img_len - 1:
-                print(f'{i + 1} / {img_len}')
-        print(f'total time spent getting grads: {time.time() - now} secs.')
-
-    def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, idx):
-        img_path = self.image_paths[idx]
-        img = Image.open(img_path).convert('RGB')
-        img = self.transform(img)
-
-        img_cp = self.cutpaste(img, self.paste_patches[idx])
-        if self.train:
-            return img, 0, img_cp
-        else:
-            return img, self.labels[idx], img_cp
-
-
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
-          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None, grad=False):
+          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None, grad=False,
+          pretrain_unode_weghts=False):
     print_fn(_class_)
     setup_seed(111)
 
@@ -402,14 +307,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     in_channels = 1024
     if model == 'wide_res50':
-        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end)
+        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end, pretrain_unode_weghts=pretrain_unode_weghts)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
-        encoder, bn = resnet18(pretrained=True, head_end=head_end)
+        encoder, bn = resnet18(pretrained=True, head_end=head_end, pretrain_unode_weghts=pretrain_unode_weghts)
         decoder = de_resnet18(pretrained=False, output_conv=2)
         in_channels = 256
     else:
-        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end)
+        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end, pretrain_unode_weghts=pretrain_unode_weghts)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     if not head_end:
         cls = BinaryClassifier(in_channels)
@@ -429,19 +334,21 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             exit(1)
         if model == 'res18':
             encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True,
-                                         pretrain_unode_weghts=True)
+                                         pretrain_unode_weghts=pretrain_unode_weghts)
         if model == 'wide_res50':
             encoder_freeze, _ = wide_resnet50_2(pretrained=True, unode_path=unode_path, head_end=head_end,
-                                                is_unode_model=True, pretrain_unode_weghts=True)
+                                                is_unode_model=True, pretrain_unode_weghts=pretrain_unode_weghts)
 
     if trainable_encoder_path is not None:
         if model not in ['res18', 'wide_res50']:
             print('Only res18 and wide_res50 implemented!')
             exit(1)
         if model == 'res18':
-            encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end)
+            encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end,
+                                  pretrain_unode_weghts=pretrain_unode_weghts)
         if model == 'wide_res50':
-            encoder, _ = wide_resnet50_2(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end)
+            encoder, _ = wide_resnet50_2(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end,
+                                         pretrain_unode_weghts=pretrain_unode_weghts)
 
     if decoder_path is not None:
         if model not in ['res18', 'wide_res50']:
@@ -497,7 +404,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
-        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
+        RandomRotationTransform(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
 
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
@@ -666,6 +573,7 @@ if __name__ == '__main__':
     parser.add_argument('--decoder_path', type=str, default=None)
     parser.add_argument('--cls_path', type=str, default=None)
     parser.add_argument('--grad', action='store_true')
+    parser.add_argument('--pretrain_unode_weghts', action='store_true')
 
     args = parser.parse_args()
 
@@ -706,7 +614,8 @@ if __name__ == '__main__':
         trainable_encoder_path=args.trainable_encoder_path,
         decoder_path=args.decoder_path,
         cls_path=args.cls_path,
-        grad=args.grad)
+        grad=args.grad,
+        pretrain_unode_weghts=args.pretrain_unode_weghts)
     '''
     for pad in pad_size:
         result_list[str(pad)].append(

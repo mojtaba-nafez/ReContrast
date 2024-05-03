@@ -485,14 +485,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     in_channels = 1024
     if model == 'wide_res50':
-        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end)
+        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end, pretrain_unode_weghts=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
-        encoder, bn = resnet18(pretrained=True, head_end=head_end)
+        encoder, bn = resnet18(pretrained=True, head_end=head_end, pretrain_unode_weghts=True)
         decoder = de_resnet18(pretrained=False, output_conv=2)
         in_channels = 256
     else:
-        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end)
+        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end, pretrain_unode_weghts=True)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     if not head_end:
         cls = BinaryClassifier(in_channels)
@@ -510,13 +510,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
-        encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True)
+        encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True, pretrain_unode_weghts=True)
 
     if trainable_encoder_path is not None:
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
-        encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end)
+        encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end, pretrain_unode_weghts=True)
 
     if decoder_path is not None:
         if model != 'res18':
@@ -586,6 +586,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # img = torch.cat([img, img.clone()])
 
             img = img.to(device)
+            print(label)
+            print(label.shape)
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(anomaly_data) / 2):] = -1
             for i in range(len(anomaly_data)):

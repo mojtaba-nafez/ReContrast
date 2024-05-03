@@ -472,6 +472,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     loaders = [train_dataloader, test_dataloader1, test_dataloader2]
     for i in range(len(loaders)):
         it = next(iter(loaders[i]))
+        print(len(loaders[i]))
+        print(it)
         if len(it) == 2:
             disp([it[0][i] for i in range(10)], [it[1][i] for i in range(10)], f'mvtec_{i}')
         else:

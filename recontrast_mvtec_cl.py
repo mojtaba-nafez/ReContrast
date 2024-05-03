@@ -436,8 +436,16 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                             resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
                             shrink_factor=0.9)
 
+    main0 = test_data1[0]
+    shi0 = test_data2[0]
+    topil = transforms.ToPILImage()
+    main0 = topil(main0)
+    shi0 = topil(shi0)
+    main0.save('main0.jpg')
+    shi0.save('shi0.jpg')
 
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
+
+train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                     drop_last=False)

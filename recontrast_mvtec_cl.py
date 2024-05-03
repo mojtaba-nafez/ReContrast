@@ -412,6 +412,18 @@ class MVTEC(data.Dataset):
             return len(self.test_data)
 
 
+
+def disp(image_list, title, fig_name):
+    plt.figure(figsize=(10, 10), constrained_layout=True)
+    for i, img in enumerate(image_list):
+        ax = plt.subplot(1, len(image_list), i + 1)
+        plt.imshow(img.permute(1, 2, 0))
+        plt.title(title[i])
+        plt.axis('off')
+    plt.savefig(f'fig_{fig_name}')
+    return plt
+
+
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
           image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None,
@@ -456,6 +468,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                     drop_last=False)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
+
+    loaders = [train_dataloader, test_dataloader1, test_dataloader2]
+    for i in range(len(loaders)):
+        it = next(iter(loaders[i]))
+        if len(it) == 2:
+            disp([it[0][i] for i in range(10)], [it[1][i] for i in range(10)], f'mvtec_{i}')
+        else:
+            disp([it[0][i] for i in range(10)], [it[2][i] for i in range(10)], f'mvtec_{i}')
 
     print('len Trainset(main)', len(train_data))
     print('len Testset(main)', len(test_data1))

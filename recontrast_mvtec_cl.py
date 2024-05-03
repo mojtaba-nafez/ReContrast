@@ -464,7 +464,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
+    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=4,
                                                     drop_last=False)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
@@ -586,8 +586,6 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             # img = torch.cat([img, img.clone()])
 
             img = img.to(device)
-            print(label)
-            print(label.shape)
             anomaly_data = np.ones(len(img))
             anomaly_data[int(len(anomaly_data) / 2):] = -1
             for i in range(len(anomaly_data)):

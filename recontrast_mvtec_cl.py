@@ -276,20 +276,6 @@ def center_paste(large_img, small_img):
 
 
 class MVTEC(data.Dataset):
-    """`MVTEC <https://www.mvtec.com/company/research/datasets/mvtec-ad/>`_ Dataset.
-    Args:
-        root (string): Root directory of dataset where directories
-            ``bottle``, ``cable``, etc., exists.
-        train (bool, optional): If True, creates dataset from training set, otherwise
-            creates from test set.
-        transform (callable, optional): A function/transform that  takes in an PIL image
-            and returns a transformed version. E.g, ``transforms.RandomCrop``
-        target_transform (callable, optional): A function/transform that takes in the
-            target and transforms it.
-        resize (int, optional): Desired output image size.
-        interpolation (int, optional): Interpolation method for downsizing image.
-        category: bottle, cable, capsule, etc.
-    """
 
     def __init__(self, root, train=True,
                  transform=None, target_transform=None,
@@ -523,7 +509,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             print('Only res18 implemented!')
             exit(1)
         decoder = de_resnet18(pretrained=True, output_conv=2, decoder_path=decoder_path)
-
+    print(encoder_freeze)
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)

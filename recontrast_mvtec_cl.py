@@ -32,60 +32,6 @@ from cutpaste_transformation import *
 
 warnings.filterwarnings("ignore")
 
-
-class RandomRotationTransform:
-    def __init__(self, transform=None):
-        # List of angles
-        self.angles = [90, 180, 270]
-        self.transform = transform
-
-    def __call__(self, x):
-        # Select a random angle
-        angle = random.choice(self.angles)
-        if self.transform:
-            x = self.transform(x)
-        return transforms.functional.rotate(x, angle)
-
-
-class MNIST_Dataset(Dataset):
-    def __init__(self, train, test_id=1, transform=None):
-        self.train = train
-        self.transform = transform
-        if train:
-            with open('./content/mnist_shifted_dataset/train_normal.pkl', 'rb') as f:
-                normal_train = pickle.load(f)
-            self.images = normal_train['images']
-            self.labels = [0] * len(self.images)
-        else:
-            if test_id == 1:
-                with open('./content/mnist_shifted_dataset/test_normal_main.pkl', 'rb') as f:
-                    normal_test = pickle.load(f)
-                with open('./content/mnist_shifted_dataset/test_abnormal_main.pkl', 'rb') as f:
-                    abnormal_test = pickle.load(f)
-                self.images = normal_test['images'] + abnormal_test['images']
-                self.labels = [0] * len(normal_test['images']) + [1] * len(abnormal_test['images'])
-            else:
-                with open('./content/mnist_shifted_dataset/test_normal_shifted.pkl', 'rb') as f:
-                    normal_test = pickle.load(f)
-                with open('./content/mnist_shifted_dataset/test_abnormal_shifted.pkl', 'rb') as f:
-                    abnormal_test = pickle.load(f)
-                self.images = normal_test['images'] + abnormal_test['images']
-                self.labels = [0] * len(normal_test['images']) + [1] * len(abnormal_test['images'])
-
-    def __getitem__(self, index):
-        image = torch.tensor(self.images[index])
-        if self.transform is not None:
-            image = self.transform(image)
-        if self.train:
-            return image, self.labels[index]
-        gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
-        gt[:, :, 1:3] = 1
-        return image, gt, self.labels[index], 1
-
-    def __len__(self):
-        return len(self.images)
-
-
 def get_logger(name, save_path=None, level='INFO'):
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level))

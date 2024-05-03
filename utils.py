@@ -294,7 +294,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             print(f'weight of max map score (normal): {w_map}')
             print(f'weight of CLS msp score (normal): {cls_weight}')
             print(f'weight of unode msp score (normal): {w_unode}')
-        print('outttt', model(torch.ones(1, 3, 224, 224), eval_unode=True))
+        print('outttt', model(torch.ones(1, 3, 224, 224).cuda(), eval_unode=True))
 
     gt_list_sp = []
     pr_list_sp = []

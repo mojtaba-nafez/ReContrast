@@ -436,6 +436,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                             resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
                             shrink_factor=0.9)
 
+    print(len(train_data))
+    print(type(train_data[0]))
+
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
     train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,

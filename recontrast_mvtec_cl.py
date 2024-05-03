@@ -477,7 +477,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         if len(it) == 2:
             disp([it[0][i] for i in range(10)], [it[1][i] for i in range(10)], f'mvtec_{i}')
         else:
-            disp([it[0][i] for i in range(10)], [it[2][i] for i in range(10)], f'mvtec_{i}')
+            disp([it[0][i] for i in range(1)], [it[2][i] for i in range(1)], f'mvtec_{i}')
 
     print('len Trainset(main)', len(train_data))
     print('len Testset(main)', len(test_data1))

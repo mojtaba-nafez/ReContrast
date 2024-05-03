@@ -439,10 +439,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     main0 = test_data1[0]
     shi0 = test_data2[0]
     topil = transforms.ToPILImage()
-    main0 = topil(main0)
-    shi0 = topil(shi0)
-    main0.save('main0.jpg')
-    shi0.save('shi0.jpg')
+    main0 = topil(main0[0])
+    shi0 = topil(shi0[0])
+    main0.save('main0.png')
+    shi0.save('shi0.png')
 
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,

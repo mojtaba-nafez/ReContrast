@@ -426,18 +426,16 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         ])
     data_transform, gt_transform = get_data_transforms(image_size, image_size)
 
-    train_data = MVTEC(root='/kaggle/input/mvtec-ad/', train=True, transform=transform, category=category,
+    train_data = MVTEC(root='/kaggle/input/mvtec-ad/', train=True, transform=data_transform, category=category,
                         resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
                         shrink_factor=1)
-    test_data1 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=transform, category=category,
+    test_data1 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=data_transform, category=category,
                          resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
                          shrink_factor=1)
-    test_data2 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=transform, category=category,
+    test_data2 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=data_transform, category=category,
                             resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
                             shrink_factor=0.9)
 
-    print(len(train_data))
-    print(type(train_data[0]))
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)

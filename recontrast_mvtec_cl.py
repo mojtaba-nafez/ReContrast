@@ -18,6 +18,9 @@ from ptflops import get_model_complexity_info
 from torchvision import transforms
 import matplotlib.pyplot as plt
 import torch.nn as nn
+import pickle
+from torchvision import datasets, transforms
+from torch.utils.data import Dataset, DataLoader
 
 import warnings
 import copy
@@ -30,62 +33,57 @@ from cutpaste_transformation import *
 warnings.filterwarnings("ignore")
 
 
-class BrainTest(torch.utils.data.Dataset):
-    def __init__(self, transform, test_id=1):
-
+class RandomRotationTransform:
+    def __init__(self, transform=None):
+        # List of angles
+        self.angles = [90, 180, 270]
         self.transform = transform
-        self.test_id = test_id
 
-        test_normal_path = glob.glob('./Br35H/dataset/test/normal/*')
-        test_anomaly_path = glob.glob('./Br35H/dataset/test/anomaly/*')
+    def __call__(self, x):
+        # Select a random angle
+        angle = random.choice(self.angles)
+        if self.transform:
+            x = self.transform(x)
+        return transforms.functional.rotate(x, angle)
 
-        self.test_path = test_normal_path + test_anomaly_path
-        self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
 
-        if self.test_id == 2:
-            test_normal_path = glob.glob('./brats/dataset/test/normal/*')
-            test_anomaly_path = glob.glob('./brats/dataset/test/anomaly/*')
+class MNIST_Dataset(Dataset):
+    def __init__(self, train, test_id=1, transform=None):
+        self.train = train
+        self.transform = transform
+        if train:
+            with open('./content/mnist_shifted_dataset/train_normal.pkl', 'rb') as f:
+                normal_train = pickle.load(f)
+            self.images = normal_train['images']
+            self.labels = [0] * len(self.images)
+        else:
+            if test_id == 1:
+                with open('./content/mnist_shifted_dataset/test_normal_main.pkl', 'rb') as f:
+                    normal_test = pickle.load(f)
+                with open('./content/mnist_shifted_dataset/test_abnormal_main.pkl', 'rb') as f:
+                    abnormal_test = pickle.load(f)
+                self.images = normal_test['images'] + abnormal_test['images']
+                self.labels = [0] * len(normal_test['images']) + [1] * len(abnormal_test['images'])
+            else:
+                with open('./content/mnist_shifted_dataset/test_normal_shifted.pkl', 'rb') as f:
+                    normal_test = pickle.load(f)
+                with open('./content/mnist_shifted_dataset/test_abnormal_shifted.pkl', 'rb') as f:
+                    abnormal_test = pickle.load(f)
+                self.images = normal_test['images'] + abnormal_test['images']
+                self.labels = [0] * len(normal_test['images']) + [1] * len(abnormal_test['images'])
 
-            self.test_path = test_normal_path + test_anomaly_path
-            self.test_label = [0] * len(test_normal_path) + [1] * len(test_anomaly_path)
-
-    def __len__(self):
-        return len(self.test_path)
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        img_path = self.test_path[idx]
-        img = Image.open(img_path).convert('RGB')
-        img = self.transform(img)
-
-        has_anomaly = 0 if self.test_label[idx] == 0 else 1
-
-        # this is fake:)
-        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+    def __getitem__(self, index):
+        image = torch.tensor(self.images[index])
+        if self.transform is not None:
+            image = self.transform(image)
+        if self.train:
+            return image, self.labels[index]
+        gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
         gt[:, :, 1:3] = 1
-        # return img, , has_anomaly, img_path
-        return img, gt, has_anomaly, img_path
-
-
-class BrainTrain(torch.utils.data.Dataset):
-    def __init__(self, transform):
-        self.transform = transform
-        self.image_paths = glob.glob('./Br35H/dataset/train/normal/*')
-        brats_mod = glob.glob('./brats/dataset/train/normal/*')
-        random.seed(1)
-        random_brats_images = random.sample(brats_mod, 150)
-        self.image_paths.extend(random_brats_images)
+        return image, gt, self.labels[index], 1
 
     def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, idx):
-        img_path = self.image_paths[idx]
-        img = Image.open(img_path).convert('RGB')
-        img = self.transform(img)
-        return img, 0
+        return len(self.images)
 
 
 def get_logger(name, save_path=None, level='INFO'):
@@ -398,22 +396,10 @@ class MVTEC(data.Dataset):
             return len(self.test_data)
 
 
-
-def disp(image_list, title, fig_name):
-    plt.figure(figsize=(10, 10), constrained_layout=True)
-    for i, img in enumerate(image_list):
-        ax = plt.subplot(1, len(image_list), i + 1)
-        plt.imshow(img.permute(1, 2, 0))
-        plt.title(title[i])
-        plt.axis('off')
-    plt.savefig(f'fig_{fig_name}')
-    return plt
-
-
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
           image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None,
-          category='carpet'):
+          pretrain_unode_weghts=False, category='carpet'):
     print_fn(_class_)
     setup_seed(111)
 
@@ -421,64 +407,56 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     image_size = image_size
     crop_size = image_size
 
+    mean_train = [0.485, 0.456, 0.406]
+    std_train = [0.229, 0.224, 0.225]
+
     if augmented_view:
-        train_data_transforms = transforms.Compose([
+        transform = transforms.Compose([
+            transforms.ToPILImage(),
             transforms.Resize((image_size, image_size)),
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
             transforms.RandomGrayscale(p=0.2),  # Random grayscale
             transforms.ToTensor(),
-            transforms.CenterCrop(crop_size),
         ])
     else:
-        train_data_transforms = transforms.Compose([
+        transform = transforms.Compose([
+            transforms.ToPILImage(),
             transforms.Resize((image_size, image_size)),
             transforms.ToTensor(),
-            transforms.CenterCrop(crop_size),
         ])
     data_transform, gt_transform = get_data_transforms(image_size, image_size)
 
-    train_data = MVTEC(root='/kaggle/input/mvtec-ad/', train=True, transform=data_transform, category=category,
-                       resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
-                       shrink_factor=1)
-    test_data1 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=data_transform, category=category,
+    train_data = MVTEC(root='/kaggle/input/mvtec-ad/', train=True, transform=transform, category=category,
+                        resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
+                        shrink_factor=1)
+    test_data1 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=transform, category=category,
                          resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
                          shrink_factor=1)
-    test_data2 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=data_transform, category=category,
+    test_data2 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=transform, category=category,
                             resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
                             shrink_factor=0.9)
 
-
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=4,
+    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                     drop_last=False)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
-    loaders = [train_dataloader, test_dataloader1, test_dataloader2]
-    for i in range(len(loaders)):
-        it = next(iter(loaders[i]))
-        print(len(loaders[i]))
-        print(len(it), it[0].shape)
-        if len(it) == 2:
-            disp([it[0][i] for i in range(10)], [it[1][i] for i in range(10)], f'mvtec_{i}')
-        else:
-            disp([it[0][i] for i in range(1)], [it[2][i] for i in range(1)], f'mvtec_{i}')
-
     print('len Trainset(main)', len(train_data))
     print('len Testset(main)', len(test_data1))
-    print('len Testset(0.9)', len(test_data2))
+    print('len Testset(shifted)', len(test_data2))
 
     in_channels = 1024
     if model == 'wide_res50':
-        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end, pretrain_unode_weghts=True)
+        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end, pretrain_unode_weghts=pretrain_unode_weghts)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     elif model == 'res18':
-        encoder, bn = resnet18(pretrained=True, head_end=head_end, pretrain_unode_weghts=True)
+        encoder, bn = resnet18(pretrained=True, head_end=head_end, pretrain_unode_weghts=pretrain_unode_weghts)
         decoder = de_resnet18(pretrained=False, output_conv=2)
         in_channels = 256
     else:
-        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end, pretrain_unode_weghts=True)
+        encoder, bn = wide_resnet50_2(pretrained=True, head_end=head_end, pretrain_unode_weghts=pretrain_unode_weghts)
         decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
     if not head_end:
         cls = BinaryClassifier(in_channels)
@@ -493,23 +471,26 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     if unode_path is None:
         encoder_freeze = copy.deepcopy(encoder)
     else:
-        if model != 'res18':
-            print('Only res18 implemented!')
-            exit(1)
-        encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True, pretrain_unode_weghts=True)
+        if model == 'res18':
+            encoder_freeze, _ = resnet18(pretrained=True, unode_path=unode_path, head_end=head_end, is_unode_model=True,
+                                         pretrain_unode_weghts=pretrain_unode_weghts)
+        if model == 'wide_res50':
+            encoder_freeze, _ = wide_resnet50_2(pretrained=True, unode_path=unode_path, head_end=head_end,
+                                                is_unode_model=True, pretrain_unode_weghts=pretrain_unode_weghts)
 
     if trainable_encoder_path is not None:
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
-        encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end, pretrain_unode_weghts=True)
+        encoder, _ = resnet18(pretrained=True, unode_path=trainable_encoder_path, head_end=head_end,
+                              pretrain_unode_weghts=pretrain_unode_weghts)
 
     if decoder_path is not None:
         if model != 'res18':
             print('Only res18 implemented!')
             exit(1)
         decoder = de_resnet18(pretrained=True, output_conv=2, decoder_path=decoder_path)
-    print(encoder_freeze)
+
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
@@ -721,7 +702,7 @@ if __name__ == '__main__':
     parser.add_argument('--trainable_encoder_path', type=str, default=None)
     parser.add_argument('--decoder_path', type=str, default=None)
     parser.add_argument('--cls_path', type=str, default=None)
-    parser.add_argument('--category', type=str, default='carpet')
+    parser.add_argument('--pretrain_unode_weghts', action='store_true')
 
     args = parser.parse_args()
     image_size = args.image_size
@@ -758,7 +739,8 @@ if __name__ == '__main__':
         unode_path=args.unode_path,
         trainable_encoder_path=args.trainable_encoder_path,
         decoder_path=args.decoder_path,
-        cls_path=args.cls_path, category=args.category)
+        cls_path=args.cls_path,
+        pretrain_unode_weghts=args.pretrain_unode_weghts)
     # for pad in pad_size:
     #     result_list[str(pad)].append(
     #         [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])

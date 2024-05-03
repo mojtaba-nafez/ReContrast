@@ -192,6 +192,8 @@ class BinaryClassifier2(nn.Module):
         return x
 
 
+
+
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
           image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None):

@@ -703,6 +703,8 @@ if __name__ == '__main__':
     parser.add_argument('--decoder_path', type=str, default=None)
     parser.add_argument('--cls_path', type=str, default=None)
     parser.add_argument('--pretrain_unode_weghts', action='store_true')
+    parser.add_argument('--category', type=str, default='carpet')
+
 
     args = parser.parse_args()
     image_size = args.image_size
@@ -740,7 +742,7 @@ if __name__ == '__main__':
         trainable_encoder_path=args.trainable_encoder_path,
         decoder_path=args.decoder_path,
         cls_path=args.cls_path,
-        pretrain_unode_weghts=args.pretrain_unode_weghts)
+        pretrain_unode_weghts=args.pretrain_unode_weghts, category=args.category)
     # for pad in pad_size:
     #     result_list[str(pad)].append(
     #         [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])

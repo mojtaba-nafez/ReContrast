@@ -395,7 +395,8 @@ class MVTEC(data.Dataset):
 
         gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
         gt[:, :, 1:3] = 1
-
+        if self.train:
+            return img, 0
         return img, gt, target, f'{self.train}_{index}'
 
     def __len__(self):

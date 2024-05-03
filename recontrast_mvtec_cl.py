@@ -473,7 +473,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     for i in range(len(loaders)):
         it = next(iter(loaders[i]))
         print(len(loaders[i]))
-        print(it)
+        print(len(it), it[0].shape)
         if len(it) == 2:
             disp([it[0][i] for i in range(10)], [it[1][i] for i in range(10)], f'mvtec_{i}')
         else:

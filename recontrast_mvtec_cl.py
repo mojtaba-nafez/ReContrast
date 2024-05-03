@@ -393,7 +393,10 @@ class MVTEC(data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, target
+        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+        gt[:, :, 1:3] = 1
+
+        return img, gt, target, f'{self.train}_{index}'
 
     def __len__(self):
         """

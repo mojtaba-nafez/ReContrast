@@ -262,12 +262,16 @@ class MVTEC(data.Dataset):
         if self.transform is not None:
             image = self.transform(image)
         to_pil = transforms.ToPILImage()
-        image = to_pil(image)
+        if not self.train:
+            image = to_pil(image)
 
         if os.path.dirname(image_file).endswith("good"):
             target = 0
         else:
             target = 1
+
+        if self.train:
+            return image, target
 
         if self.select_random_image_from_imagenet:
             imagenet30_img = self.imagenet30_testset[int(random.random() * len(self.imagenet30_testset))][0].resize(

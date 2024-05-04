@@ -391,7 +391,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     shi0.save('shi0.png')
 
     torch.manual_seed(0)
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False, num_workers=4,
                                                    drop_last=False)
     train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False, num_workers=4,
                                                     drop_last=False)

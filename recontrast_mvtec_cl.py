@@ -257,7 +257,6 @@ class MVTEC(data.Dataset):
         image_file = self.image_files[index]
         image = Image.open(image_file)
         image = image.convert('RGB')
-        print('get item')
         if self.transform is not None:
             image = self.transform(image)
 
@@ -271,6 +270,7 @@ class MVTEC(data.Dataset):
                 (224, 224))
         else:
             imagenet30_img = self.imagenet30_testset[100][0].resize((224, 224))
+        print('get item')
 
         # if resizing image
         if self.resize is not None:

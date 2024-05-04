@@ -336,7 +336,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     train_transform = transforms.Compose([
         transforms.Resize((256, 256)),
         transforms.CenterCrop((image_size, image_size)),
-        transforms.RandomHorizontalFlip(),
+        # transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
     ])
 

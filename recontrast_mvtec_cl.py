@@ -284,14 +284,15 @@ class MVTEC(data.Dataset):
         #         print(f"img.size: {img.size}")
         image = center_paste(imagenet30_img, image)
 
-        print(type(image))
+        to_trans = transforms.ToTensor()
+        image = to_trans(image)
         gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
         gt[:, :, 1:3] = 1
 
-        to_trans = transforms.ToTensor()
+
         if self.train:
-            return to_trans(image), 0
-        return to_trans(image), gt, target, f'{self.train}_{index}'
+            return image, 0
+        return image, gt, target, f'{self.train}_{index}'
 
     def __len__(self):
         return len(self.image_files)

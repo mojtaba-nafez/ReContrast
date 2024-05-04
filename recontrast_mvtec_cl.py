@@ -370,7 +370,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             transforms.Resize((image_size, image_size)),
             transforms.ToTensor(),
         ])
-    data_transform, gt_transform = get_data_transforms(image_size, image_size)
+    data_transform, gt_transform = get_data_transforms(256, 224)
 
     train_data = MVTEC(root='/kaggle/input/mvtec-ad/', train=True, transform=gt_transform, category=category,
                         resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,

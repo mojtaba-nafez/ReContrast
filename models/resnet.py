@@ -285,7 +285,7 @@ class ResNet(nn.Module):
             feature_d = self.layer4(feature_c)
             feature_d = self.avgpool(feature_d)
             feature_d = torch.flatten(feature_d, 1)
-            feature_d = F.normalize(feature_d, dim=-1)
+            # feature_d = F.normalize(feature_d, dim=-1)
             return self.shift_cls_layer(feature_d)
         
         return [feature_a, feature_b, feature_c]
@@ -309,7 +309,7 @@ class ResNet(nn.Module):
         if eval_unode:
             feature_d = self.avgpool(feature_d)
             feature_d = torch.flatten(feature_d, 1)
-            feature_d = F.normalize(feature_d, dim=-1)
+            # feature_d = F.normalize(feature_d, dim=-1)
             return self.shift_cls_layer(feature_d)
         # print('en out:', feature_a.shape, feature_b.shape, feature_c.shape)
         return [feature_a, feature_b, feature_c, feature_d]

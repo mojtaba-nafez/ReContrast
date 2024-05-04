@@ -291,8 +291,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 unode_cls = model(img, eval_unode=True)
                 unode_cls_score = unode_cls[:, 0]
                 cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
-                print(f'counter: {counter}, unode cls score: {cls_list_unode_normal[-1]}')
-                counter += 1
+                for j in range(len(unode_cls_score)):
+                    print(f'{counter}: {unode_cls_score[j]}')
+                    counter += 1
 
             w_map = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
             cls_weight = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))
@@ -334,7 +335,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             # w_unode = 1
             unode_cls_score = unode_cls[:, 0] * -1
             unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
-            print('!', unode_cls_list_sp[-1])
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)

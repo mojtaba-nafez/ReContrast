@@ -346,7 +346,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     ])
     ######################
 
-    train_data = MVTEC(root='./mvtec_anomaly_detection', train=True, transform=test_transform, category=category,
+    train_data = MVTEC(root='./mvtec_anomaly_detection', train=True, transform=train_transform, category=category,
                        resize=224, use_imagenet=True, select_random_image_from_imagenet=True,
                        shrink_factor=1)
     test_data1 = MVTEC(root='./mvtec_anomaly_detection', train=False, transform=test_transform, category=category,

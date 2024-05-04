@@ -204,6 +204,8 @@ from PIL import Image
 
 def center_paste(large_img, small_img):
     # Calculate the center position
+    to_pil = transforms.ToPILImage()
+    small_img = to_pil(small_img)
     large_width, large_height = large_img.size
     small_width, small_height = small_img.size
 
@@ -275,12 +277,10 @@ class MVTEC(data.Dataset):
         if self.resize is not None:
             resizeTransf = transforms.Resize((self.resize, self.resize))
             image = resizeTransf(image)
-        print('get item')
 
         #         print(f"imagenet30_img.size: {imagenet30_img.size}")
         #         print(f"img.size: {img.size}")
         image = center_paste(imagenet30_img, image)
-        print('get item')
 
 
         gt = torch.zeros([1, image.size()[-2], image.size()[-2]])

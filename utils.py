@@ -257,16 +257,16 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     w_unode = 0
     cls_weight = 0
     counter = 0
-    print('here')
     if train_loader is not None:
-        print('also here')
         with torch.no_grad():
             gt_list_sp_normal = []
             pr_list_sp_normal = []
             cls_list_sp_normal = []
 
             cls_list_unode_normal = []
+            print('ffffffffffffffff',len(train_loader))
             for img, label in train_loader:
+                print('here')
                 img = img.to(device)
                 if not head_end:
                     en, de = model(img, head_end=head_end)

@@ -261,6 +261,8 @@ class MVTEC(data.Dataset):
         image = image.convert('RGB')
         if self.transform is not None:
             image = self.transform(image)
+        to_pil = transforms.ToPILImage()
+        image = to_pil(image)
 
         if os.path.dirname(image_file).endswith("good"):
             target = 0
@@ -330,12 +332,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         transforms.Resize((256, 256)),
         transforms.CenterCrop((image_size, image_size)),
         transforms.RandomHorizontalFlip(),
-        # transforms.ToTensor(),
+        transforms.ToTensor(),
     ])
 
     test_transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
-        # transforms.ToTensor(),
+        transforms.ToTensor(),
     ])
     ######################
 

@@ -257,6 +257,7 @@ class MVTEC(data.Dataset):
         image_file = self.image_files[index]
         image = Image.open(image_file)
         image = image.convert('RGB')
+        print('get item')
         if self.transform is not None:
             image = self.transform(image)
 
@@ -345,13 +346,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                        resize=224, use_imagenet=True, select_random_image_from_imagenet=True,
                        shrink_factor=0.9)
 
-    # main0 = test_data1[0]
-    # shi0 = test_data2[0]
-    # topil = transforms.ToPILImage()
-    # main0 = topil(main0[0])
-    # shi0 = topil(shi0[0])
-    # main0.save('main0.png')
-    # shi0.save('shi0.png')
+    main0 = test_data1[0]
+    shi0 = test_data2[0]
+    topil = transforms.ToPILImage()
+    main0 = topil(main0[0])
+    shi0 = topil(shi0[0])
+    main0.save('main0.png')
+    shi0.save('shi0.png')
 
     torch.manual_seed(0)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False, num_workers=4,

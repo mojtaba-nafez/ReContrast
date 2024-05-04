@@ -266,8 +266,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             cls_list_unode_normal = []
             print('ffffffffffffffff', len(train_loader))
             for img, label in train_loader:
-                print('len(img)', len(img))
-                print(img[0][0][0])
                 # print(img[0][0][:,0])
                 img = img.to(device)
                 if not head_end:
@@ -332,6 +330,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 pr_list_sp.append(w_map * np.mean(anomaly_map))
 
             unode_cls = model(img, eval_unode=True)
+            print('len(img)', len(img))
+            print(img[0][0][0])
+            print("unode_cls", unode_cls)
             # w_unode = 1
             unode_cls_score = unode_cls[:, 0] * -1
             unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])

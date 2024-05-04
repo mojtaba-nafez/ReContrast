@@ -309,6 +309,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     cls_list_sp = []
     unode_cls_list_sp = []
     mixed_list_sp = []
+    counter = 0
 
     with torch.no_grad():
         for img, _, label, _ in dataloader:
@@ -335,6 +336,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             # w_unode = 1
             unode_cls_score = unode_cls[:, 0] * -1
             unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
+            for j in range(len(unode_cls_score)):
+                print(f'{counter}: {unode_cls_score[j]}')
+                counter += 1
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)

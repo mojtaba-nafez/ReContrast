@@ -247,6 +247,7 @@ class MVTEC(data.Dataset):
             self.resize = int(resize * shrink_factor)
         self.select_random_image_from_imagenet = select_random_image_from_imagenet
         self.imagenet30_testset = IMAGENET30_TEST_DATASET()
+        self.image_files.sort(key=lambda y: y.lower())
 
 
     def __getitem__(self, index):

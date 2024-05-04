@@ -1,4 +1,6 @@
 import torch
+from torch import nn
+
 from dataset import get_data_transforms
 from torchvision.datasets import ImageFolder
 import numpy as np
@@ -17,6 +19,7 @@ from scipy.ndimage import gaussian_filter, binary_dilation
 import os
 from functools import partial
 import math
+import transform_layers as TL
 from sklearn import manifold
 from matplotlib.ticker import NullFormatter
 from scipy.spatial.distance import pdist
@@ -248,6 +251,29 @@ def evaluation_brain(model, dataloader, device, _class_=None, calc_pro=True, max
     return auroc_px, auroc_sp, round(np.mean(aupro_list), 4)
 
 
+def get_simclr_augmentation(image_size, resize_factor=0.54, resize_fix=True):
+
+    # parameter for resizecrop
+    resize_scale = (resize_factor, 1.0) # resize scaling factor
+    if resize_fix: # if resize_fix is True, use same scale
+        resize_scale = (resize_factor, resize_factor)
+
+    # Align augmentation
+    color_jitter = TL.ColorJitterLayer(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1, p=0.8)
+    color_gray = TL.RandomColorGrayLayer(p=0.2)
+    resize_crop = TL.RandomResizedCropLayer(scale=resize_scale, size=image_size)
+
+    # Transform define #
+
+    transform = nn.Sequential(
+        color_jitter,
+        color_gray,
+        resize_crop,
+    )
+
+    return transform
+
+
 def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max', cls=None, head_end=False,
                            train_loader=None, anomaly_transforms=None):
     model.eval()
@@ -256,6 +282,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     w_msp = 0
     w_unode = 0
     cls_weight = 0
+
     if train_loader is not None:
         with torch.no_grad():
             gt_list_sp_normal = []
@@ -301,6 +328,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     unode_cls_list_sp = []
     mixed_list_sp = []
 
+    simclr_aug = get_simclr_augmentation((224, 224, 3), resize_factor=0.54, resize_fix=True)
     
     with torch.no_grad():
         for img, _, label, _ in dataloader:
@@ -322,6 +350,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 pr_list_sp.append(w_map * np.max(anomaly_map))
             elif reduction == 'mean':
                 pr_list_sp.append(w_map * np.mean(anomaly_map))
+
+            simclr_aug = simclr_aug.to(device)
+            img = simclr_aug(img)
 
             unode_cls = model(img, eval_unode=True)
             unode_cls_score = w_unode * unode_cls[:, 0] * -1

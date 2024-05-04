@@ -268,7 +268,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             for img, label in train_loader:
                 print('len(img)', len(img))
                 print(img[0][0][0])
-                print(img[0][0][1])
+                print(img[0][0][:][0])
                 img = img.to(device)
                 if not head_end:
                     en, de = model(img, head_end=head_end)

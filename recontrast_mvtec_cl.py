@@ -356,6 +356,14 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     topil = transforms.ToPILImage()
     main0 = topil(main0[0])
     main0.save('main0.png')
+    main1 = test_data1[0]
+    topil = transforms.ToPILImage()
+    main1 = topil(main1[0])
+    main1.save('main1.png')
+    main2 = test_data2[0]
+    topil = transforms.ToPILImage()
+    main2 = topil(main2[0])
+    main2.save('main2.png')
 
     torch.manual_seed(0)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False, num_workers=4,

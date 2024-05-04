@@ -204,8 +204,8 @@ from PIL import Image
 
 def center_paste(large_img, small_img):
     # Calculate the center position
-    to_pil = transforms.ToPILImage()
-    small_img = to_pil(small_img)
+    # to_pil = transforms.ToPILImage()
+    # small_img = to_pil(small_img)
     large_width, large_height = large_img.size
     small_width, small_height = small_img.size
 
@@ -285,9 +285,11 @@ class MVTEC(data.Dataset):
 
         gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
         gt[:, :, 1:3] = 1
+
+        to_trans = transforms.ToTensor()
         if self.train:
-            return image, 0
-        return image, gt, target, f'{self.train}_{index}'
+            return to_trans(image), 0
+        return to_trans(image), gt, target, f'{self.train}_{index}'
 
     def __len__(self):
         return len(self.image_files)
@@ -328,12 +330,12 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         transforms.Resize((256, 256)),
         transforms.CenterCrop((image_size, image_size)),
         transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
+        # transforms.ToTensor(),
     ])
 
     test_transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
-        transforms.ToTensor(),
+        # transforms.ToTensor(),
     ])
     ######################
 

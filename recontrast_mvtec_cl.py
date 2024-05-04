@@ -220,16 +220,25 @@ def center_paste(large_img, small_img):
     return result_img
 
 
+from glob import glob
+
+
 class MVTEC(data.Dataset):
 
     def __init__(self, root, train=True,
                  transform=None, target_transform=None,
                  category='carpet', resize=None, interpolation=2, use_imagenet=False,
                  select_random_image_from_imagenet=False, shrink_factor=0.9):
-        self.root = os.path.expanduser(root)
+        self.root = root
         self.transform = transform
-        self.category = category
-        self.target_transform = target_transform
+        self.image_files = []
+        print("category MVTecDataset:", category)
+        if train:
+            self.image_files = glob(os.path.join(root, category, "train", "good", "*.png"))
+        else:
+            image_files = glob(os.path.join(root, category, "test", "*", "*.png"))
+            self.image_files = image_files
+        self.image_files.sort(key=lambda y: y.lower())
         self.train = train
         self.resize = resize
         if use_imagenet:
@@ -238,57 +247,6 @@ class MVTEC(data.Dataset):
         self.select_random_image_from_imagenet = select_random_image_from_imagenet
         self.imagenet30_testset = IMAGENET30_TEST_DATASET()
 
-        # load images for training
-        if self.train:
-            self.train_data = []
-            self.train_labels = []
-            cwd = os.getcwd()
-            print(category)
-            trainFolder = self.root + category + '/train/good/'
-            os.chdir(trainFolder)
-            filenames = [f.name for f in os.scandir()]
-            for file in filenames:
-                img = mpimg.imread(file)
-                img = img * 255
-                img = img.astype(np.uint8)
-                self.train_data.append(img)
-                self.train_labels.append(0)
-            os.chdir(cwd)
-            print(cwd)
-
-            self.train_data = np.array(self.train_data)
-        else:
-            # load images for testing
-            self.test_data = []
-            self.test_labels = []
-
-            cwd = os.getcwd()
-            testFolder = self.root + category + '/test/'
-            os.chdir(testFolder)
-            subfolders = [sf.name for sf in os.scandir() if sf.is_dir()]
-            #             print(subfolders)
-            cwsd = os.getcwd()
-            print(cwsd)
-
-            # for every subfolder in test folder
-            for subfolder in subfolders:
-                label = 1
-                if subfolder == 'good':
-                    label = 0
-                testSubfolder = testFolder + subfolder + '/'
-                #                 print(testSubfolder)
-                os.chdir(testSubfolder)
-                filenames = [f.name for f in os.scandir()]
-                for file in filenames:
-                    img = mpimg.imread(file)
-                    img = img * 255
-                    img = img.astype(np.uint8)
-                    self.test_data.append(img)
-                    self.test_labels.append(label)
-                os.chdir(cwsd)
-            os.chdir(cwd)
-
-            self.test_data = np.array(self.test_data)
 
     def __getitem__(self, index):
         """
@@ -297,14 +255,14 @@ class MVTEC(data.Dataset):
         Returns:
             tuple: (image, target) where target is index of the target class.
         """
-        if self.train:
-            img, target = self.train_data[index], self.train_labels[index]
-        else:
-            img, target = self.test_data[index], self.test_labels[index]
+        image_file = self.image_files[index]
+        image = Image.open(image_file)
+        image = image.convert('RGB')
 
-        # doing this so that it is consistent with all other datasets
-        # to return a PIL Image
-        img = Image.fromarray(img)
+        if os.path.dirname(image_file).endswith("good"):
+            target = 0
+        else:
+            target = 1
 
         if self.select_random_image_from_imagenet:
             imagenet30_img = self.imagenet30_testset[int(random.random() * len(self.imagenet30_testset))][0].resize(
@@ -315,32 +273,23 @@ class MVTEC(data.Dataset):
         # if resizing image
         if self.resize is not None:
             resizeTransf = transforms.Resize(self.resize, self.interpolation)
-            img = resizeTransf(img)
+            image = resizeTransf(image)
 
         #         print(f"imagenet30_img.size: {imagenet30_img.size}")
         #         print(f"img.size: {img.size}")
-        img = center_paste(imagenet30_img, img)
+        image = center_paste(imagenet30_img, image)
 
         if self.transform is not None:
-            img = self.transform(img)
+            image = self.transform(image)
 
-        gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
+        gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
         gt[:, :, 1:3] = 1
         if self.train:
-            return img, 0
-        return img, gt, target, f'{self.train}_{index}'
+            return image, 0
+        return image, gt, target, f'{self.train}_{index}'
 
     def __len__(self):
-        """
-        Args:
-            None
-        Returns:
-            int: length of array.
-        """
-        if self.train:
-            return len(self.train_data)
-        else:
-            return len(self.test_data)
+        return len(self.image_files)
 
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,

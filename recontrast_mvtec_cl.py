@@ -284,7 +284,7 @@ class MVTEC(data.Dataset):
         #         print(f"img.size: {img.size}")
         image = center_paste(imagenet30_img, image)
 
-
+        print(type(image))
         gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
         gt[:, :, 1:3] = 1
 

@@ -32,6 +32,7 @@ from cutpaste_transformation import *
 
 warnings.filterwarnings("ignore")
 
+
 def get_logger(name, save_path=None, level='INFO'):
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level))
@@ -370,17 +371,31 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
             transforms.Resize((image_size, image_size)),
             transforms.ToTensor(),
         ])
-    data_transform, gt_transform = get_data_transforms(256, 224)
+    data_transform, gt_transform = get_data_transforms(image_size, image_size)
 
-    train_data = MVTEC(root='/kaggle/input/mvtec-ad/', train=True, transform=gt_transform, category=category,
-                        resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
-                        shrink_factor=1)
-    test_data1 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=gt_transform, category=category,
-                         resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
-                         shrink_factor=1)
-    test_data2 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=gt_transform, category=category,
-                            resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
-                            shrink_factor=0.9)
+    ######### from UNode
+    train_transform = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.CenterCrop((image_size[0], image_size[1])),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+    ])
+
+    test_transform = transforms.Compose([
+        transforms.Resize((image_size[0], image_size[1])),
+        transforms.ToTensor(),
+    ])
+    ######################
+
+    train_data = MVTEC(root='/kaggle/input/mvtec-ad/', train=True, transform=train_transform, category=category,
+                       resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
+                       shrink_factor=1)
+    test_data1 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=test_transform, category=category,
+                       resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
+                       shrink_factor=1)
+    test_data2 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=test_transform, category=category,
+                       resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
+                       shrink_factor=0.9)
 
     main0 = test_data1[0]
     shi0 = test_data2[0]
@@ -723,7 +738,6 @@ if __name__ == '__main__':
     parser.add_argument('--cls_path', type=str, default=None)
     parser.add_argument('--pretrain_unode_weghts', action='store_true')
     parser.add_argument('--category', type=str, default='carpet')
-
 
     args = parser.parse_args()
     image_size = args.image_size

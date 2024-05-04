@@ -328,8 +328,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     unode_cls_list_sp = []
     mixed_list_sp = []
 
-    img_size = 224
-    simclr_aug = get_simclr_augmentation(img_size, resize_factor=0.54, resize_fix=True)
+    simclr_aug = get_simclr_augmentation((224, 224, 3), resize_factor=0.54, resize_fix=True)
     
     with torch.no_grad():
         for img, _, label, _ in dataloader:

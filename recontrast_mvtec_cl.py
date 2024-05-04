@@ -270,16 +270,17 @@ class MVTEC(data.Dataset):
                 (224, 224))
         else:
             imagenet30_img = self.imagenet30_testset[100][0].resize((224, 224))
-        print('get item')
 
         # if resizing image
         if self.resize is not None:
             resizeTransf = transforms.Resize((self.resize, self.resize))
             image = resizeTransf(image)
+        print('get item')
 
         #         print(f"imagenet30_img.size: {imagenet30_img.size}")
         #         print(f"img.size: {img.size}")
         image = center_paste(imagenet30_img, image)
+        print('get item')
 
 
         gt = torch.zeros([1, image.size()[-2], image.size()[-2]])

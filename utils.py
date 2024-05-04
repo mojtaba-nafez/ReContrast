@@ -264,7 +264,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             cls_list_sp_normal = []
 
             cls_list_unode_normal = []
-            print('ffffffffffffffff',len(train_loader))
+            print('ffffffffffffffff', len(train_loader))
             for img, label in train_loader:
                 print('len(img)', len(img))
                 print(img[0][0][0])
@@ -275,7 +275,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 else:
                     en, de, en3 = model(img, head_end=head_end)
                     cls_output = cls(en3)
-                
+
                 cls_score = cls_output[:, 0]
                 cls_list_sp_normal.append(cls_score.cpu().numpy()[0])
 
@@ -308,7 +308,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     unode_cls_list_sp = []
     mixed_list_sp = []
 
-    
     with torch.no_grad():
         for img, _, label, _ in dataloader:
             img = img.to(device)
@@ -331,7 +330,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 pr_list_sp.append(w_map * np.mean(anomaly_map))
 
             unode_cls = model(img, eval_unode=True)
-            w_unode = 1
+            # w_unode = 1
             unode_cls_score = w_unode * unode_cls[:, 0] * -1
             unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
 
@@ -339,26 +338,26 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)
 
-
-        print("np.mean(unode_cls_list_sp), max, min", np.mean(unode_cls_list_sp), np.max(unode_cls_list_sp), np.min(unode_cls_list_sp))
+        print("np.mean(unode_cls_list_sp), max, min", np.mean(unode_cls_list_sp), np.max(unode_cls_list_sp),
+              np.min(unode_cls_list_sp))
         print("np.mean(pr_list_sp), max, min", np.mean(pr_list_sp), np.max(pr_list_sp), np.min(pr_list_sp))
         print("np.mean(cls_list_sp), max, min", np.mean(cls_list_sp), np.max(cls_list_sp), np.min(cls_list_sp))
-    
+
         cls_auc = round(roc_auc_score(gt_list_sp, cls_list_sp), 4)
         recon_diff_auc = round(roc_auc_score(gt_list_sp, pr_list_sp), 4)
         unode_auc = round(roc_auc_score(gt_list_sp, unode_cls_list_sp), 4)
-        
+
         mix_unode_diff = round(roc_auc_score(gt_list_sp, \
-            list(np.array(unode_cls_list_sp)) + np.array(pr_list_sp)), 4)
+                                             list(np.array(unode_cls_list_sp)) + np.array(pr_list_sp)), 4)
         mix_unode_cls = round(roc_auc_score(gt_list_sp, \
-            list(np.array(unode_cls_list_sp) + np.array(cls_list_sp))), 4)
+                                            list(np.array(unode_cls_list_sp) + np.array(cls_list_sp))), 4)
         mix_cls_diff = round(roc_auc_score(gt_list_sp, \
-            list(np.array(cls_list_sp) + np.array(pr_list_sp))), 4)
-        
+                                           list(np.array(cls_list_sp) + np.array(pr_list_sp))), 4)
+
         mix_cls_unode_diff = round(roc_auc_score(gt_list_sp, \
-            list(np.array(cls_list_sp) + np.array(unode_cls_list_sp) + np.array(pr_list_sp))), 4)
-        
-        
+                                                 list(np.array(cls_list_sp) + np.array(unode_cls_list_sp) + np.array(
+                                                     pr_list_sp))), 4)
+
         print("----------------------------------")
         print("CLS: ", cls_auc)
         print("Recon_Diff: ", recon_diff_auc)
@@ -367,7 +366,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
         print("Unode + Recon_Diff: ", mix_unode_diff)
         print("Unode + CLS: ", mix_unode_cls)
         print("Recon_Diff + CLS: ", mix_cls_diff)
-        
+
         print("Unode + CLS + Recon_Diff: ", mix_cls_unode_diff)
         print("----------------------------------")
     return recon_diff_auc, f1, acc, unode_auc, mix_unode_diff

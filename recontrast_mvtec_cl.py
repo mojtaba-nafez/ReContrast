@@ -273,20 +273,20 @@ class MVTEC(data.Dataset):
         if self.train:
             return image, target
 
-        if self.select_random_image_from_imagenet:
-            imagenet30_img = self.imagenet30_testset[int(random.random() * len(self.imagenet30_testset))][0].resize(
-                (224, 224))
-        else:
-            imagenet30_img = self.imagenet30_testset[100][0].resize((224, 224))
-
-        # if resizing image
-        if self.resize is not None:
-            resizeTransf = transforms.Resize((self.resize, self.resize))
-            image = resizeTransf(image)
-
-        #         print(f"imagenet30_img.size: {imagenet30_img.size}")
-        #         print(f"img.size: {img.size}")
-        image = center_paste(imagenet30_img, image)
+        # if self.select_random_image_from_imagenet:
+        #     imagenet30_img = self.imagenet30_testset[int(random.random() * len(self.imagenet30_testset))][0].resize(
+        #         (224, 224))
+        # else:
+        #     imagenet30_img = self.imagenet30_testset[100][0].resize((224, 224))
+        #
+        # # if resizing image
+        # if self.resize is not None:
+        #     resizeTransf = transforms.Resize((self.resize, self.resize))
+        #     image = resizeTransf(image)
+        #
+        # #         print(f"imagenet30_img.size: {imagenet30_img.size}")
+        # #         print(f"img.size: {img.size}")
+        # image = center_paste(imagenet30_img, image)
 
         to_trans = transforms.ToTensor()
         image = to_trans(image)

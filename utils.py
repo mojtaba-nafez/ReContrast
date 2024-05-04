@@ -256,6 +256,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     w_msp = 0
     w_unode = 0
     cls_weight = 0
+    counter = 0
     if train_loader is not None:
         with torch.no_grad():
             gt_list_sp_normal = []
@@ -286,6 +287,8 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 unode_cls = model(img, eval_unode=True)
                 unode_cls_score = unode_cls[:, 0]
                 cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
+                print(f'counter: {counter}, unode cls score: {cls_list_unode_normal[-1]}')
+                counter += 1
 
             w_map = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
             cls_weight = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))

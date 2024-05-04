@@ -257,6 +257,8 @@ class MVTEC(data.Dataset):
         image_file = self.image_files[index]
         image = Image.open(image_file)
         image = image.convert('RGB')
+        if self.transform is not None:
+            image = self.transform(image)
 
         if os.path.dirname(image_file).endswith("good"):
             target = 0
@@ -278,8 +280,6 @@ class MVTEC(data.Dataset):
         #         print(f"img.size: {img.size}")
         image = center_paste(imagenet30_img, image)
 
-        if self.transform is not None:
-            image = self.transform(image)
 
         gt = torch.zeros([1, image.size()[-2], image.size()[-2]])
         gt[:, :, 1:3] = 1

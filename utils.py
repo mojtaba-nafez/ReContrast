@@ -257,7 +257,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     w_unode = 0
     cls_weight = 0
     counter = 0
+    print('here')
     if train_loader is not None:
+        print('also here')
         with torch.no_grad():
             gt_list_sp_normal = []
             pr_list_sp_normal = []

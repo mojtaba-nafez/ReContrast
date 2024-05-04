@@ -226,8 +226,8 @@ from glob import glob
 class MVTEC(data.Dataset):
 
     def __init__(self, root, train=True,
-                 transform=None, target_transform=None,
-                 category='carpet', resize=None, interpolation=2, use_imagenet=False,
+                 transform=None,
+                 category='carpet', resize=None, use_imagenet=False,
                  select_random_image_from_imagenet=False, shrink_factor=0.9):
         self.root = root
         self.transform = transform
@@ -243,7 +243,6 @@ class MVTEC(data.Dataset):
         self.resize = resize
         if use_imagenet:
             self.resize = int(resize * shrink_factor)
-        self.interpolation = interpolation
         self.select_random_image_from_imagenet = select_random_image_from_imagenet
         self.imagenet30_testset = IMAGENET30_TEST_DATASET()
 
@@ -272,7 +271,7 @@ class MVTEC(data.Dataset):
 
         # if resizing image
         if self.resize is not None:
-            resizeTransf = transforms.Resize(self.resize, self.interpolation)
+            resizeTransf = transforms.Resize((self.resize, self.resize))
             image = resizeTransf(image)
 
         #         print(f"imagenet30_img.size: {imagenet30_img.size}")
@@ -337,13 +336,13 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     ######################
 
     train_data = MVTEC(root='/kaggle/input/mvtec-ad/', train=True, transform=train_transform, category=category,
-                       resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
+                       resize=224, use_imagenet=True, select_random_image_from_imagenet=True,
                        shrink_factor=1)
     test_data1 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=test_transform, category=category,
-                       resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
+                       resize=224, use_imagenet=True, select_random_image_from_imagenet=True,
                        shrink_factor=1)
     test_data2 = MVTEC(root='/kaggle/input/mvtec-ad/', train=False, transform=test_transform, category=category,
-                       resize=224, interpolation=3, use_imagenet=True, select_random_image_from_imagenet=True,
+                       resize=224, use_imagenet=True, select_random_image_from_imagenet=True,
                        shrink_factor=0.9)
 
     main0 = test_data1[0]

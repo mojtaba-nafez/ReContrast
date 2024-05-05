@@ -306,9 +306,10 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 else:
                     en, de, en3 = model(img, head_end=head_end)
                     cls_output = cls(en3)
-                
+                '''
                 cls_score = cls_output[:, 0]
                 cls_list_sp_normal.extend(list(cls_score.cpu().numpy()))
+                
                 for i in range(en[0].shape[0]):
                     en_ = [en[0][i], en[1][i], en[2][i], en[3][i], en[4][i], en[5][i]]
                     de_ = [de[0][i], de[1][i], de[2][i], de[3][i], de[4][i], de[5][i]]
@@ -319,8 +320,8 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     elif reduction == 'mean':
                         pr_list_sp_normal.append(np.mean(anomaly_map))
                 gt_list_sp_normal.extend([0]*img.shape[0])
-               
                 '''
+
                 simclr_aug = simclr_aug.to(device)
                 seed_unode_cls = []
                 for seed in range(samples_num):
@@ -328,9 +329,9 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     img_temp = simclr_aug(img)
                     unode_cls = model(img_temp, eval_unode=True)
                     unode_cls_score = unode_cls[:, 0]
-                    seed_unode_cls.append(unode_cls_score.cpu().numpy()[0])
+                    seed_unode_cls.extend(list(unode_cls_score.cpu().numpy()))
                 cls_list_unode_normal.append(np.mean(seed_unode_cls))
-                '''
+                
                 # print('seed_unode_cls', seed_unode_cls)
                 # print('cls_list_unode_normal[-1]', cls_list_unode_normal[-1])
 

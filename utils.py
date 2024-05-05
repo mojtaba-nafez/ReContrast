@@ -403,7 +403,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 unode_cls_score = w_unode * unode_cls[:, 0] * -1
                 seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
             unode_cls_list_sp.extend(np.mean(np.array(seed_unode_cls), axis=0))
-
+        print("gt_list_sp.shape, pr_list_sp.shape", gt_list_sp.shape, pr_list_sp.shape)
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)

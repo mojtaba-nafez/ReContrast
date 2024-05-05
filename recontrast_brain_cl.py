@@ -452,6 +452,69 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
 
+    if total_iters == 0:
+        cls.eval()
+        model.train(mode=False)
+        shrink_factor = "main"
+        # auroc, f1, acc = evaluation_noseg(model, test_dataloader1, device)
+        auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
+            str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)], auroc_mix_auc_list[
+            str(shrink_factor)] = evaluation_noseg_brain(model,
+                                                         test_dataloader1,
+                                                         device,
+                                                         cls=cls,
+                                                         head_end=head_end,
+                                                         train_loader=train_dataloader2,
+                                                         anomaly_transforms=anomaly_transforms)
+        print_fn(
+            'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
+                shrink_factor,
+                auroc_px_list[
+                    str(shrink_factor)],
+                auroc_sp_list[
+                    str(shrink_factor)],
+                auroc_aupro_px_list[
+                    str(shrink_factor)],
+                auroc_cls_auc_list[str(shrink_factor)],
+                auroc_mix_auc_list[shrink_factor]))
+
+        if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
+            auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
+            auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)] = \
+                auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                    str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[
+                    str(shrink_factor)]
+
+        shrink_factor = "shifted"
+        auroc_px_list[str(shrink_factor)], auroc_sp_list[str(shrink_factor)], auroc_aupro_px_list[
+            str(shrink_factor)], auroc_cls_auc_list[str(shrink_factor)], auroc_mix_auc_list[
+            str(shrink_factor)] = evaluation_noseg_brain(model,
+                                                         test_dataloader2,
+                                                         device,
+                                                         cls=cls,
+                                                         head_end=head_end,
+                                                         train_loader=train_dataloader2,
+                                                         anomaly_transforms=anomaly_transforms)
+        print_fn(
+            'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
+                shrink_factor,
+                auroc_px_list[
+                    str(shrink_factor)],
+                auroc_sp_list[
+                    str(shrink_factor)],
+                auroc_aupro_px_list[
+                    str(shrink_factor)],
+                auroc_cls_auc_list[str(shrink_factor)],
+                auroc_mix_auc_list[shrink_factor]))
+
+        if auroc_sp_list[str(shrink_factor)] >= auroc_sp_list_best[str(shrink_factor)]:
+            auroc_px_list_best[str(shrink_factor)], auroc_sp_list_best[str(shrink_factor)], \
+            auroc_aupro_px_list_best[str(shrink_factor)], auroc_cls_auc_list_best[str(shrink_factor)] = \
+                auroc_px_list[str(shrink_factor)], auroc_sp_list[
+                    str(shrink_factor)], auroc_aupro_px_list[str(shrink_factor)], auroc_cls_auc_list[
+                    str(shrink_factor)]
+        exit(0)
+
     for epoch in range(int(np.ceil(total_iters / len(train_dataloader)))):
         # encoder batchnorm in eval for these classes.
         model.train(encoder_bn_train=True)

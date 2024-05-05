@@ -313,6 +313,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 for i in range(en[0].shape[0]):
                     en_ = [en[0][i], en[1][i], en[2][i], en[3][i], en[4][i], en[5][i]]
                     de_ = [de[0][i], de[1][i], de[2][i], de[3][i], de[4][i], de[5][i]]
+                    print(de_[0].shape, de_[0].shape, img.shape[-1])
                     anomaly_map, _ = cal_anomaly_map(en_, de_, img.shape[-1], amap_mode='a')
                     anomaly_map = gaussian_filter(anomaly_map, sigma=4)
                     if reduction == 'max':

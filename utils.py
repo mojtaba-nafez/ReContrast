@@ -309,7 +309,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 
                 cls_score = cls_output[:, 0]
                 cls_list_sp_normal.extend(list(cls_score.cpu().numpy()))
-                
+                print(en.shape)
                 for i in range(en[0].shape[0]):
                     en_ = [en[0][i], en[1][i], en[2][i], en[3][i], en[4][i], en[5][i]]
                     de_ = [de[0][i], de[1][i], de[2][i], de[3][i], de[4][i], de[5][i]]

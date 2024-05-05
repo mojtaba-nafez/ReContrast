@@ -300,6 +300,8 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             cls_list_unode_normal = []
             for img, label in train_loader:
                 img = img.to(device)
+                print("img.shape: ", img.shape)
+
                 if not head_end:
                     en, de = model(img, head_end=head_end)
                     cls_output = cls(en[5])
@@ -312,6 +314,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
 
                 anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
                 anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+                print("anomaly_map.shape: ", anomaly_map.shape)
                 gt_list_sp_normal.append(0)
                 if reduction == 'max':
                     pr_list_sp_normal.append(np.max(anomaly_map))

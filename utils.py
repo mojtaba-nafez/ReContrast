@@ -289,6 +289,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     w_msp = 0
     w_unode = 0
     cls_weight = 0
+    simclr_aug = get_simclr_augmentation((224, 224, 3), resize_factor=0.54, resize_fix=True)
 
     if train_loader is not None:
         with torch.no_grad():
@@ -346,8 +347,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     unode_cls_list_sp = []
     mixed_list_sp = []
 
-    simclr_aug = get_simclr_augmentation((224, 224, 3), resize_factor=0.54, resize_fix=True)
-    
     with torch.no_grad():
         for img, _, label, _ in dataloader:
             img = img.to(device)

@@ -324,12 +324,14 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
 
                 simclr_aug = simclr_aug.to(device)
                 seed_unode_cls = []
+                print("=====================")
                 for seed in range(samples_num):
                     set_random_seed(seed)
                     img_temp = simclr_aug(img)
                     unode_cls = model(img_temp, eval_unode=True)
                     unode_cls_score = unode_cls[:, 0]
                     seed_unode_cls.extend(list(unode_cls_score.cpu().numpy()))
+                    print(unode_cls_score.cpu().numpy().shape)
                 cls_list_unode_normal.append(np.mean(seed_unode_cls))
                 
                 # print('seed_unode_cls', seed_unode_cls)

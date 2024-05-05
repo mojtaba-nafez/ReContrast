@@ -30,8 +30,8 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 
 def prepare_br35h_dataset_files():
-    normal_path35 = './Br35H/no'
-    anomaly_path35 = './Br35H/yes'
+    normal_path35 = '/kaggle/input/brain-tumor-detection/no'
+    anomaly_path35 = '/kaggle/input/brain-tumor-detection/yes'
 
     print(f"len(os.listdir(normal_path35)): {len(os.listdir(normal_path35))}")
     print(f"len(os.listdir(anomaly_path35)): {len(os.listdir(anomaly_path35))}")
@@ -72,13 +72,13 @@ def prepare_br35h_dataset_files():
     len(os.listdir('./Br35H/dataset/test/normal')), len(os.listdir('./Br35H/dataset/train/normal'))
 
 def prepare_brats2015_dataset_files():
-    labels = pd.read_csv('./brats/Brain Tumor.csv')
+    labels = pd.read_csv('/kaggle/input/brain-tumor/Brain Tumor.csv')
     labels = labels[['Image', 'Class']]
     labels.tail() # 0: no tumor, 1: tumor
 
     labels.head()
 
-    brats_path = './brats/Brain Tumor/Brain Tumor'
+    brats_path = '/kaggle/input/brain-tumor/Brain Tumor/Brain Tumor'
     lbl = dict(zip(labels.Image, labels.Class))
     len(lbl), len(labels)
 
@@ -165,7 +165,7 @@ class BrainTrain(torch.utils.data.Dataset):
         self.image_paths = glob.glob('./Br35H/dataset/train/normal/*')
         brats_mod = glob.glob('./brats/dataset/train/normal/*')
         random.seed(1)
-        random_brats_images = random.sample(brats_mod, 150)
+        random_brats_images = random.sample(brats_mod, 50)
         self.image_paths.extend(random_brats_images)
 
     def __len__(self):

@@ -347,9 +347,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         transforms.ToTensor(),
     ])
 
-    # prepare_br35h_dataset_files()
-    # prepare_brats2015_dataset_files()
-    # print('preparing data is DONE!')
+    prepare_br35h_dataset_files()
+    prepare_brats2015_dataset_files()
+    print('preparing data is DONE!')
 
     train_data = BrainTrain(transform=train_transform)
     test_data1 = BrainTest(transform=test_transform, test_id=1)

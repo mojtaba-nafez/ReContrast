@@ -282,7 +282,7 @@ def set_random_seed(seed):
 
 
 def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max', cls=None, head_end=False,
-                           train_loader=None, anomaly_transforms=None):
+                           train_loader=None, anomaly_transforms=None, samples_num=1):
     model.eval()
     cls.eval()
     w_map = 0
@@ -320,7 +320,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
 
                 simclr_aug = simclr_aug.to(device)
                 seed_unode_cls = []
-                for seed in range(10):
+                for seed in range(samples_num):
                     set_random_seed(seed)
                     img_temp = simclr_aug(img)
                     unode_cls = model(img_temp, eval_unode=True)
@@ -371,7 +371,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 pr_list_sp.append(w_map * np.mean(anomaly_map))
             simclr_aug = simclr_aug.to(device)
             seed_unode_cls = []
-            for seed in range(10):
+            for seed in range(samples_num):
                 set_random_seed(seed)
                 img_temp = simclr_aug(img)
                 unode_cls = model(img_temp, eval_unode=True)

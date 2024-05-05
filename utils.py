@@ -320,6 +320,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                         pr_list_sp_normal.append(np.mean(anomaly_map))
                 gt_list_sp_normal.extend([0]*img.shape[0])
 
+
                 
                 simclr_aug = simclr_aug.to(device)
                 seed_unode_cls = []
@@ -369,6 +370,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp.append(w_map * np.mean(anomaly_map))
             gt_list_sp.extend(label.tolist())
             
+
             simclr_aug = simclr_aug.to(device)
             seed_unode_cls = []
             for seed in range(samples_num):
@@ -379,6 +381,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
             unode_cls_list_sp.extend(np.mean(np.array(seed_unode_cls), axis=0))
         
+
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)

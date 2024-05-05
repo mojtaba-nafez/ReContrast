@@ -20,6 +20,7 @@ import os
 from functools import partial
 import math
 import transform_layers as TL
+import random
 from sklearn import manifold
 from matplotlib.ticker import NullFormatter
 from scipy.spatial.distance import pdist
@@ -273,6 +274,12 @@ def get_simclr_augmentation(image_size, resize_factor=0.54, resize_fix=True):
 
     return transform
 
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
 
 def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max', cls=None, head_end=False,
                            train_loader=None, anomaly_transforms=None):
@@ -310,9 +317,20 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 elif reduction == 'mean':
                     pr_list_sp_normal.append(np.mean(anomaly_map))
 
-                unode_cls = model(img, eval_unode=True)
-                unode_cls_score = unode_cls[:, 0]
-                cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
+                simclr_aug = simclr_aug.to(device)
+                seed_unode_cls = []
+                for seed in range(10):
+                    set_random_seed(seed)
+                    img_temp = simclr_aug(img)
+                    unode_cls = model(img_temp, eval_unode=True)
+                    unode_cls_score = w_unode * unode_cls[:, 0] * -1
+                    seed_unode_cls.append(unode_cls_score.cpu().numpy()[0])
+                cls_list_unode_normal.append(np.mean(seed_unode_cls))
+
+
+                # unode_cls = model(img, eval_unode=True)
+                # unode_cls_score = unode_cls[:, 0]
+                # cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
 
             w_map = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
             cls_weight = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))
@@ -350,13 +368,15 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 pr_list_sp.append(w_map * np.max(anomaly_map))
             elif reduction == 'mean':
                 pr_list_sp.append(w_map * np.mean(anomaly_map))
-
             simclr_aug = simclr_aug.to(device)
-            img = simclr_aug(img)
-
-            unode_cls = model(img, eval_unode=True)
-            unode_cls_score = w_unode * unode_cls[:, 0] * -1
-            unode_cls_list_sp.append(unode_cls_score.cpu().numpy()[0])
+            seed_unode_cls = []
+            for seed in range(10):
+                set_random_seed(seed)
+                img_temp = simclr_aug(img)
+                unode_cls = model(img_temp, eval_unode=True)
+                unode_cls_score = w_unode * unode_cls[:, 0] * -1
+                seed_unode_cls.append(unode_cls_score.cpu().numpy()[0])
+            unode_cls_list_sp.append(np.mean(seed_unode_cls))
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)

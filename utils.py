@@ -392,7 +392,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp.append(w_map * np.max(anomaly_map))
                 elif reduction == 'mean':
                     pr_list_sp.append(w_map * np.mean(anomaly_map))
-                gt_list_sp.extend(label.tolist())
+            gt_list_sp.extend(label.tolist())
             
             simclr_aug = simclr_aug.to(device)
             seed_unode_cls = []
@@ -403,8 +403,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 unode_cls_score = w_unode * unode_cls[:, 0] * -1
                 seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
             unode_cls_list_sp.extend(np.mean(np.array(seed_unode_cls), axis=0))
-        print("len(gt_list_sp), len(pr_list_sp)", len(gt_list_sp), len(pr_list_sp))
-        print("len(gt_list_sp[0]), len(pr_list_sp[0])", len(gt_list_sp[0]), len(pr_list_sp[0]))
+        
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)
         f1 = f1_score(gt_list_sp, pr_list_sp >= thresh)

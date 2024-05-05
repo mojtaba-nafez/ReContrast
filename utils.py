@@ -317,16 +317,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp_normal.append(np.max(anomaly_map))
                 elif reduction == 'mean':
                     pr_list_sp_normal.append(np.mean(anomaly_map))
-
-                simclr_aug = simclr_aug.to(device)
-                seed_unode_cls = []
-                for seed in range(samples_num):
-                    set_random_seed(seed)
-                    img_temp = simclr_aug(img)
-                    unode_cls = model(img_temp, eval_unode=True)
-                    unode_cls_score = unode_cls[:, 0]
-                    seed_unode_cls.append(unode_cls_score.cpu().numpy()[0])
-                cls_list_unode_normal.append(np.mean(seed_unode_cls))
+                print("fsd")
                 # print('seed_unode_cls', seed_unode_cls)
                 # print('cls_list_unode_normal[-1]', cls_list_unode_normal[-1])
 

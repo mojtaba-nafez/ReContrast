@@ -334,7 +334,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 
                 cls_score = cls_output[:, 0]
                 cls_list_sp_normal.extend(list(cls_score.cpu().numpy()))
-                print(en[0].shape)
                 for i in range(en[0].shape[0]):
                     en_ = [en[0][i].unsqueeze(0), en[1][i].unsqueeze(0), en[2][i].unsqueeze(0), en[3][i].unsqueeze(0), en[4][i].unsqueeze(0), en[5][i].unsqueeze(0)]
                     de_ = [de[0][i].unsqueeze(0), de[1][i].unsqueeze(0), de[2][i].unsqueeze(0), de[3][i].unsqueeze(0), de[4][i].unsqueeze(0), de[5][i].unsqueeze(0)]
@@ -344,7 +343,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                         pr_list_sp_normal.append(np.max(anomaly_map))
                     elif reduction == 'mean':
                         pr_list_sp_normal.append(np.mean(anomaly_map))
-                    print('---')
                 gt_list_sp_normal.extend([0]*img.shape[0])
 
                 
@@ -356,7 +354,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     unode_cls = model(img_temp, eval_unode=True)
                     unode_cls_score = unode_cls[:, 0]
                     seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
-                cls_list_unode_normal.append(np.mean(np.array(seed_unode_cls), axis=0))
+                cls_list_unode_normal.extend(np.mean(np.array(seed_unode_cls), axis=0))
                 
             w_map = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
             cls_weight = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))
@@ -404,7 +402,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 unode_cls = model(img_temp, eval_unode=True)
                 unode_cls_score = w_unode * unode_cls[:, 0] * -1
                 seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
-            unode_cls_list_sp.append(np.mean(np.array(seed_unode_cls), axis=0))
+            unode_cls_list_sp.extend(np.mean(np.array(seed_unode_cls), axis=0))
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)

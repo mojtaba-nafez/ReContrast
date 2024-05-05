@@ -299,7 +299,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
 
             cls_list_unode_normal = []
             for img, label in train_loader:
-                '''
                 img = img.to(device)
                 if not head_end:
                     en, de = model(img, head_end=head_end)
@@ -319,36 +318,6 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 elif reduction == 'mean':
                     pr_list_sp_normal.append(np.mean(anomaly_map))
 
-                unode_cls = model(img, eval_unode=True)
-                unode_cls_score = unode_cls[:, 0]
-                cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
-
-                '''
-                img = img.to(device)
-                if not head_end:
-                    en, de = model(img, head_end=head_end)
-                    cls_output = cls(en[5])
-                else:
-                    en, de, en3 = model(img, head_end=head_end)
-                    cls_output = cls(en3)
-                
-                cls_score = cls_output[:, 0]
-                cls_list_sp_normal.extend(list(cls_score.cpu().numpy()))
-                print(en[0].shape)
-                for i in range(en[0].shape[0]):
-                    en_ = [en[0][i], en[1][i], en[2][i], en[3][i], en[4][i], en[5][i]]
-                    de_ = [de[0][i], de[1][i], de[2][i], de[3][i], de[4][i], de[5][i]]
-                    print(de_[0].shape, de_[0].shape, img.shape[-1])
-                    anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
-                    anomaly_map = gaussian_filter(anomaly_map, sigma=4)
-                    if reduction == 'max':
-                        pr_list_sp_normal.append(np.max(anomaly_map))
-                    elif reduction == 'mean':
-                        pr_list_sp_normal.append(np.mean(anomaly_map))
-                    print('---')
-                gt_list_sp_normal.extend([0]*img.shape[0])
-
-                
                 simclr_aug = simclr_aug.to(device)
                 seed_unode_cls = []
                 for seed in range(samples_num):
@@ -356,9 +325,16 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     img_temp = simclr_aug(img)
                     unode_cls = model(img_temp, eval_unode=True)
                     unode_cls_score = unode_cls[:, 0]
-                    seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
-                cls_list_unode_normal.append(np.mean(np.array(seed_unode_cls), axis=0))
-                
+                    seed_unode_cls.append(unode_cls_score.cpu().numpy()[0])
+                cls_list_unode_normal.append(np.mean(seed_unode_cls))
+                # print('seed_unode_cls', seed_unode_cls)
+                # print('cls_list_unode_normal[-1]', cls_list_unode_normal[-1])
+
+
+                # unode_cls = model(img, eval_unode=True)
+                # unode_cls_score = unode_cls[:, 0]
+                # cls_list_unode_normal.append(unode_cls_score.cpu().numpy()[0])
+
             w_map = 1 / ((np.sum(pr_list_sp_normal) / len(pr_list_sp_normal)))
             cls_weight = 1 / ((np.sum(cls_list_sp_normal) / len(cls_list_sp_normal)))
             w_unode = 1 / ((np.sum(cls_list_unode_normal) / len(cls_list_unode_normal)))
@@ -384,19 +360,15 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 cls_output = cls(en3)
 
             cls_score = cls_weight * cls_output[:, 0] * -1
-            cls_list_sp.extend(list(cls_score.cpu().numpy()))
+            cls_list_sp.append(cls_score.cpu().numpy()[0])
 
-            for i in range(en[0].shape[0]):
-                en_ = [en[0][i], en[1][i], en[2][i], en[3][i], en[4][i], en[5][i]]
-                de_ = [de[0][i], de[1][i], de[2][i], de[3][i], de[4][i], de[5][i]]
-                anomaly_map, _ = cal_anomaly_map(en_, de_, img.shape[-1], amap_mode='a')
-                anomaly_map = gaussian_filter(anomaly_map, sigma=4)
-                if reduction == 'max':
-                    pr_list_sp.append(w_map * np.max(anomaly_map))
-                elif reduction == 'mean':
-                    pr_list_sp.append(w_map * np.mean(anomaly_map))
-                gt_list_sp.extend(label[i].item())
-            
+            anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
+            anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+            gt_list_sp.append(label.item())
+            if reduction == 'max':
+                pr_list_sp.append(w_map * np.max(anomaly_map))
+            elif reduction == 'mean':
+                pr_list_sp.append(w_map * np.mean(anomaly_map))
             simclr_aug = simclr_aug.to(device)
             seed_unode_cls = []
             for seed in range(samples_num):
@@ -404,8 +376,8 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 img_temp = simclr_aug(img)
                 unode_cls = model(img_temp, eval_unode=True)
                 unode_cls_score = w_unode * unode_cls[:, 0] * -1
-                seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
-            unode_cls_list_sp.append(np.mean(np.array(seed_unode_cls), axis=0))
+                seed_unode_cls.append(unode_cls_score.cpu().numpy()[0])
+            unode_cls_list_sp.append(np.mean(seed_unode_cls))
 
         thresh = return_best_thr(gt_list_sp, pr_list_sp)
         acc = accuracy_score(gt_list_sp, pr_list_sp >= thresh)

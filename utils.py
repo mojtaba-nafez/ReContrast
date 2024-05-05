@@ -315,7 +315,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     de_ = [de[0][i], de[1][i], de[2][i], de[3][i], de[4][i], de[5][i]]
                     anomaly_map, _ = cal_anomaly_map(en_, de_, img.shape[-1], amap_mode='a')
                     anomaly_map = gaussian_filter(anomaly_map, sigma=4)
-                     if reduction == 'max':
+                    if reduction == 'max':
                         pr_list_sp_normal.append(np.max(anomaly_map))
                     elif reduction == 'mean':
                         pr_list_sp_normal.append(np.mean(anomaly_map))

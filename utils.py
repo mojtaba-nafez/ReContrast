@@ -392,8 +392,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     pr_list_sp.append(w_map * np.max(anomaly_map))
                 elif reduction == 'mean':
                     pr_list_sp.append(w_map * np.mean(anomaly_map))
-                print(label)
-                gt_list_sp.extend(label)
+                gt_list_sp.extend(label.tolist())
             
             simclr_aug = simclr_aug.to(device)
             seed_unode_cls = []

@@ -46,7 +46,6 @@ def prepare_br35h_dataset_files():
     for f in anom35:
         shutil.copy2(os.path.join(anomaly_path35, f), './Br35H/dataset/test/anomaly')
 
-    len(os.listdir('./Br35H/dataset/test/anomaly'))
 
     normal35 = os.listdir(normal_path35)
     random.shuffle(normal35)
@@ -69,7 +68,6 @@ def prepare_br35h_dataset_files():
     for f in normal35[sep:]:
         shutil.copy2(os.path.join(normal_path35, f), './Br35H/dataset/test/normal')
 
-    len(os.listdir('./Br35H/dataset/test/normal')), len(os.listdir('./Br35H/dataset/train/normal'))
 
 def prepare_brats2015_dataset_files():
     labels = pd.read_csv('/kaggle/input/brain-tumor/Brain Tumor.csv')
@@ -80,14 +78,10 @@ def prepare_brats2015_dataset_files():
 
     brats_path = '/kaggle/input/brain-tumor/Brain Tumor/Brain Tumor'
     lbl = dict(zip(labels.Image, labels.Class))
-    len(lbl), len(labels)
 
     keys = lbl.keys()
     normalbrats = [x for x in keys if lbl[x] == 0]
     anomalybrats = [x for x in keys if lbl[x] == 1]
-    len(normalbrats), len(anomalybrats)
-
-    labels['Class'].value_counts()
 
     Path('./brats/dataset/test/anomaly').mkdir(parents=True, exist_ok=True)
     Path('./brats/dataset/test/normal').mkdir(parents=True, exist_ok=True)
@@ -341,13 +335,25 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         ])
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
 
-    prepare_br35h_dataset_files()
-    prepare_brats2015_dataset_files()
-    print('preparing data is DONE!')
+    train_transform = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.CenterCrop((image_size, image_size)),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+    ])
 
-    train_data = BrainTrain(transform=train_data_transforms)
-    test_data1 = BrainTest(transform=data_transform, test_id=1)
-    test_data2 = BrainTest(transform=data_transform, test_id=2)
+    test_transform = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor(),
+    ])
+
+    # prepare_br35h_dataset_files()
+    # prepare_brats2015_dataset_files()
+    # print('preparing data is DONE!')
+
+    train_data = BrainTrain(transform=train_transform)
+    test_data1 = BrainTest(transform=test_transform, test_id=1)
+    test_data2 = BrainTest(transform=test_transform, test_id=2)
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset brain')
     visualize_random_samples_from_clean_dataset(test_data1, f'test data1 brain')

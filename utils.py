@@ -309,18 +309,17 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 
                 cls_score = cls_output[:, 0]
                 cls_list_sp_normal.extend(list(cls_score.cpu().numpy()))
-                print("len(en)", len(en))
-                print(en[0].shape)
                 for i in range(en[0].shape[0]):
                     en_ = [en[0][i], en[1][i], en[2][i], en[3][i], en[4][i], en[5][i]]
-                    print("en_[0].shape", en_[0].shape)
-                anomaly_map, _ = cal_anomaly_map(en, de, img.shape[-1], amap_mode='a')
-                anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+                    de_ = [de[0][i], de[1][i], de[2][i], de[3][i], de[4][i], de[5][i]]
+                    anomaly_map, _ = cal_anomaly_map(en_, de_, img.shape[-1], amap_mode='a')
+                    anomaly_map = gaussian_filter(anomaly_map, sigma=4)
+                     if reduction == 'max':
+                        pr_list_sp_normal.append(np.max(anomaly_map))
+                    elif reduction == 'mean':
+                        pr_list_sp_normal.append(np.mean(anomaly_map))
                 gt_list_sp_normal.extend([0]*img.shape[0])
-                if reduction == 'max':
-                    pr_list_sp_normal.append(np.max(anomaly_map))
-                elif reduction == 'mean':
-                    pr_list_sp_normal.append(np.mean(anomaly_map))
+               
                 '''
                 simclr_aug = simclr_aug.to(device)
                 seed_unode_cls = []

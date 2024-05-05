@@ -197,7 +197,7 @@ class BinaryClassifier2(nn.Module):
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
-          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None, pretrain_unode_weghts=False):
+          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None, pretrain_unode_weghts=False, sample_num=1):
     print_fn(_class_)
     setup_seed(111)
 
@@ -403,7 +403,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                  cls=cls,
                                                                  head_end=head_end,
                                                                  train_loader=train_dataloader2,
-                                                                 anomaly_transforms=anomaly_transforms)
+                                                                 anomaly_transforms=anomaly_transforms,
+                                                                 samples_num=sample_num)
                 print_fn(
                     'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
                         shrink_factor,
@@ -432,7 +433,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                                  cls=cls,
                                                                  head_end=head_end,
                                                                  train_loader=train_dataloader2,
-                                                                 anomaly_transforms=anomaly_transforms)
+                                                                 anomaly_transforms=anomaly_transforms,
+                                                                 samples_num=sample_num)
                 print_fn(
                     'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
                         shrink_factor,
@@ -496,6 +498,7 @@ if __name__ == '__main__':
     parser.add_argument('--decoder_path', type=str, default=None)
     parser.add_argument('--cls_path', type=str, default=None)
     parser.add_argument('--pretrain_unode_weghts', action='store_true')
+    parser.add_argument('--sample_num', type=int, default=1)
 
     args = parser.parse_args()
     image_size = args.image_size
@@ -533,7 +536,8 @@ if __name__ == '__main__':
         trainable_encoder_path=args.trainable_encoder_path,
         decoder_path=args.decoder_path,
         cls_path=args.cls_path,
-        pretrain_unode_weghts=args.pretrain_unode_weghts)
+        pretrain_unode_weghts=args.pretrain_unode_weghts,
+        sample_num=args.sample_num)
     # for pad in pad_size:
     #     result_list[str(pad)].append(
     #         [item, auroc_px[str(pad)], auroc_sp[str(pad)], aupro_px[str(pad)], auroc_sp_cls[str(pad)]])

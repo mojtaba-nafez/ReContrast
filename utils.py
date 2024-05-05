@@ -327,8 +327,8 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                     unode_cls_score = unode_cls[:, 0]
                     seed_unode_cls.append(unode_cls_score.cpu().numpy()[0])
                 cls_list_unode_normal.append(np.mean(seed_unode_cls))
-                print('seed_unode_cls', seed_unode_cls)
-                print('cls_list_unode_normal[-1]', cls_list_unode_normal[-1])
+                # print('seed_unode_cls', seed_unode_cls)
+                # print('cls_list_unode_normal[-1]', cls_list_unode_normal[-1])
 
 
                 # unode_cls = model(img, eval_unode=True)

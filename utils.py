@@ -289,7 +289,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
     w_msp = 0
     w_unode = 0
     cls_weight = 0
-    simclr_aug = get_simclr_augmentation((224, 224, 3), resize_factor=0.54, resize_fix=True)
+    simclr_aug = get_simclr_augmentation((32, 32, 3), resize_factor=0.54, resize_fix=True)
 
     if train_loader is not None:
         with torch.no_grad():

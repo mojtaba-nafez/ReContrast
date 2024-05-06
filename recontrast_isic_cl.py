@@ -249,6 +249,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     test_path = '../ISIC2018/'
 
     train_data = ISICTrain(transform=train_data_transforms)
+    train_data2 = ISICTrain(transform=data_transform)
     test_data1 = ISICTest(transform=data_transform, test_id=1)
     test_data2 = ISICTest(transform=data_transform, test_id=2)
 
@@ -257,7 +258,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(test_data2, f'test data isic2')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True)
+    train_dataloader2 = torch.utils.data.DataLoader(train_data2, batch_size=1, shuffle=True)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 

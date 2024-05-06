@@ -83,8 +83,8 @@ def train(_class_, total_iters=2000):
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
-    just_test_dataloader = torch.utils.data.DataLoader(just_test_data, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=1)
+    just_test_dataloader = torch.utils.data.DataLoader(just_test_data, batch_size=batch_size, shuffle=False, num_workers=1)
 
     visualize_random_samples_from_clean_dataset(train_data, f"train_data")
     visualize_random_samples_from_clean_dataset(test_data, f"test_data")

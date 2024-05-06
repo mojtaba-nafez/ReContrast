@@ -258,9 +258,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     visualize_random_samples_from_clean_dataset(test_data2, f'test data isic2')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    train_dataloader2 = torch.utils.data.DataLoader(train_data2, batch_size=1, shuffle=True)
-    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
-    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
+    train_dataloader2 = torch.utils.data.DataLoader(train_data2, batch_size=batch_size, shuffle=True)
+    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=batch_size, shuffle=False, num_workers=1)
+    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=batch_size, shuffle=False, num_workers=1)
 
     # visualize_random_samples_from_clean_dataset(train_data, f"train_data_{_class_}", train_data=True)
     # visualize_random_samples_from_clean_dataset(test_data, f"test_data_{_class_}", train_data=False)

@@ -374,8 +374,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                    drop_last=False)
     train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                     drop_last=False)
-    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
-    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=batch_size, shuffle=False, num_workers=1)
+    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=batch_size, shuffle=False, num_workers=1)
 
     print('len Trainset(main)', len(train_data))
     print('len Testset(main)', len(test_data1))

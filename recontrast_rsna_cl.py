@@ -218,7 +218,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         ])
     data_transform, gt_transform = get_data_transforms(image_size, image_size)
 
-    train_data = RSNATRAIN(transform=data_transform)
+    train_data = RSNATRAIN(transform=train_data_transforms)
+    train_data2 = RSNATRAIN(transform=data_transform)
     test_data1 = RSNATEST(transform=data_transform, test_id=1)
     test_data2 = RSNATEST(transform=data_transform, test_id=2)
     test_data3 = RSNATEST(transform=data_transform, test_id=3)
@@ -231,11 +232,11 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    train_dataloader2 = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4,
+    train_dataloader2 = torch.utils.data.DataLoader(train_data2, batch_size=batch_size, shuffle=True, num_workers=4,
                                                    drop_last=False)
-    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
-    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
-    test_dataloader3 = torch.utils.data.DataLoader(test_data3, batch_size=1, shuffle=False, num_workers=1)
+    test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=batch_size, shuffle=False, num_workers=1)
+    test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=batch_size, shuffle=False, num_workers=1)
+    test_dataloader3 = torch.utils.data.DataLoader(test_data3, batch_size=batch_size, shuffle=False, num_workers=1)
 
     print('len Trainset(main)', len(train_data))
     print('len Testset(main)', len(test_data1))

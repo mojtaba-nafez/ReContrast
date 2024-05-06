@@ -282,14 +282,14 @@ def set_random_seed(seed):
 
 
 def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max', cls=None, head_end=False,
-                           train_loader=None, anomaly_transforms=None, samples_num=1, image_size=224):
+                           train_loader=None, anomaly_transforms=None, samples_num=1, image_size=224, resize_factor=0.54):
     model.eval()
     cls.eval()
     w_map = 0
     w_msp = 0
     w_unode = 0
     cls_weight = 0
-    simclr_aug = get_simclr_augmentation((image_size, image_size, 3), resize_factor=0.54, resize_fix=True)
+    simclr_aug = get_simclr_augmentation((image_size, image_size, 3), resize_factor=resize_factor, resize_fix=True)
 
     if train_loader is not None:
         with torch.no_grad():

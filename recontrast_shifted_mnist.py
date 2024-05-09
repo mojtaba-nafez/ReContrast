@@ -154,16 +154,10 @@ def train(_class_):
     mean_train = [0.485, 0.456, 0.406]
     std_train = [0.229, 0.224, 0.225]
     
-    transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean_train,
-                             std=std_train)
-    ])
-    train_data = MNIST_Dataset(train=True, transform=transform)
-    test_data1 = MNIST_Dataset(train=False, transform=transform, test_id=1)
-    test_data2 = MNIST_Dataset(train=False, transform=transform, test_id=2)
+    
+    train_data = MNIST_Dataset(train=True, transform=data_transform)
+    test_data1 = MNIST_Dataset(train=False, transform=data_transform, test_id=1)
+    test_data2 = MNIST_Dataset(train=False, transform=data_transform, test_id=2)
 
     # visualize_random_samples_from_clean_dataset(train_data, 'train dataset aptos')
     # visualize_random_samples_from_clean_dataset(test_data1, f'test data aptos1')

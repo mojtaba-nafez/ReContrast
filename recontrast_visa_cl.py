@@ -502,7 +502,9 @@ if __name__ == '__main__':
     result_list = {"main": [], "shifted": []}
     result_list_best = {"main": [], "shifted": []}
     pad_size = ["main", "shifted"]
+    ii = 0
     for item in item_list:
+        unode_path = f'{ii}.model'
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
         auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
             item,
@@ -525,3 +527,4 @@ if __name__ == '__main__':
             resize_factor=args.resize_factor,
             imagenet_percent=args.imagenet_percent, 
             test_shrink_factor=args.test_shrink_factor)
+        ii += 1

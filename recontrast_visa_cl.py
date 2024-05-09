@@ -502,7 +502,7 @@ if __name__ == '__main__':
     result_list = {"main": [], "shifted": []}
     result_list_best = {"main": [], "shifted": []}
     pad_size = ["main", "shifted"]
-    ii = 0
+    ii = args.item_list_start
     for item in item_list:
         unode_path = f'./{ii}.pth'
         print(f"====================================================================================")

@@ -770,5 +770,5 @@ class Train_Visa(torch.utils.data.Dataset):
           image  = center_paste_2(imagenet30_img, image, random.choice(factors))
 
         image = self.transform(image)
-        return image, label
+        return image, label, img_path
 

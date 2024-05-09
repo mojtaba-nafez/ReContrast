@@ -233,8 +233,8 @@ def train(_class_):
                 break
         print_fn('iter [{}/{}], loss:{:.4f}'.format(it, total_iters, np.mean(loss_list)))
 
-    visualize_noseg(model, test_dataloader1, device, _class_=_class_)
-    return auroc, auroc_sp_best
+    # visualize_noseg(model, test_dataloader1, device, _class_=_class_)
+    return auroc1, auroc2
 
 
 if __name__ == '__main__':

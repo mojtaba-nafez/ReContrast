@@ -505,6 +505,7 @@ if __name__ == '__main__':
     ii = 0
     for item in item_list:
         unode_path = f'./{ii}.pth'
+        print(f"====================================================================================")
         print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
         auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
             item,

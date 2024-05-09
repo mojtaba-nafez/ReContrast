@@ -196,7 +196,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     
     train_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_ + '/train/good/*'
     train_data = Train_Visa(root=train_path, transform=train_data_transforms, imagenet_percent=imagenet_percent)
-    train_data2 = Train_Visa(root=train_path, transform=data_transform, imagenet_percent=imagenet_percent)
+    train_data2 = Train_Visa(root=train_path, transform=data_transform, imagenet_percent=0.05)
     
     test_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_
     test_data1 = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test")

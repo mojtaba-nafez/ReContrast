@@ -28,74 +28,6 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 
 
-class Camelyon17Train(torch.utils.data.Dataset):
-    def __init__(self, transform):
-        self.transform = transform
-        node0_train = glob.glob('/kaggle/input/camelyon17-clean/node0/train/normal/*')
-        node1_train = glob.glob('/kaggle/input/camelyon17-clean/node1/train/normal/*')
-        node2_train = glob.glob('/kaggle/input/camelyon17-clean/node2/train/normal/*')
-
-        self.image_paths = node0_train + node1_train + node2_train
-
-
-    def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, idx):
-        img_path = self.image_paths[idx]
-        img = Image.open(img_path).convert('RGB')
-        img = self.transform(img)
-        return img, 0
-class Camelyon17Test(torch.utils.data.Dataset):
-    def __init__(self, transform, test_id=1):
-
-        self.transform = transform
-        self.test_id = test_id
-
-        if test_id == 1:
-            node0_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node0/test/normal/*')
-            node0_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node0/test/anomaly/*')
-
-            node1_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node1/test/normal/*')
-            node1_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node1/test/anomaly/*')
-
-            node2_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node2/test/normal/*')
-            node2_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node2/test/anomaly/*')
-
-            test_path_normal = node0_test_normal + node1_test_normal + node2_test_normal
-            test_path_anomaly = node0_test_anomaly + node1_test_anomaly + node2_test_anomaly
-
-            self.test_path = test_path_normal + test_path_anomaly
-            self.test_label = [0] * len(test_path_normal) + [1] * len(test_path_anomaly)
-        else:
-            node3_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node3/test/normal/*')
-            node3_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node3/test/anomaly/*')
-
-            node4_test_normal = glob.glob('/kaggle/input/camelyon17-clean/node4/test/normal/*')
-            node4_test_anomaly = glob.glob('/kaggle/input/camelyon17-clean/node4/test/anomaly/*')
-
-            shifted_test_path_normal = node3_test_normal + node4_test_normal
-            shifted_test_path_anomaly = node3_test_anomaly + node4_test_anomaly
-
-            self.test_path = shifted_test_path_normal + shifted_test_path_anomaly
-            self.test_label = [0] * len(shifted_test_path_normal) + [1] * len(shifted_test_path_anomaly)
-
-    def __len__(self):
-        return len(self.test_path)
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        img_path = self.test_path[idx]
-        img = Image.open(img_path).convert('RGB')
-        img = self.transform(img)
-
-        has_anomaly = 0 if self.test_label[idx] == 0 else 1
-
-        return img, 'd', has_anomaly, 'i'
-
-
 def get_logger(name, save_path=None, level='INFO'):
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level))
@@ -235,7 +167,8 @@ class BinaryClassifier2(nn.Module):
 
 def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, training_using_pad=False, max_ratio=0,
           augmented_view=False, batch_size=16, model='wide_res50', different_view=False, head_end=False,
-          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None, pretrain_unode_weghts=False, sample_num=1, resize_factor=0.54):
+          image_size=256, unode_path=None, trainable_encoder_path=None, decoder_path=None, cls_path=None,
+          pretrain_unode_weghts=False, sample_num=1, resize_factor=0.54, imagenet_percent=0.05, test_shrink_factor=0.9):
     print_fn(_class_)
     setup_seed(111)
 
@@ -246,6 +179,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     if augmented_view:
         train_data_transforms = transforms.Compose([
             transforms.Resize((image_size, image_size)),
+            transforms.RandomHorizontalFlip(),
             transforms.ColorJitter(0.8, 0.8, 0.8, 0.2),  # Color jitter
             transforms.RandomGrayscale(p=0.2),  # Random grayscale
             transforms.ToTensor(),
@@ -254,18 +188,18 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     else:
         train_data_transforms = transforms.Compose([
             transforms.Resize((image_size, image_size)),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.CenterCrop(crop_size),
         ])
     data_transform, gt_transform = get_data_transforms(image_size, crop_size)
-
-    train_path = '../ISIC2018/'
-    test_path = '../ISIC2018/'
-
-    train_data = Camelyon17Train(transform=train_data_transforms)
-    train_data2 = Camelyon17Train(transform=data_transform)
-    test_data1 = Camelyon17Test(transform=data_transform, test_id=1)
-    test_data2 = Camelyon17Test(transform=data_transform, test_id=2)
+    
+    train_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_ + '/train/good/*'
+    train_data = Train_Visa(root=train_path, transform=train_data_transforms, imagenet_percent=imagenet_percent)
+    train_data2 = Train_Visa(root=train_path, transform=train_data_transforms, imagenet_percent=imagenet_percent)
+    
+    test_data1 = VisaDataset(root=test_path, transform=data_transform, phase="test")
+    test_data2 = VisaDataset(root=test_path, transform=data_transform, phase="test", shrink_factor=test_shrink_factor)
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset camelyon17')
     visualize_random_samples_from_clean_dataset(test_data1, f'test data1 camelyon17')
@@ -546,6 +480,9 @@ if __name__ == '__main__':
     parser.add_argument('--resize_factor', type=float, default=0.54)
     parser.add_argument('--item_list_start', type=int, default=0)
     parser.add_argument('--item_list_end', type=int, default=11)
+    parser.add_argument('--imagenet_percent', type=float, default=0.05)
+    parser.add_argument('--test_shrink_factor', type=float, default=0.9)
+
     args = parser.parse_args()
 
     item_list = ['candle', 'capsules', 'cashew', 'chewinggum', 'fryum', 'macaroni1', 'macaroni2',
@@ -584,4 +521,6 @@ if __name__ == '__main__':
             cls_path=args.cls_path,
             pretrain_unode_weghts=args.pretrain_unode_weghts,
             sample_num=args.sample_num,
-            resize_factor=args.resize_factor)
+            resize_factor=args.resize_factor,
+            imagenet_percent=args.imagenet_percent, 
+            test_shrink_factor=args.test_shrink_factor)

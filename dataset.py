@@ -480,33 +480,6 @@ class MedicalDataset(torch.utils.data.Dataset):
 
         return img, label, img_path
 
-
-class Train_Visa(torch.utils.data.Dataset):
-    def __init__(self, root, transform=None):
-
-        self.transform = transform
-        self.img_paths = glob.glob(root)
-        self.labels = [0]*len(self.img_paths)
-        print(len(self.img_paths))
-        self.imagenet_30 = IMAGENET30_TEST_DATASET()
-
-    def __len__(self):
-        return len(self.img_paths)
-
-    def __getitem__(self, idx):
-        img_path, label = self.img_paths[idx], self.labels[idx]
-        image = Image.open(img_path).convert('RGB')
-        random_index = int(random.random() * len(self.imagenet_30))
-        imagenet30_img, _ = self.imagenet_30[random_index]
-        imagenet30_img = imagenet30_img.convert('RGB')
-        factors = [0.98, 0.95, 0.93, 0.91, 0.88, 0.82, 0.90, 0.97, 0.85, 0.80]
-        image  = center_paste_2(imagenet30_img, image, random.choice(factors))
-            
-        image = self.transform(image)
-        return image, label
-
-
-
 class RSNATRAIN(torch.utils.data.Dataset):
     def __init__(self, transform):
         self.transform = transform
@@ -591,4 +564,41 @@ class RSNATEST(torch.utils.data.Dataset):
         gt = torch.zeros([1, img.size()[-2], img.size()[-2]])
         gt[:, :, 1:3] = 1
         return img, gt, has_anomaly, img_path
+
+
+
+class Train_Visa(torch.utils.data.Dataset):
+    def __init__(self, root, transform=None, imagenet_percent=0.05, count=None):
+
+        self.transform = transform
+        self.imagenet_percent = imagenet_percent
+        self.img_paths = glob.glob(root)
+        if count:
+            if count < len(self.img_paths):
+                self.img_paths = self.img_paths[:count]
+            else:
+                t = len(self.img_paths)
+                for i in range(count-t):
+                    self.img_paths.append(random.choice(self.img_paths[:t]))
+
+        self.labels = [0]*len(self.img_paths)
+        print("len(Train_Visa)", len(self.img_paths))
+        self.imagenet_30 = IMAGENET30_TEST_DATASET()
+
+    def __len__(self):
+        return len(self.img_paths)
+
+    def __getitem__(self, idx):
+        img_path, label = self.img_paths[idx], self.labels[idx]
+        image = Image.open(img_path).convert('RGB')
+        r = random.uniform(0, 1)
+        if r < self.imagenet_percent:
+          random_index = int(random.random() * len(self.imagenet_30))
+          imagenet30_img, _ = self.imagenet_30[random_index]
+          imagenet30_img = imagenet30_img.convert('RGB')
+          factors = [0.98, 0.95, 0.93, 0.91, 0.88, 0.82, 0.90, 0.97, 0.85, 0.80]
+          image  = center_paste_2(imagenet30_img, image, random.choice(factors))
+
+        image = self.transform(image)
+        return image, label
 

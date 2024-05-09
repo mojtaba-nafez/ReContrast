@@ -732,7 +732,7 @@ class MVTecDataset_2(torch.utils.data.Dataset):
 
         assert img.size()[1:] == gt.size()[1:], "image.size != gt.size !!!"
 
-        return img, gt, label, img_path
+        return img, label, img_path
 
 
 

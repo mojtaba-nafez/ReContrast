@@ -199,8 +199,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     train_data2 = Train_Visa(root=train_path, transform=train_data_transforms, imagenet_percent=imagenet_percent)
     
     test_path = '/kaggle/input/visa-ds/VisA/1cls/' + _class_
-    test_data1 = MVTecDataset(root=test_path, transform=data_transform, phase="test")
-    test_data2 = MVTecDataset(root=test_path, transform=data_transform, phase="test", shrink_factor=test_shrink_factor)
+    test_data1 = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test")
+    test_data2 = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=test_shrink_factor)
 
     visualize_random_samples_from_clean_dataset(train_data, 'train dataset camelyon17')
     visualize_random_samples_from_clean_dataset(test_data1, f'test data1 camelyon17')

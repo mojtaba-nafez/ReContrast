@@ -202,9 +202,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     test_data1 = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test")
     test_data2 = MVTecDataset(root=test_path, transform=data_transform, gt_transform=gt_transform, phase="test", shrink_factor=test_shrink_factor)
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset camelyon17')
-    visualize_random_samples_from_clean_dataset(test_data1, f'test data1 camelyon17')
-    visualize_random_samples_from_clean_dataset(test_data2, f'test data2 camelyon17')
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset visa')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data1 visa')
+    visualize_random_samples_from_clean_dataset(test_data2, f'test data2 visa')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     train_dataloader2 = torch.utils.data.DataLoader(train_data2, batch_size=batch_size, shuffle=True)

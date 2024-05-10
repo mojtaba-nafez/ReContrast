@@ -358,6 +358,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
         if model == 'wide_res50':
             decoder = de_wide_resnet50_2(pretrained=True, output_conv=2, decoder_path=decoder_path)
 
+    eval_unode = True if unode_path is not None else False
+
     encoder = encoder.to(device)
     bn = bn.to(device)
     decoder = decoder.to(device)
@@ -420,7 +422,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                          cls=cls,
                                                          head_end=head_end,
                                                          train_loader=train_dataloader,
-                                                         anomaly_transforms=anomaly_transforms)
+                                                         anomaly_transforms=anomaly_transforms,
+                                                         eval_unode=eval_unode)
         print_fn(
             'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
                 shrink_factor,
@@ -449,7 +452,8 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
                                                          cls=cls,
                                                          head_end=head_end,
                                                          train_loader=train_dataloader,
-                                                         anomaly_transforms=anomaly_transforms)
+                                                         anomaly_transforms=anomaly_transforms,
+                                                         eval_unode=eval_unode)
         print_fn(
             'Shrink Factor:{}, Recon_Diff Auroc:{:.3f}, F1:{:.3f}, Acc:{:.3}, Unode Auroc:{:.3f}, Recon_Diff + UNODE:{:.3f}'.format(
                 shrink_factor,

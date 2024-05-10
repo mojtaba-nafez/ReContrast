@@ -282,7 +282,7 @@ def set_random_seed(seed):
 
 
 def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='max', cls=None, head_end=False,
-                           train_loader=None, anomaly_transforms=None, samples_num=1, image_size=224, resize_factor=0.54):
+                           train_loader=None, anomaly_transforms=None, samples_num=1, image_size=224, resize_factor=0.54, eval_unode=True):
     model.eval()
     cls.eval()
     w_map = 0
@@ -327,7 +327,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
                 for seed in range(samples_num):
                     set_random_seed(seed)
                     img_temp = simclr_aug(img)
-                    unode_cls = model(img_temp, eval_unode=True)
+                    unode_cls = model(img_temp, eval_unode=eval_unode)
                     unode_cls_score = unode_cls[:, 0]
                     seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
                 cls_list_unode_normal.extend(np.mean(np.array(seed_unode_cls), axis=0))
@@ -376,7 +376,7 @@ def evaluation_noseg_brain(model, dataloader, device, _class_=None, reduction='m
             for seed in range(samples_num):
                 set_random_seed(seed)
                 img_temp = simclr_aug(img)
-                unode_cls = model(img_temp, eval_unode=True)
+                unode_cls = model(img_temp, eval_unode=eval_unode)
                 unode_cls_score = w_unode * unode_cls[:, 0] * -1
                 seed_unode_cls.append(list(unode_cls_score.cpu().numpy()))
             unode_cls_list_sp.extend(np.mean(np.array(seed_unode_cls), axis=0))

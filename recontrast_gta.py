@@ -7,7 +7,7 @@ import random
 import os
 from torch.utils.data import DataLoader
 from models.resnet import resnet18, resnet34, resnet50, wide_resnet50_2, wide_resnet101_2
-from models.de_resnet import de_wide_resnet50_2
+from models.de_resnet import de_wide_resnet50_2, de_resnet18
 from models.recontrast import ReContrast, ReContrast
 from dataset import BrainTest, BrainTrain
 import torch.backends.cudnn as cudnn
@@ -164,7 +164,7 @@ def setup_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def train(_class_):
+def train(_class_, model='wide'):
     print_fn(_class_)
     setup_seed(111)
 
@@ -206,8 +206,14 @@ def train(_class_):
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)
     test_dataloader2 = torch.utils.data.DataLoader(test_data2, batch_size=1, shuffle=False, num_workers=1)
 
-    encoder, bn = wide_resnet50_2(pretrained=True)
-    decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    if model == 'wide':
+        encoder, bn = wide_resnet50_2(pretrained=True)
+        decoder = de_wide_resnet50_2(pretrained=False, output_conv=2)
+    elif model == 'res18':
+        encoder, bn = resnet18(pretrained=True)
+        decoder = de_resnet18(pretrained=False, output_conv=2)
+    else:
+        raise NotImplementedError('Model not implemented')
 
     encoder = encoder.to(device)
     bn = bn.to(device)
@@ -279,6 +285,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', default='0', type=str,
                         help='GPU id to use.')
     parser.add_argument('--test_id', default=1, type=int)
+    parser.add_argument('--model', default='wide', type=str)
     args = parser.parse_args()
 
     logger = get_logger(args.save_name, os.path.join(args.save_dir, args.save_name))
@@ -289,4 +296,4 @@ if __name__ == '__main__':
 
     item_list = ['WBC']
     for item in item_list:
-        train(item)
+        train(item, args.model)

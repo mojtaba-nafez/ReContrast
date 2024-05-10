@@ -194,7 +194,6 @@ def train(_class_):
     std_train = [0.229, 0.224, 0.225]
 
     transform = transforms.Compose([
-        transforms.ToPILImage(),
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean_train,
@@ -300,6 +299,6 @@ if __name__ == '__main__':
     device = 'cuda:' + args.gpu if torch.cuda.is_available() else 'cpu'
     print_fn(device)
 
-    item_list = ['APTOS']
+    item_list = ['WBC']
     for item in item_list:
         train(item)

@@ -31,7 +31,6 @@ import copy
 # from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
 # from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 # from pytorch_grad_cam.utils.image import show_cam_on_image
-from torchvision.models import resnet18
 import numpy as np
 from PIL import Image
 import torch
@@ -294,9 +293,9 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     test_data2 = GTA(image_path=shifted_test_path, labels=shifted_test_label,
                    transform=data_transform, train=False)
 
-    visualize_random_samples_from_clean_dataset(train_data, 'train dataset waterbirds')
-    visualize_random_samples_from_clean_dataset(test_data1, f'test data waterbirds landbg')
-    visualize_random_samples_from_clean_dataset(test_data2, f'test data waterbirds waterbg')
+    visualize_random_samples_from_clean_dataset(train_data, 'train dataset')
+    visualize_random_samples_from_clean_dataset(test_data1, f'test data main')
+    visualize_random_samples_from_clean_dataset(test_data2, f'test data shifted')
 
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     test_dataloader1 = torch.utils.data.DataLoader(test_data1, batch_size=1, shuffle=False, num_workers=1)

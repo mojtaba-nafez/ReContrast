@@ -337,7 +337,7 @@ def _resnet(
     #    model.layer4 = None
     #    model.fc = None
     if pretrained:
-        unode= False
+        unode
         if unode:
             dic = torch.load(unode_path)
             # print('loaded keys:', dic.keys())
@@ -349,10 +349,48 @@ def _resnet(
         else:
             state_dict = load_state_dict_from_url(model_urls[arch],
                                                   progress=progress)
+            key_list = list(state_dict.keys())
+            values = list(state_dict.values())
+
+            del key_list[-1]
+            del key_list[-1]
+            del values[-1]
+            del values[-1]
+
+            key_list.append("linear.weight")
+            values.append(torch.rand(2, 512))
+            key_list.append("linear.bias")
+            values.append(torch.rand(2))
+            key_list.append("simclr_layer.0.weight")
+            values.append(torch.rand(512, 512))
+
+            key_list.append("simclr_layer.0.bias")
+            values.append(torch.rand(512))
+
+            key_list.append("simclr_layer.2.weight")
+            values.append(torch.rand(128, 512))
+
+            key_list.append("simclr_layer.2.bias")
+            values.append(torch.rand(128))
+
+            key_list.append("shift_cls_layer.weight")
+            values.append(torch.rand(2, 512))
+
+            key_list.append("shift_cls_layer.bias")
+            values.append(torch.rand(2))
+
+            key_list.append("joint_distribution_layer.weight")
+            values.append(torch.rand(8, 512))
+
+            key_list.append("joint_distribution_layer.bias")
+            values.append(torch.rand(8))
+            n = len(key_list)
+
+            new_dict = {key_list[i]: values[i] for i in range(n)}
             # for k,v in list(state_dict.items()):
             #    if 'layer4' in k or 'fc' in k:
             #        state_dict.pop(k)
-            model.load_state_dict(state_dict)
+            model.load_state_dict(new_dict)
     return model
 
 

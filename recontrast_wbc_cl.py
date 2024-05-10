@@ -414,7 +414,7 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
 
     anomaly_transforms = transforms.Compose([
         transforms.ToPILImage(),
-        RandomRotationTransform(transform=transforms.Compose([transforms.ToTensor(), ])),
+        CutPasteUnion(transform=transforms.Compose([transforms.ToTensor(), ])),
     ])
 
     if total_iters == 0:
@@ -671,7 +671,7 @@ if __name__ == '__main__':
     result_list = {"main": [], "shifted": []}
     result_list_best = {"main": [], "shifted": []}
     pad_size = ["main", "shifted"]
-    item = 'gta'
+    item = 'wbc'
     print(f"+++++++++++++++++++++++++++++++++++++++{item}+++++++++++++++++++++++++++++++++++++++")
     auroc_px, auroc_sp, aupro_px, auroc_sp_cls, auroc_px_best, auroc_sp_best, aupro_px_best, auroc_sp_cls_best = train(
         item,

@@ -247,7 +247,7 @@ def train(_class_):
             optimizer.step()
             optimizer2.step()
             loss_list.append(loss.item())
-            if (it + 1) % 1 == 0:
+            if (it + 1) % 100 == 0:
                 auroc1, f1_1, acc1 = evaluation_noseg(model, test_dataloader1, device)
                 print_fn('Test DataLoader 1 - AUROC:{:.4f}, F1:{:.4f}, ACC:{:.4f}'.format(auroc1, f1_1, acc1))
 

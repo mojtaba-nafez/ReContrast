@@ -356,31 +356,34 @@ def _resnet(
             del key_list[-1]
             del values[-1]
             del values[-1]
-
+            if arch=='res18':
+                last_dim = 512 
+            else:
+                last_dim = 2048
             key_list.append("linear.weight")
-            values.append(torch.rand(2, 512))
+            values.append(torch.rand(2, last_dim))
             key_list.append("linear.bias")
             values.append(torch.rand(2))
             key_list.append("simclr_layer.0.weight")
-            values.append(torch.rand(512, 512))
+            values.append(torch.rand(last_dim, last_dim))
 
             key_list.append("simclr_layer.0.bias")
-            values.append(torch.rand(512))
+            values.append(torch.rand(last_dim))
 
             key_list.append("simclr_layer.2.weight")
-            values.append(torch.rand(128, 512))
+            values.append(torch.rand(128, last_dim))
 
             key_list.append("simclr_layer.2.bias")
             values.append(torch.rand(128))
 
             key_list.append("shift_cls_layer.weight")
-            values.append(torch.rand(2, 512))
+            values.append(torch.rand(2, last_dim))
 
             key_list.append("shift_cls_layer.bias")
             values.append(torch.rand(2))
 
             key_list.append("joint_distribution_layer.weight")
-            values.append(torch.rand(8, 512))
+            values.append(torch.rand(8, last_dim))
 
             key_list.append("joint_distribution_layer.bias")
             values.append(torch.rand(8))

@@ -337,6 +337,7 @@ def _resnet(
     #    model.layer4 = None
     #    model.fc = None
     if pretrained:
+        unode= False
         if unode:
             dic = torch.load(unode_path)
             # print('loaded keys:', dic.keys())

@@ -384,6 +384,7 @@ def _resnet(
 
             key_list.append("joint_distribution_layer.bias")
             values.append(torch.rand(8))
+            print(key_list)
             n = len(key_list)
 
             new_dict = {key_list[i]: values[i] for i in range(n)}

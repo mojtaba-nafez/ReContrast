@@ -332,9 +332,9 @@ def _resnet(
     unode = True if unode_path is not None else False
     is_wide = True if arch == 'wide_resnet50_2' else False
     model = ResNet(block, layers, is_unode_model, pretrain_unode_weghts=pretrain_unode_weghts, is_wide=is_wide, **kwargs)
-    # if (not head_end) and (not is_unode_model):
-    #    model.layer4 = None
-    #    model.fc = None
+    if (not head_end) and (not is_unode_model):
+        model.layer4 = None
+        model.fc = None
     if pretrained:
         if unode:
             dic = torch.load(unode_path)

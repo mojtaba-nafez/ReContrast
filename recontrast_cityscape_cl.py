@@ -26,6 +26,7 @@ import glob
 import pandas as pd
 from PIL import Image
 from cutpaste_transformation import *
+from torch.utils.data import DataLoader, Dataset
 
 warnings.filterwarnings("ignore")
 

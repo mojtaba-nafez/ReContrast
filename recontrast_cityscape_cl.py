@@ -30,6 +30,39 @@ from torch.utils.data import DataLoader, Dataset
 
 warnings.filterwarnings("ignore")
 
+class BinaryClassifier(nn.Module):
+    def __init__(self, in_channels=1024):
+        super(BinaryClassifier, self).__init__()
+        # input shape: [Batch size, 256, 16, 16]
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # output shape: [Batch size, 256, 1, 1]
+        self.flatten = nn.Flatten()
+        # output shape: [Batch size, 256]
+        self.fc = nn.Linear(in_channels, 2)
+
+    def forward(self, x):
+        x = self.adaptive_pool(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        return x
+
+
+class BinaryClassifier2(nn.Module):
+    def __init__(self, in_channels=2048):
+        super(BinaryClassifier2, self).__init__()
+        # input shape: [Batch size, 256, 16, 16]
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # output shape: [Batch size, 256, 1, 1]
+        self.flatten = nn.Flatten()
+        # output shape: [Batch size, 256]
+        self.fc = nn.Linear(in_channels, 2)
+
+    def forward(self, x):
+        x = self.adaptive_pool(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        return x
+
 
 def get_cityscape_globs():
     from glob import glob

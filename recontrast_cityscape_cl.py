@@ -134,6 +134,32 @@ class GTA(Dataset):
     def __len__(self):
         return len(self.image_files)
 
+class GTA_Test(Dataset):
+    def __init__(self, image_path, labels, transform=None, count=-1):
+        self.transform = transform
+        self.image_files = image_path
+        self.labels = labels
+        if count != -1:
+            if count<len(self.image_files):
+                self.image_files = self.image_files[:count]
+                self.labels = self.labels[:count]
+            else:
+                t = len(self.image_files)
+                for i in range(count-t):
+                    self.image_files.append(random.choice(self.image_files[:t]))
+                    self.labels.append(random.choice(self.labels[:t]))
+
+    def __getitem__(self, index):
+        image_file = self.image_files[index]
+        image = Image.open(image_file)
+        image = image.convert('RGB')
+        if self.transform is not None:
+            image = self.transform(image)
+        return image, 1, self.labels[index], image_file
+
+    def __len__(self):
+        return len(self.image_files)
+
 
 
 def get_logger(name, save_path=None, level='INFO'):
@@ -241,10 +267,10 @@ def train(_class_, shrink_factor=None, total_iters=2000, evaluation_epochs=250, 
     train_data2 = GTA(image_path=normal_path_train, labels=train_label,
                         transform=data_transform)
 
-    test_data1 = GTA(image_path=test_path, labels=test_label,
+    test_data1 = GTA_Test(image_path=test_path, labels=test_label,
                         transform=data_transform)
     glob_train_id, glob_test_id, glob_ood = get_gta_globs()
-    test_data2 = GTA(image_path=glob_test_id + glob_ood, labels=[0] * len(glob_test_id) + [1] * len(glob_ood),
+    test_data2 = GTA_Test(image_path=glob_test_id + glob_ood, labels=[0] * len(glob_test_id) + [1] * len(glob_ood),
                         transform=data_transform)
     
     # visualize_random_samples_from_clean_dataset(train_data, 'train dataset RSNA')

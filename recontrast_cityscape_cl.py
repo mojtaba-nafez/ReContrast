@@ -14,7 +14,7 @@ import torch.backends.cudnn as cudnn
 import argparse
 from utils import evaluation_noseg, visualize_noseg
 from utils import global_cosine, global_cosine_hm
-from torch.utils.data import DataLoader, 
+from torch.utils.data import DataLoader, Dataset
 
 from torch.nn import functional as F
 from functools import partial
